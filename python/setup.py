@@ -14,6 +14,5 @@ module1 = Extension('midiseq',
                                mdsq_libc_path + 'beta_engine/engine.c'])
 
 setup (name = 'midiseq',
-       version = '1.0',
-       description = 'midiseq',
+       description = 'sequencer midi',
        ext_modules = [module1])
