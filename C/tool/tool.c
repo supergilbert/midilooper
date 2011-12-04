@@ -47,8 +47,10 @@ void push_to_list(list_t *list, void *addr)
       new_node->addr = addr;
       new_node->next = NULL;
       new_node->prev = NULL;
-      list->head = new_node;
       list->tail = new_node;
+#warning TODO: Atomic assigment
+      /* Atomic assigment */
+      list->head = new_node;
     }
   else
     {
@@ -56,6 +58,7 @@ void push_to_list(list_t *list, void *addr)
       new_node->next = list->head;
       new_node->prev = NULL;
       list->head->prev = new_node;
+      /* Atomic assigment */
       list->head = new_node;
     }
   (list->len)++;
@@ -70,16 +73,19 @@ void push_to_list_tail(list_t *list, void *addr)
       new_node->addr = addr;
       new_node->next = NULL;
       new_node->prev = NULL;
-      list->head = new_node;
       list->tail = new_node;
+      /* Atomic assigment */
+      list->head = new_node;
     }
   else
     {
       new_node->addr = addr;
-      new_node->prev = list->tail;
       new_node->next = NULL;
-      list->tail->next = new_node;
+      new_node->prev = list->tail;
+      //      list->tail->next = new_node;
       list->tail = new_node;
+      /* Atomic assigment */
+      new_node->prev->next = new_node;
     }
   (list->len)++;
 }
@@ -99,8 +105,9 @@ void iter_push_before(list_iterator_t *iterator, void *addr)
     {
       node->prev = NULL;
       node->next = NULL;
-      iterator->list->head = node;
       iterator->list->tail = node;
+      /* Atomic assigment */
+      iterator->list->head = node;
     }
   else
     {
@@ -110,13 +117,15 @@ void iter_push_before(list_iterator_t *iterator, void *addr)
         {
           node->prev = NULL;
           iterator->node->prev = node;
+          /* Atomic assigment */
           iterator->list->head = node;
         }
       else
         {
           node->prev = iterator->node->prev;
-          iterator->node->prev->next = node;
           iterator->node->prev = node;
+          /* Atomic assigment */
+          iterator->node->prev->next = node;
         }
     }
   (iterator->list->len)++;
