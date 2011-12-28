@@ -175,8 +175,6 @@ class MsqNoteGridWidget(gtk.Widget):
             time_pos += 1
             xpos += self.xpadsz
 
-        # win_xsize, win_ysize = self.window.get_size()
-
     def draw_notes(self, area):
         xmax = area.x + area.width
         ymax = area.y + area.height
@@ -238,6 +236,8 @@ class MsqNoteGridWidget(gtk.Widget):
                     else: # MIDI_NOTEOFF_EVENT
                         noteon = pop_1st_note_in_list(note, noteon_list)
                         if noteon == None:
+                            noteon = pop_1st_note_in_list(note, noteon_bkp)
+                        if noteon == None:
                             # Handling noteoff with no preceding noteon
                             xsize = xpos - area.x
                             if xsize > 0:
@@ -263,25 +263,53 @@ if __name__ == '__main__':
     win.set_title('test')
     win.connect('delete-event', gtk.main_quit)
 
+    xpadsz = NG_XPADSZ
+
     vbar = MsqVBarNoteWidget()
-    matrix = MsqNoteGridWidget(ypadsz=vbar.ypadsz)
+    ypadsz = vbar.ypadsz
+    matrix = MsqNoteGridWidget(ypadsz=ypadsz)
 
     vp1 = gtk.Viewport()
     vp1.set_size_request(320, 240)
     vp1.add(matrix)
 
+    vadj = vp1.get_vadjustment()
+    hadj = vp1.get_hadjustment()
+
     vp2 = gtk.Viewport()
-    vp2.set_vadjustment(vp1.get_vadjustment())
+    vp2.set_vadjustment(vadj)
     vp2.set_size_request(-1, 240)
     vp2.add(vbar)
 
-    vsb = gtk.VScrollbar(vp1.get_vadjustment())
-    hsb = gtk.HScrollbar(vp1.get_hadjustment())
+    vsb = gtk.VScrollbar(vadj)
+    hsb = gtk.HScrollbar(hadj)
 
     vp1.set_shadow_type(gtk.SHADOW_NONE)
     vp2.set_shadow_type(gtk.SHADOW_NONE)
 
     table = gtk.Table(3, 3)
+
+    def set_adjustment(widget, event, vadj, hadj, xpadsz, ypadsz):
+        value = vadj.get_value()
+        xinc = xpadsz * 3
+        yinc = ypadsz * 3
+        if event.direction == gdk.SCROLL_DOWN:
+            new_val = value + yinc
+            vupper = vadj.upper - vadj.page_size
+            vadj.set_value(new_val if new_val <= vupper else vupper)
+        elif event.direction == gdk.SCROLL_UP:
+            new_val = value - yinc
+            vadj.set_value(new_val if new_val >= vadj.lower else vadj.lower)
+        elif event.direction == gdk.SCROLL_RIGHT:
+            new_val = value + xinc
+            hupper = hadj.upper - hadj.page_size
+            hadj.set_value(new_val if new_val <= hupper else hupper)
+        elif event.direction == gdk.SCROLL_LEFT:
+            new_val = value - xinc
+            hadj.set_value(new_val if new_val >= hadj.lower else hadj.lower)
+
+    vp1.connect("scroll_event", set_adjustment, vadj, hadj, xpadsz, ypadsz)
+    vp2.connect("scroll_event", set_adjustment, vadj, hadj, xpadsz, ypadsz)
 
     table.attach(vp2, 0, 1, 0, 1, 0, gtk.FILL)
     table.attach(vp1, 1, 2, 0, 1, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
