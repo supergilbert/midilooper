@@ -22,22 +22,22 @@ MIDI_NOTEON_EVENT  = 0x9
 
 NG_YPADSZ = gdk.Font(VBN_FONT_NAME).string_height("C -1")
 
-MIDI_SEQ_TEST = ((0,   ((MIDI_NOTEON_EVENT, 0, 0, 127),)),
-                 (48,  ((MIDI_NOTEOFF_EVENT, 0, 0, 127),
-                        (MIDI_NOTEON_EVENT, 0, 2, 127))),
-                 (96,  ((MIDI_NOTEON_EVENT, 0, 5, 127),
-                        (MIDI_NOTEOFF_EVENT, 0, 2, 127))),
-                 (144, ((MIDI_NOTEOFF_EVENT, 0, 5, 127),)),
-                 (192, ((MIDI_NOTEON_EVENT, 0, 64, 127),)),
-                 (192, ((MIDI_NOTEON_EVENT, 0, 127, 127),)),
-                 (240, ((MIDI_NOTEOFF_EVENT, 0, 127, 127),)),
-                 (288, ((MIDI_NOTEON_EVENT, 0, 5, 127),)),
-                 (336, ((MIDI_NOTEOFF_EVENT, 0, 5, 127),)),
-                 (676, ((MIDI_NOTEOFF_EVENT, 0, 64, 127),)),
-                 (2880, ((MIDI_NOTEON_EVENT, 0, 5, 127),)),
-                 (2928, ((MIDI_NOTEOFF_EVENT, 0, 5, 127),)))
-# MIDI_SEQ_TEST = ((192, ((MIDI_NOTEON_EVENT, 0, 64, 127),)),
-#                  (676, ((MIDI_NOTEOFF_EVENT, 0, 64, 127),)))
+MIDI_SEQ_TEST = [(24,   [(MIDI_NOTEON_EVENT, 0, 0, 127),]),
+                 (48,  [(MIDI_NOTEOFF_EVENT, 0, 0, 127),
+                        (MIDI_NOTEON_EVENT, 0, 2, 127)]),
+                 (96,  [(MIDI_NOTEON_EVENT, 0, 5, 127),
+                        (MIDI_NOTEOFF_EVENT, 0, 2, 127)]),
+                 (144, [(MIDI_NOTEOFF_EVENT, 0, 5, 127),]),
+                 (192, [(MIDI_NOTEON_EVENT, 0, 64, 127),]),
+                 (192, [(MIDI_NOTEON_EVENT, 0, 127, 127),]),
+                 (240, [(MIDI_NOTEOFF_EVENT, 0, 127, 127),]),
+                 (288, [(MIDI_NOTEON_EVENT, 0, 5, 127),]),
+                 (336, [(MIDI_NOTEOFF_EVENT, 0, 5, 127),]),
+                 (676, [(MIDI_NOTEOFF_EVENT, 0, 64, 127),]),
+                 (2880, [(MIDI_NOTEON_EVENT, 0, 5, 127),]),
+                 (2928, [(MIDI_NOTEOFF_EVENT, 0, 5, 127),])]
+# MIDI_SEQ_TEST = [(192, [(MIDI_NOTEON_EVENT, 0, 64, 127),]),
+#                  (676, [(MIDI_NOTEOFF_EVENT, 0, 64, 127),])]
 
 
 class MsqVBarNoteWidget(gtk.Widget):
@@ -119,6 +119,41 @@ class MsqNoteGridWidget(gtk.Widget):
         self.ppq = ppq
         self.pattern = None
         self.set_pad_size(xpadsz, ypadsz)
+        self.sequence = MIDI_SEQ_TEST
+        self.button_press_param = {"channel": 0, "val_on": 127, "val_off": 0, "len": ppq}
+
+    def add_note_to_seq(self, tick, note):
+        for idx, elt in enumerate(self.sequence):
+            if elt[0] == tick:
+                elt[1].append(note)
+                return
+            elif elt[0] > tick:
+                self.sequence.insert(idx - 1 if idx != 0 else 0,
+                                     (tick, [note]))
+                return
+        self.sequence.append((tick, [note]))
+
+    def draw_note(self, tick, note, len, val_on, val_off=0):
+        xpos = tick * self.xpadsz / self.ppq
+        xsize = len * self.xpadsz / self.ppq
+        ypos = ((127 - note) * self.ypadsz) + 1
+        self.window.draw_rectangle(self.light, True, xpos, ypos, xsize, self.ypadsz - 1)
+
+    def handle_button_press(self, widget, event):
+        tick = int(event.x * self.ppq / self.xpadsz)
+        note = int(128 - (event.y / self.ypadsz))
+        noteon = (MIDI_NOTEON_EVENT,
+                  self.button_press_param["channel"],
+                  note,
+                  self.button_press_param["val_on"])
+        self.draw_note(tick,
+                       note,
+                       self.button_press_param["len"],
+                       self.button_press_param["val_on"],
+                       self.button_press_param["val_off"])
+        self.add_note_to_seq(tick, noteon)
+        self.add_note_to_seq(tick + self.button_press_param["len"],
+                             (MIDI_NOTEOFF_EVENT, self.button_press_param["channel"], note, self.button_press_param["val_on"]))
 
     def do_realize(self):
         self.set_flags(gtk.REALIZED)
@@ -127,7 +162,7 @@ class MsqNoteGridWidget(gtk.Widget):
                                  height=self.allocation.height,
                                  window_type=gdk.WINDOW_CHILD,
                                  wclass=gdk.INPUT_OUTPUT,
-                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK)
+                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK | gdk.BUTTON_PRESS_MASK)
         self.window.set_user_data(self)
         self.window.move_resize(*self.allocation)
 
@@ -138,6 +173,9 @@ class MsqNoteGridWidget(gtk.Widget):
 
         self.light = self.window.new_gc()
         self.light.set_foreground(self.style.dark_gc[gtk.STATE_NORMAL].foreground)
+
+        self.connect("button_press_event", self.handle_button_press)
+
 
     def do_unrealize(self):
         self.window.set_user_data(None)
@@ -163,17 +201,17 @@ class MsqNoteGridWidget(gtk.Widget):
 
         self.window.draw_rectangle(self.bg_gc, True, area.x, area.y, area.width, area.height)
 
-        while ypos < ymax:
-            gc = self.dark if ((128 - note_pos) % 12) == 0 else self.light
-            self.window.draw_line(gc, area.x, ypos, xmax, ypos)
-            note_pos += 1
-            ypos += self.ypadsz
-
         while xpos <= xmax:
             gc = self.dark if (time_pos % mlen) == 0 else self.light
             self.window.draw_line(gc, xpos, area.y, xpos, ymax)
             time_pos += 1
             xpos += self.xpadsz
+
+        while ypos < ymax:
+            gc = self.dark if ((128 - note_pos) % 12) == 0 else self.light
+            self.window.draw_line(gc, area.x, ypos, xmax, ypos)
+            note_pos += 1
+            ypos += self.ypadsz
 
     def draw_notes(self, area):
         xmax = area.x + area.width
@@ -189,7 +227,7 @@ class MsqNoteGridWidget(gtk.Widget):
 
         noteon_list = []
         noteon_bkp = []
-        for tick, midiev_list in MIDI_SEQ_TEST:
+        for tick, midiev_list in self.sequence:
             xpos = self.xpadsz * tick / self.ppq
             # Handling possible couple of 'note on' 'note off' around area position
             if xpos < area.x:
@@ -261,7 +299,7 @@ gobject.type_register(MsqNoteGridWidget)
 if __name__ == '__main__':
     win = gtk.Window()
     win.set_title('test')
-    win.connect('delete-event', gtk.main_quit)
+    win.connect('delete_event', gtk.main_quit)
 
     xpadsz = NG_XPADSZ
 
