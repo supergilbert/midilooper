@@ -22,6 +22,8 @@ MIDI_NOTEON_EVENT  = 0x9
 
 NG_YPADSZ = gdk.Font(VBN_FONT_NAME).string_height("C -1")
 
+DEFAULT_LEN = 8 * 4 * 4
+
 MIDI_SEQ_TEST = [(24,   [(MIDI_NOTEON_EVENT, 0, 0, 127),]),
                  (48,  [(MIDI_NOTEOFF_EVENT, 0, 0, 127),
                         (MIDI_NOTEON_EVENT, 0, 2, 127)]),
@@ -39,6 +41,80 @@ MIDI_SEQ_TEST = [(24,   [(MIDI_NOTEON_EVENT, 0, 0, 127),]),
 # MIDI_SEQ_TEST = [(192, [(MIDI_NOTEON_EVENT, 0, 64, 127),]),
 #                  (676, [(MIDI_NOTEOFF_EVENT, 0, 64, 127),])]
 
+
+class MsqHBarTimeWidget(gtk.Widget):
+    def __init__(self, mlen=4, xpadsz=NG_XPADSZ, font_name=VBN_FONT_NAME):
+        gtk.Widget.__init__(self)
+
+        self.mlen = mlen
+        self.xpadsz = xpadsz
+        self.hbarlen = xpadsz * DEFAULT_LEN
+
+        self.font = gdk.Font(font_name)
+        self.font_height = self.font.string_height("45")
+        self.height = (self.font_height + 1) * 3
+
+    def do_realize(self):
+        self.set_flags(gtk.REALIZED)
+        self.window = gdk.Window(self.get_parent_window(),
+                                 width=self.allocation.width,
+                                 height=self.allocation.height,
+                                 window_type=gdk.WINDOW_CHILD,
+                                 wclass=gdk.INPUT_OUTPUT,
+                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK)
+        self.window.set_user_data(self)
+        self.window.move_resize(*self.allocation)
+
+        self.dark = self.window.new_gc()
+
+        self.light = self.window.new_gc()
+        self.light.set_foreground(self.style.dark_gc[gtk.STATE_NORMAL].foreground)
+
+        # self.bg_gc = self.window.new_gc()
+        # self.bg_gc.set_foreground(self.style.bg_gc[gtk.STATE_NORMAL].foreground)
+
+    def do_unrealize(self):
+        self.window.set_user_data(None)
+
+    def do_size_request(self, requisition):
+        requisition.width  = self.hbarlen
+        requisition.height = self.height
+
+    def do_size_allocate(self, allocation):
+        self.allocation = allocation
+        if self.flags() & gtk.REALIZED:
+            self.window.move_resize(*self.allocation)
+
+    def do_expose_event(self, event):
+        area = event.area
+        self.window.draw_rectangle(self.light,
+                                   True,
+                                   area.x,
+                                   area.y,
+                                   area.width,
+                                   area.height)
+        xmax = area.x + area.width
+        ymax = area.y + area.height
+        # if ymax > self.max_height:
+        #     ymax = self.max_height
+        xpos = area.x - (area.x % self.xpadsz)
+        time_pos = xpos / self.xpadsz
+
+        mypos = self.font_height * 2
+        nypos = self.font_height * 5 / 2
+        while xpos <= xmax:
+            if (time_pos % self.mlen) == 0:
+                self.window.draw_string(self.font, self.dark, xpos, 2 + self.font_height, "%i" % time_pos)
+                ypos = mypos
+            else:
+                ypos = nypos
+            if area.y > ypos:
+                ypos = area.y
+            self.window.draw_line(self.dark, xpos, ypos, xpos, ymax)
+            time_pos += 1
+            xpos += self.xpadsz
+        ypos = self.height - 1
+        self.window.draw_line(self.dark, area.x, ypos, area.x + area.width, ypos)
 
 class MsqVBarNoteWidget(gtk.Widget):
     def __init__(self, font_name=VBN_FONT_NAME):
@@ -119,19 +195,20 @@ class MsqNoteGridWidget(gtk.Widget):
         self.ppq = ppq
         self.pattern = None
         self.set_pad_size(xpadsz, ypadsz)
-        self.sequence = MIDI_SEQ_TEST
+        self.sequence_list = MIDI_SEQ_TEST
+        self.sequence_len = DEFAULT_LEN
         self.button_press_param = {"channel": 0, "val_on": 127, "val_off": 0, "len": ppq}
 
     def add_note_to_seq(self, tick, note):
-        for idx, elt in enumerate(self.sequence):
+        for idx, elt in enumerate(self.sequence_list):
             if elt[0] == tick:
                 elt[1].append(note)
                 return
             elif elt[0] > tick:
-                self.sequence.insert(idx - 1 if idx != 0 else 0,
+                self.sequence_list.insert(idx - 1 if idx != 0 else 0,
                                      (tick, [note]))
                 return
-        self.sequence.append((tick, [note]))
+        self.sequence_list.append((tick, [note]))
 
     def draw_note(self, tick, note, len, val_on, val_off=0):
         xpos = tick * self.xpadsz / self.ppq
@@ -181,7 +258,7 @@ class MsqNoteGridWidget(gtk.Widget):
         self.window.set_user_data(None)
 
     def do_size_request(self, requisition):
-        requisition.width  = self.mlen * 4 * self.xpadsz * 8
+        requisition.width  = self.xpadsz * self.sequence_len
         requisition.height = self.max_height
 
     def do_size_allocate(self, allocation):
@@ -227,8 +304,8 @@ class MsqNoteGridWidget(gtk.Widget):
 
         noteon_list = []
         noteon_bkp = []
-        for tick, midiev_list in self.sequence:
-            xpos = self.xpadsz * tick / self.ppq
+        for tick, midiev_list in self.sequence_list:
+            xpos = tick * self.xpadsz / self.ppq
             # Handling possible couple of 'note on' 'note off' around area position
             if xpos < area.x:
                 for midiev in midiev_list:
@@ -293,6 +370,7 @@ class MsqNoteGridWidget(gtk.Widget):
         self.draw_grid(event.area, self.mlen)
         self.draw_notes(event.area)
 
+gobject.type_register(MsqHBarTimeWidget)
 gobject.type_register(MsqVBarNoteWidget)
 gobject.type_register(MsqNoteGridWidget)
 
@@ -303,27 +381,34 @@ if __name__ == '__main__':
 
     xpadsz = NG_XPADSZ
 
+    hbar = MsqHBarTimeWidget()
     vbar = MsqVBarNoteWidget()
     ypadsz = vbar.ypadsz
     matrix = MsqNoteGridWidget(ypadsz=ypadsz)
 
-    vp1 = gtk.Viewport()
-    vp1.set_size_request(320, 240)
-    vp1.add(matrix)
+    matrix_vp = gtk.Viewport()
+    matrix_vp.set_size_request(320, 240)
+    matrix_vp.add(matrix)
 
-    vadj = vp1.get_vadjustment()
-    hadj = vp1.get_hadjustment()
+    hadj = matrix_vp.get_hadjustment()
+    vadj = matrix_vp.get_vadjustment()
 
-    vp2 = gtk.Viewport()
-    vp2.set_vadjustment(vadj)
-    vp2.set_size_request(-1, 240)
-    vp2.add(vbar)
+    hbar_vp = gtk.Viewport()
+    hbar_vp.set_hadjustment(hadj)
+    hbar_vp.set_size_request(320, -1)
+    hbar_vp.add(hbar)
 
-    vsb = gtk.VScrollbar(vadj)
+    vbar_vp = gtk.Viewport()
+    vbar_vp.set_vadjustment(vadj)
+    vbar_vp.set_size_request(-1, 240)
+    vbar_vp.add(vbar)
+
     hsb = gtk.HScrollbar(hadj)
+    vsb = gtk.VScrollbar(vadj)
 
-    vp1.set_shadow_type(gtk.SHADOW_NONE)
-    vp2.set_shadow_type(gtk.SHADOW_NONE)
+    matrix_vp.set_shadow_type(gtk.SHADOW_NONE)
+    hbar_vp.set_shadow_type(gtk.SHADOW_NONE)
+    vbar_vp.set_shadow_type(gtk.SHADOW_NONE)
 
     table = gtk.Table(3, 3)
 
@@ -346,13 +431,15 @@ if __name__ == '__main__':
             new_val = value - xinc
             hadj.set_value(new_val if new_val >= hadj.lower else hadj.lower)
 
-    vp1.connect("scroll_event", set_adjustment, vadj, hadj, xpadsz, ypadsz)
-    vp2.connect("scroll_event", set_adjustment, vadj, hadj, xpadsz, ypadsz)
+    matrix_vp.connect("scroll_event", set_adjustment, vadj, hadj, xpadsz, ypadsz)
+    hbar_vp.connect("scroll_event", set_adjustment, vadj, hadj, xpadsz, ypadsz)
+    vbar_vp.connect("scroll_event", set_adjustment, vadj, hadj, xpadsz, ypadsz)
 
-    table.attach(vp2, 0, 1, 0, 1, 0, gtk.FILL)
-    table.attach(vp1, 1, 2, 0, 1, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
-    table.attach(vsb, 2, 3, 0, 1, 0, gtk.FILL)
-    table.attach(hsb, 1, 2, 1, 2, gtk.FILL, 0)
+    table.attach(hbar_vp, 1, 2, 0, 1, gtk.FILL, 0)
+    table.attach(vbar_vp, 0, 1, 1, 2, 0, gtk.FILL)
+    table.attach(matrix_vp, 1, 2, 1, 2, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
+    table.attach(vsb, 2, 3, 1, 2, 0, gtk.FILL)
+    table.attach(hsb, 1, 2, 2, 3, gtk.FILL, 0)
 
     win.add(table)
 
