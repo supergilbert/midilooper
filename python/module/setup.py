@@ -1,6 +1,6 @@
 from distutils.core import setup, Extension
 
-mdsq_libc_path = '../C/'
+mdsq_libc_path = '../../C/'
 
 module1 = Extension('midiseq',
                     include_dirs = [mdsq_libc_path],
@@ -10,8 +10,7 @@ module1 = Extension('midiseq',
                     sources = ['pym_midiseq_class.c',
                                'pym_midiseq_track.c',
                                'pym_midiseq_file.c',
-                               'pym_midiseq.c',
-                               mdsq_libc_path + 'beta_engine/engine.c'])
+                               'pym_midiseq.c'])
 
 setup (name = 'midiseq',
        description = 'sequencer midi',

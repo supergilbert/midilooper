@@ -169,7 +169,7 @@ def get_track_dict(trackev_list):
 
 if __name__ == '__main__':
     # import sys
-    # sys.path.append('./build/lib.linux-x86_64-2.7')
+    # sys.path.append('./module')
     # import midiseq
     # midif = midiseq.midifile("../../file/midi/Highway_to_Hell.mid")
     # track = midif.getmergedtrack()
