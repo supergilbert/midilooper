@@ -48,6 +48,8 @@ typedef struct
 engine_ctx_t    *init_engine(char *aport_name);
 void            free_engine_ctx(engine_ctx_t *ctx);
 bool_t          start_engine(engine_ctx_t *ctx);
+void            stop_engine(engine_ctx_t *ctx);
+void            wait_engine(engine_ctx_t *ctx);
 clock_req_t     engine_cb(void *arg);
 
 #endif

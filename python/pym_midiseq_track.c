@@ -25,9 +25,80 @@ static PyObject *midiseq_track_getname(PyObject *self, PyObject *args)
   return Py_BuildValue("s", track_name);
 }
 
+
+#include "midi/midiev_inc.h"
+static PyObject *build_seqev(midicev_t *midicev)
+{
+  if (midicev->type == NOTEON || (midicev->type == NOTEOFF))
+    {
+      return Py_BuildValue("(iiii)",
+                           midicev->type,
+                           midicev->chan,
+                           midicev->event.note.num,
+                           midicev->event.note.val);
+    }
+    return NULL;
+}
+
+static PyObject *build_tickev(tickev_t *tickev)
+{
+  /* PyObject              *tickev_obj = NULL; */
+  PyObject              *seqev_list_obj = NULL;
+  list_iterator_t       seqev_it;
+  seqev_t               *seqev = NULL;
+  PyObject              *seqev_obj = NULL;
+
+  if (tickev)
+    {
+      seqev_list_obj = PyList_New(0);
+      for (iter_init(&seqev_it, &(tickev->seqev_list));
+           iter_node(&seqev_it);
+           iter_next(&seqev_it))
+        {
+          seqev = (seqev_t *) iter_node_ptr(&seqev_it);
+          if (seqev && seqev->type == MIDICEV)
+            {
+              seqev_obj = build_seqev((midicev_t *) seqev->addr);
+              if (seqev_obj)
+                PyList_Append(seqev_list_obj, seqev_obj);
+            }
+        }
+      return Py_BuildValue("(iO)", tickev->tick, seqev_list_obj);
+    }
+  return NULL;
+}
+
+static PyObject *midiseq_track_getevents(PyObject *self, PyObject *args)
+{
+  midiseq_trackObject   *trackpy = (midiseq_trackObject *) self;
+  PyObject              *track_obj = Py_None;
+  PyObject              *tickev_obj = NULL;
+  list_iterator_t       tick_it;
+  tickev_t              *tickev = NULL;
+  unsigned int          min, max;
+
+  if (trackpy->track)
+    {
+      /* min = ((tickev_t *) iter_node_ptr(&tick_it))->tick; */
+      track_obj = PyList_New(0);
+      for (iter_init(&tick_it, &(trackpy->track->tickev_list));
+           iter_node(&tick_it);
+           iter_next(&tick_it))
+        {
+          tickev_obj = build_tickev(iter_node_ptr(&tick_it));
+          if (tickev_obj)
+            PyList_Append(track_obj, tickev_obj);
+        }
+      min = ((tickev_t*) tick_it.list->head->addr)->tick;
+      max = ((tickev_t*) tick_it.list->tail->addr)->tick;
+    }
+  return Py_BuildValue("iiO", min, max, track_obj);
+}
+
 static PyMethodDef midiseq_track_methods[] = {
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
   {"getname", midiseq_track_getname, METH_NOARGS, "get track name"},
+  {"getevents", midiseq_track_getevents, METH_NOARGS, "get track events"},
   {NULL, NULL, 0, NULL}
 };
 

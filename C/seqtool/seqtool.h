@@ -32,7 +32,7 @@ void add_new_seqev(track_t *track,
                    uint_t tick,
                    void *addr,
                    seqevtype_t type);
-#define add_new_
+/* #define add_new_ */
 
 typedef void (*free_seqev_addr_func)(void *addr);
 

@@ -133,7 +133,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
   return 0;
 }
 
-#warning include a gerer encore une fois
+#warning include a gerer
 #include "seqtool/seqtool.h"
 #include <stdlib.h>
 #include <strings.h>
