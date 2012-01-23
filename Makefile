@@ -4,8 +4,8 @@ CAPI :
 	make -C C
 
 PYTHONAPI :
-	make -C python/module
+	make -C python
 
 clean :
 	make -C C clean
-	make -C python/module clean
+	make -C python clean
