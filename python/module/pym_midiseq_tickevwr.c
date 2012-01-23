@@ -109,7 +109,6 @@ PyObject *create_midiseq_tickevwr(track_t *track)
   midiseq_tickevwrObject *tickevwr = (midiseq_tickevwrObject *) PyObject_New(midiseq_tickevwrObject,
                                                                              &midiseq_tickevwrType);
 
-  printf("Creating object tickevwr\n");
   iter_init(&(tickevwr->tickit), &(track->tickev_list));
   return (PyObject *) tickevwr;
 }

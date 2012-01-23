@@ -4,13 +4,11 @@
 
 static void midiseq_track_dealloc(PyObject *obj)
 {
-  trace_func;
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
   if (self->track != NULL) {
     free_track(self->track);
   }
   self->ob_type->tp_free((PyObject*)self);
-  trace_func;
 }
 
 static PyObject *midiseq_track_getname(PyObject *self, PyObject *args)

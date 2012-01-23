@@ -148,7 +148,7 @@ bool_t          get_midifile_track(midifile_info_t *info,
     }
   else
     {
-      output_warning("No tick event found\n");
+      debug_midi("No tick event found\n");
       free_track(track);
     }
   return TRUE;

@@ -240,6 +240,7 @@ class MsqNoteGridWidget(gtk.Widget):
 
     def handle_button_release(self, widget, event):
         if event.button == 3:
+            self.window.set_cursor(self.cursor_arrow)
             self.button3down = False
         if event.button == 1 and self.button3down:
             tick = int(event.x * self.ppq / self.xpadsz)
@@ -260,6 +261,7 @@ class MsqNoteGridWidget(gtk.Widget):
 
     def handle_button_press(self, widget, event):
         if event.button == 3:
+            self.window.set_cursor(self.cursor_pencil)
             self.button3down = True
 
     def do_realize(self):
@@ -286,6 +288,9 @@ class MsqNoteGridWidget(gtk.Widget):
 
         self.connect("button_press_event", self.handle_button_press)
         self.connect("button_release_event", self.handle_button_release)
+        self.cursor_arrow = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
+        self.cursor_pencil = gtk.gdk.Cursor(gtk.gdk.PENCIL)
+        self.window.set_cursor(self.cursor_arrow)
 
 
     def do_unrealize(self):

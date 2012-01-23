@@ -65,13 +65,11 @@ static PyMethodDef midiseq_file_methods[] = {
 
 static void midiseq_file_dealloc(PyObject *obj)
 {
-  trace_func;
   midiseq_fileObject *self = (midiseq_fileObject *) obj;
 
   if (self->midifile != NULL)
     free_midifile(self->midifile);
   self->ob_type->tp_free((PyObject*)self);
-  trace_func;
 }
 
 midifile_t *read_midifile_path(char *filepath)
@@ -93,26 +91,21 @@ static int midiseq_file_init(midiseq_fileObject *self,
                                    PyObject *kwds)
 {
   char *filepath = NULL;
-  trace_func;
 
   if (args == NULL)
     return -1;
-  trace_func;
 
   if (!PyArg_ParseTuple(args, "s", &filepath))
     return -1;
 
-  trace_func;
   if (filepath == NULL)
     return -1;
 
   self->midifile = read_midifile_path(filepath);
-  trace_func;
   debug("filepath=%s self->midifile=%p\n", filepath, self->midifile);
   if (self->midifile == NULL)
     return -1;
 
-  trace_func;
   /* return (PyObject *) NULL; */
   return 0;
 }

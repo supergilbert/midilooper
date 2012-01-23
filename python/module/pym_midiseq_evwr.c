@@ -117,7 +117,6 @@ PyObject *create_midiseq_evwr(tickev_t *tickev)
   midiseq_evwrObject *evwr = (midiseq_evwrObject *) PyObject_New(midiseq_evwrObject,
                                                                              &midiseq_evwrType);
 
-  printf("Creating object evwr\n");
   iter_init(&(evwr->evit), &(tickev->seqev_list));
   return (PyObject *) evwr;
 }
