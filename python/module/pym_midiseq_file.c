@@ -3,10 +3,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "pym_midiseq_track.h"
 #include "debug_tool/debug_tool.h"
-
 #include "midi/midifile.h"
+
+#include "./pym_midiseq_track.h"
 
 /* file header */
 typedef struct {
@@ -49,11 +49,8 @@ static PyObject *midiseq_file_getmergedtrack(PyObject *self, PyObject *args)
 {
   midiseq_fileObject *pobj = (midiseq_fileObject *) self;
   track_t     *track = merge_all_track("blabla", &(pobj->midifile->track_list));
-  midiseq_trackObject *pytrack = PyObject_New(midiseq_trackObject,
-                                              get_midiseq_trackType());
 
-  pytrack->track = track;
-  return (PyObject *) pytrack;
+  return create_midiseq_track(track);
 }
 
 static PyMethodDef midiseq_file_methods[] = {

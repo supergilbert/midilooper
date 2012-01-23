@@ -2,15 +2,16 @@
 #define __PYM_TRACK
 
 #include <Python.h>
+
 #include "seqtool/seqtool.h"
+
+PyObject *create_midiseq_track(track_t *track);
 
 /* track header */
 typedef struct {
     PyObject_HEAD
-    /* Type-specific fields go here. */
     track_t     *track;
 } midiseq_trackObject;
 
-PyTypeObject *get_midiseq_trackType(void);
 
 #endif

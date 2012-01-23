@@ -45,10 +45,13 @@ class MsqHBarTimeWidget(gtk.Widget):
         self.window.set_user_data(self)
         self.window.move_resize(*self.allocation)
 
-        self.dark = self.window.new_gc()
+        self.dark_gc = self.style.dark_gc[gtk.STATE_NORMAL]
+        self.fg_gc = self.style.fg_gc[gtk.STATE_NORMAL]
 
-        self.light = self.window.new_gc()
-        self.light.set_foreground(self.style.dark_gc[gtk.STATE_NORMAL].foreground)
+        # self.dark = self.window.new_gc()
+
+        # self.light = self.window.new_gc()
+        # self.light.set_foreground(self.style.dark_gc[gtk.STATE_NORMAL].foreground)
 
         # self.bg_gc = self.window.new_gc()
         # self.bg_gc.set_foreground(self.style.bg_gc[gtk.STATE_NORMAL].foreground)
@@ -67,7 +70,7 @@ class MsqHBarTimeWidget(gtk.Widget):
 
     def do_expose_event(self, event):
         area = event.area
-        self.window.draw_rectangle(self.light,
+        self.window.draw_rectangle(self.dark_gc,
                                    True,
                                    area.x,
                                    area.y,
@@ -84,17 +87,17 @@ class MsqHBarTimeWidget(gtk.Widget):
         nypos = self.font_height * 5 / 2
         while xpos <= xmax:
             if (time_pos % self.mlen) == 0:
-                self.window.draw_string(self.font, self.dark, xpos, 2 + self.font_height, "%i" % time_pos)
+                self.window.draw_string(self.font, self.fg_gc, xpos, 2 + self.font_height, "%i" % time_pos)
                 ypos = mypos
             else:
                 ypos = nypos
             if area.y > ypos:
                 ypos = area.y
-            self.window.draw_line(self.dark, xpos, ypos, xpos, ymax)
+            self.window.draw_line(self.fg_gc, xpos, ypos, xpos, ymax)
             time_pos += 1
             xpos += self.xpadsz
         ypos = self.height - 1
-        self.window.draw_line(self.dark, area.x, ypos, area.x + area.width, ypos)
+        self.window.draw_line(self.fg_gc, area.x, ypos, area.x + area.width, ypos)
 
 class MsqVBarNoteWidget(gtk.Widget):
     def __init__(self, font_name=DEFAULT_FONT_NAME):
@@ -208,6 +211,7 @@ class MsqNoteGridWidget(gtk.Widget):
         self.track_len = track_len
         self.button_press_param = {"channel": 0, "val_on": 127, "val_off": 0, "len": ppq}
         self.note_type = note_type
+        self.button3down = False
 
     def add_note_to_seq(self, tick, note):
         for idx, elt in enumerate(self.track):
@@ -234,21 +238,29 @@ class MsqNoteGridWidget(gtk.Widget):
             ypos = 0
         self.draw_all(gtk.gdk.Rectangle(xpos, ypos, xsize + NOTE_PX_SIZE, self.ypadsz + NOTE_PX_SIZE))
 
+    def handle_button_release(self, widget, event):
+        if event.button == 3:
+            self.button3down = False
+        if event.button == 1 and self.button3down:
+            tick = int(event.x * self.ppq / self.xpadsz)
+            note = int(128 - (event.y / self.ypadsz))
+            # import pdb; pdb.set_trace()
+            noteon = (MIDI_NOTEON_EVENT,
+                      self.button_press_param["channel"],
+                      note,
+                      self.button_press_param["val_on"])
+            self.add_note_to_seq(tick, noteon)
+            self.add_note_to_seq(tick + self.button_press_param["len"],
+                                 (MIDI_NOTEOFF_EVENT, self.button_press_param["channel"], note, self.button_press_param["val_on"]))
+            self.draw_note(tick,
+                           note,
+                           self.button_press_param["len"],
+                           self.button_press_param["val_on"],
+                           self.button_press_param["val_off"])
+
     def handle_button_press(self, widget, event):
-        tick = int(event.x * self.ppq / self.xpadsz)
-        note = int(128 - (event.y / self.ypadsz))
-        noteon = (MIDI_NOTEON_EVENT,
-                  self.button_press_param["channel"],
-                  note,
-                  self.button_press_param["val_on"])
-        self.add_note_to_seq(tick, noteon)
-        self.add_note_to_seq(tick + self.button_press_param["len"],
-                             (MIDI_NOTEOFF_EVENT, self.button_press_param["channel"], note, self.button_press_param["val_on"]))
-        self.draw_note(tick,
-                       note,
-                       self.button_press_param["len"],
-                       self.button_press_param["val_on"],
-                       self.button_press_param["val_off"])
+        if event.button == 3:
+            self.button3down = True
 
     def do_realize(self):
         self.set_flags(gtk.REALIZED)
@@ -257,7 +269,7 @@ class MsqNoteGridWidget(gtk.Widget):
                                  height=self.allocation.height,
                                  window_type=gdk.WINDOW_CHILD,
                                  wclass=gdk.INPUT_OUTPUT,
-                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK | gdk.BUTTON_PRESS_MASK)
+                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK | gdk.BUTTON_PRESS_MASK | gdk.BUTTON_RELEASE_MASK)
         self.window.set_user_data(self)
         self.window.move_resize(*self.allocation)
 
@@ -273,6 +285,7 @@ class MsqNoteGridWidget(gtk.Widget):
         self.square_pxb = gtk.gdk.pixbuf_new_from_xpm_data(note_off_xpm)
 
         self.connect("button_press_event", self.handle_button_press)
+        self.connect("button_release_event", self.handle_button_release)
 
 
     def do_unrealize(self):

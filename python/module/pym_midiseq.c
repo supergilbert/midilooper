@@ -72,6 +72,8 @@ PyMODINIT_FUNC initmidiseq(void)
   midiseq_module = Py_InitModule3("midiseq", midiseq_module_methods,
                                   "Example module that creates an extension type.");
   PyModule_AddObject(midiseq_module, "midiseq", (PyObject *) init_midiseq_Type());
+  PyModule_AddObject(midiseq_module, "tickevwr", (PyObject *) init_midiseq_tickevwrType());
+  PyModule_AddObject(midiseq_module, "evwr", (PyObject *) init_midiseq_evwrType());
   PyModule_AddObject(midiseq_module, "track", (PyObject *) init_midiseq_trackType());
   PyModule_AddObject(midiseq_module, "midifile", (PyObject *) init_midiseq_fileType());
 }

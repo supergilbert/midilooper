@@ -1,8 +1,6 @@
 #include "./pym_midiseq_track.h"
-/* #include "midi/midifile.h" */
-#include "debug_tool/debug_tool.h"
 
-#include "./pym_midiseq_track.h"
+#include "debug_tool/debug_tool.h"
 
 static void midiseq_track_dealloc(PyObject *obj)
 {
@@ -74,8 +72,8 @@ static PyObject *midiseq_track_getevents(PyObject *self, PyObject *args)
   PyObject              *track_obj = Py_None;
   PyObject              *tickev_obj = NULL;
   list_iterator_t       tick_it;
-  tickev_t              *tickev = NULL;
-  unsigned int          min, max;
+  /* tickev_t              *tickev = NULL; */
+  unsigned int          min = 0, max = 0;
 
   if (trackpy->track)
     {
@@ -95,10 +93,20 @@ static PyObject *midiseq_track_getevents(PyObject *self, PyObject *args)
   return Py_BuildValue("iiO", min, max, track_obj);
 }
 
+#include "./pym_midiseq_tickevwr.h"
+
+static PyObject *midiseq_track_get_tickevwr(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  return create_midiseq_tickevwr(self->track);
+}
+
 static PyMethodDef midiseq_track_methods[] = {
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
-  {"getname", midiseq_track_getname, METH_NOARGS, "get track name"},
-  {"getevents", midiseq_track_getevents, METH_NOARGS, "get track events"},
+  {"getname", midiseq_track_getname, METH_NOARGS, "Get track name"},
+  {"getevents", midiseq_track_getevents, METH_NOARGS, "Get track events"},
+  {"get_tickevwr", midiseq_track_get_tickevwr, METH_NOARGS, "Get tick event wrapper"},
   {NULL, NULL, 0, NULL}
 };
 
@@ -144,7 +152,14 @@ static PyTypeObject midiseq_trackType = {
     0,                           /* tp_new */
 };
 
-PyTypeObject *get_midiseq_trackType(void) { return &midiseq_trackType; }
+PyObject *create_midiseq_track(track_t *track)
+{
+  midiseq_trackObject *pytrack = PyObject_New(midiseq_trackObject,
+                                              &midiseq_trackType);
+
+  pytrack->track = track;
+  return (PyObject *) pytrack;
+}
 
 PyTypeObject *init_midiseq_trackType(void)
 {
