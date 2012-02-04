@@ -2,6 +2,28 @@
 
 #include "debug_tool/debug_tool.h"
 
+static void midiseq_track_init(midiseq_trackObject *self,
+                               PyObject *args,
+                               PyObject *kwds)
+{
+  track_t       *track = NULL;
+  char          *name = NULL;
+
+  track = myalloc(sizeof (track_t));
+  bzero(track, sizeof (track_t));
+
+  if (args != NULL)
+    {
+      if (!PyArg_ParseTuple(args, "s", &name))
+        return -1;
+      if (name == NULL)
+        name = "no track name";
+    }
+  track->name = strdup(name);
+  self->track = track;
+  return 0;
+}
+
 static void midiseq_track_dealloc(PyObject *obj)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
@@ -11,7 +33,7 @@ static void midiseq_track_dealloc(PyObject *obj)
   self->ob_type->tp_free((PyObject*)self);
 }
 
-static PyObject *midiseq_track_getname(PyObject *self, PyObject *args)
+static PyObject *midiseq_track_get_name(PyObject *self, PyObject *args)
 {
   midiseq_trackObject *trackpy = (midiseq_trackObject *) self;
   char *track_name = "no track name";
@@ -64,7 +86,7 @@ static PyObject *build_tickev(tickev_t *tickev)
   return NULL;
 }
 
-static PyObject *midiseq_track_getevents(PyObject *self, PyObject *args)
+static PyObject *midiseq_track_get_events(PyObject *self, PyObject *args)
 {
   midiseq_trackObject   *trackpy = (midiseq_trackObject *) self;
   PyObject              *track_obj = Py_None;
@@ -73,20 +95,23 @@ static PyObject *midiseq_track_getevents(PyObject *self, PyObject *args)
   /* tickev_t              *tickev = NULL; */
   unsigned int          min = 0, max = 0;
 
+  track_obj = PyList_New(0);
   if (trackpy->track)
     {
-      /* min = ((tickev_t *) iter_node_ptr(&tick_it))->tick; */
-      track_obj = PyList_New(0);
-      for (iter_init(&tick_it, &(trackpy->track->tickev_list));
-           iter_node(&tick_it);
-           iter_next(&tick_it))
+      if (LIST_HEAD(&(trackpy->track->tickev_list)) != NULL)
         {
-          tickev_obj = build_tickev(iter_node_ptr(&tick_it));
-          if (tickev_obj)
-            PyList_Append(track_obj, tickev_obj);
+          /* min = ((tickev_t *) iter_node_ptr(&tick_it))->tick; */
+          for (iter_init(&tick_it, &(trackpy->track->tickev_list));
+               iter_node(&tick_it);
+               iter_next(&tick_it))
+            {
+              tickev_obj = build_tickev(iter_node_ptr(&tick_it));
+              if (tickev_obj)
+                PyList_Append(track_obj, tickev_obj);
+            }
+          min = ((tickev_t*) tick_it.list->head->addr)->tick;
+          max = ((tickev_t*) tick_it.list->tail->addr)->tick;
         }
-      min = ((tickev_t*) tick_it.list->head->addr)->tick;
-      max = ((tickev_t*) tick_it.list->tail->addr)->tick;
     }
   return Py_BuildValue("iiO", min, max, track_obj);
 }
@@ -100,11 +125,35 @@ static PyObject *midiseq_track_get_tickevwr(PyObject *obj, PyObject *args)
   return create_midiseq_tickevwr(self->track);
 }
 
+static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+  byte_t channel = 0, tick = 0, type = 0, num = 0, val = 0;
+  midicev_t mcev;
+
+  if (!PyArg_ParseTuple(args, "iiiii", &tick, &type, &channel, &num, &val))
+    {
+      output_error("track_add_note_event: Problem with argument");
+      return NULL;
+    }
+
+  mcev.chan = channel;
+  if (type == NOTEOFF)
+    mcev.type = NOTEOFF;
+  else if (type == NOTEON)
+    mcev.type = NOTEON;
+  mcev.event.note.num = num;
+  mcev.event.note.val = val;
+  add_new_seqev(self->track, tick, (void *) &mcev, MIDICEV);
+  return Py_None;
+}
+
 static PyMethodDef midiseq_track_methods[] = {
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
-  {"getname", midiseq_track_getname, METH_NOARGS, "Get track name"},
-  {"getevents", midiseq_track_getevents, METH_NOARGS, "Get track events"},
+  {"get_name", midiseq_track_get_name, METH_NOARGS, "Get track name"},
+  {"get_events", midiseq_track_get_events, METH_VARARGS, "Get track events"},
   {"get_tickevwr", midiseq_track_get_tickevwr, METH_NOARGS, "Get tick event wrapper"},
+  {"add_note_event", midiseq_track_add_note_event, METH_VARARGS, "Add a note event"},
   {NULL, NULL, 0, NULL}
 };
 
@@ -145,9 +194,9 @@ static PyTypeObject midiseq_trackType = {
     0,                           /* tp_descr_get */
     0,                           /* tp_descr_set */
     0,                           /* tp_dictoffset */
-    0,                           /* tp_init */
+    (initproc) midiseq_track_init, /* tp_init */
     0,                           /* tp_alloc */
-    0,                           /* tp_new */
+    PyType_GenericNew,           /* tp_new */
 };
 
 PyObject *create_midiseq_track(track_t *track)
