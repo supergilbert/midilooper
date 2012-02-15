@@ -123,9 +123,9 @@ void iter_push_before(list_iterator_t *iterator, void *addr)
       else
         {
           node->prev = iterator->node->prev;
-          iterator->node->prev = node;
           /* Atomic assigment */
           iterator->node->prev->next = node;
+          iterator->node->prev = node;
         }
     }
   (iterator->list->len)++;

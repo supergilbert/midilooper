@@ -2,7 +2,7 @@
 
 #include "debug_tool/debug_tool.h"
 
-static void midiseq_track_init(midiseq_trackObject *self,
+static int midiseq_track_init(midiseq_trackObject *self,
                                PyObject *args,
                                PyObject *kwds)
 {
@@ -128,8 +128,8 @@ static PyObject *midiseq_track_get_tickevwr(PyObject *obj, PyObject *args)
 static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
-  byte_t channel = 0, tick = 0, type = 0, num = 0, val = 0;
-  midicev_t mcev;
+  uint_t channel = 0, tick = 0, type = 0, num = 0, val = 0;
+  midicev_t *mcev;
 
   if (!PyArg_ParseTuple(args, "iiiii", &tick, &type, &channel, &num, &val))
     {
@@ -137,14 +137,22 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
       return NULL;
     }
 
-  mcev.chan = channel;
-  if (type == NOTEOFF)
-    mcev.type = NOTEOFF;
-  else if (type == NOTEON)
-    mcev.type = NOTEON;
-  mcev.event.note.num = num;
-  mcev.event.note.val = val;
-  add_new_seqev(self->track, tick, (void *) &mcev, MIDICEV);
+  if (type != NOTEOFF && type != NOTEON)
+    return NULL;
+  mcev = malloc(sizeof (midicev_t));
+  mcev->chan = channel;
+  mcev->type = type;
+  mcev->event.note.num = num;
+  mcev->event.note.val = val;
+  add_new_seqev(self->track, tick, mcev, MIDICEV);
+  return Py_None;
+}
+
+static PyObject *midiseq_track_clear(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  clear_tickev_list(&(self->track->tickev_list));
   return Py_None;
 }
 
@@ -154,6 +162,7 @@ static PyMethodDef midiseq_track_methods[] = {
   {"get_events", midiseq_track_get_events, METH_VARARGS, "Get track events"},
   {"get_tickevwr", midiseq_track_get_tickevwr, METH_NOARGS, "Get tick event wrapper"},
   {"add_note_event", midiseq_track_add_note_event, METH_VARARGS, "Add a note event"},
+  {"clear", midiseq_track_clear, METH_NOARGS, "free all track list to use with caution (/!\\ not while running for now)"},
   {NULL, NULL, 0, NULL}
 };
 

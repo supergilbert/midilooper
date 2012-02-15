@@ -59,6 +59,16 @@ static PyObject *midiseq_settickpos(PyObject *obj,
   return Py_None;
 }
 
+
+static PyObject *midiseq_gettickpos(PyObject *obj,
+                                    PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  return Py_BuildValue("i", self->engine_ctx->looph.clocktick.number);
+}
+
+
 static PyObject *midiseq_setppq(PyObject *obj,
                                 PyObject *args)
 {
@@ -172,6 +182,16 @@ static PyObject *midiseq_wait(PyObject *obj,
   return Py_None;
 }
 
+static PyObject *midiseq_isrunning(PyObject *obj,
+                                   PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  if (engine_isrunning(self->engine_ctx))
+    return Py_True;
+  else
+    return Py_False;
+}
 
 static PyMethodDef midiseq_methods[] = {
   {"setppq", midiseq_setppq, METH_VARARGS,
@@ -180,6 +200,8 @@ static PyMethodDef midiseq_methods[] = {
    "Set sequencer tempo in beat per minute"},
   {"settickpos", midiseq_settickpos, METH_VARARGS,
    "Set sequencer tick position"},
+  {"gettickpos", midiseq_gettickpos, METH_NOARGS,
+   "Get sequencer tick position"},
   {"setms", midiseq_setms, METH_VARARGS,
    "Set sequencer tempo in micro seconde"},
   {"settrack", midiseq_settrack, METH_VARARGS,
@@ -190,6 +212,8 @@ static PyMethodDef midiseq_methods[] = {
    "Stop the engine"},
   {"wait", midiseq_wait, METH_NOARGS,
    "Wait for engine thread end"},
+  {"isrunning", midiseq_isrunning, METH_NOARGS,
+   ""},
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
   /* {"getname", midiseq_readtrack, METH_NOARGS, "get track name"}, */
   {NULL, NULL, 0, NULL}

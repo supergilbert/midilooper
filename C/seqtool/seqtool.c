@@ -33,6 +33,11 @@ void free_tickev(void *addr)
   free(tickev);
 }
 
+void clear_tickev_list(list_t *tickev_list)
+{
+  free_list_node(tickev_list, free_tickev);
+}
+
 void free_track(void *addr)
 {
   track_t *track = (track_t *) addr;
@@ -70,7 +75,7 @@ tickev_t *_search_tickev(track_t *track, uint_t tick)
         {
           tickev = _create_new_tick_ev(tick);
           iter_push_before(&iter, (void *) tickev);
-          return (tickev_t *) iter_node_prev_ptr(&iter);
+          return tickev;
         }
       iter_next(&iter);
     }

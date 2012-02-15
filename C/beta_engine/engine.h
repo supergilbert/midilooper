@@ -51,5 +51,6 @@ bool_t          start_engine(engine_ctx_t *ctx);
 void            stop_engine(engine_ctx_t *ctx);
 void            wait_engine(engine_ctx_t *ctx);
 clock_req_t     engine_cb(void *arg);
+bool_t          engine_isrunning(engine_ctx_t *ctx);
 
 #endif

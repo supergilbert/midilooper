@@ -37,5 +37,5 @@ void add_new_seqev(track_t *track,
 typedef void (*free_seqev_addr_func)(void *addr);
 
 void free_track(void *addr);
-
+void clear_tickev_list(list_t *tickev_list);
 #endif
