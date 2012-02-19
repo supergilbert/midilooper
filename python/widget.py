@@ -38,7 +38,6 @@ class ProgressLineWidget(object):
                                   self.line_cache, 0, 0, self.line_xpos, 0, 1, lheight)
 
     def _update_pos(self, pos):
-        print "pos", pos
         width, height = self.window.get_size()
         if self.line_cache == None:
             self.line_cache = gtk.gdk.Pixmap(self.window, 1, height)
@@ -282,7 +281,6 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         tick = int(xpos * self.ppq / self.xpadsz)
         tick = int(tick / self.note_param["quant"]) * self.note_param["quant"]
         note = int(128 - (ypos / self.ypadsz))
-        # import pdb; pdb.set_trace()
         noteon = (MIDI_NOTEON_EVENT,
                   self.note_param["channel"],
                   note,

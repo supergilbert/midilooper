@@ -60,6 +60,9 @@ class NoteSettingTable(gtk.Table):
     def set_note_quant(self, numerator, denominator, grid):
         grid.note_param["quant"] = grid.ppq * numerator / denominator
 
+    def set_note_value_cb(self, widget, grid):
+        grid.note_param["on"] = widget.get_value()
+
     def __init__(self, grid):
         gtk.Table.__init__(self, 3, 3)
 
@@ -82,6 +85,7 @@ class NoteSettingTable(gtk.Table):
         # spinbut.set_range(0, 127)
         # spinbut.set_value(grid.note_param["val_on"])
         spinbut.set_numeric(True)
+        spinadj.connect("value-changed", self.set_note_value_cb, grid)
         self.attach(label, 0, 2, 2, 3)
         self.attach(spinbut, 2, 3, 2, 3)
 

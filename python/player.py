@@ -39,7 +39,22 @@ class tracked_updater(object):
         self.midi_seq = msq
         self.tracked = tracked
 
-def start_msq(button, msq, track, tracked, tup):
+player_name = "player"
+
+bpm = 120
+ppq = 240
+track_len = 4 * 4 * 10
+track = midiseq.track("%s test track" % player_name)
+msq = midiseq.midiseq("%s test alsa port" % player_name)
+msq.setppq(ppq)
+msq.setbpm(120)
+
+tracked = TrackEditor(track, ppq, track_len=track_len)
+
+tup = tracked_updater(msq, tracked)
+
+
+def start_msq(button, msq, track, tup):
     if msq.isrunning():
         print "start_msq: sequencer already running"
         return True
@@ -54,27 +69,25 @@ def stop_msq(button, msq):
     msq.settickpos(0)
     return True
 
-player_name = "player"
+def spincb(widget, msq):
+    value = widget.get_value()
+    msq.setbpm(int(value))
 
-ppq = 240
-track_len = 4 * 4 * 10
-track = midiseq.track("%s test track" % player_name)
-msq = midiseq.midiseq("%s test alsa port" % player_name)
-msq.setppq(ppq)
-msq.setbpm(120)
-
-tracked = TrackEditor(track, ppq, track_len=track_len)
-tup = tracked_updater(msq, tracked)
+spinadj = gtk.Adjustment(bpm, 40, 208, 1)
+spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
+spinbut.set_numeric(True)
+spinadj.connect("value-changed", spincb, msq)
 
 win = gtk.Window()
 hbox = gtk.HBox()
 button_start =  gtk.Button("Start")
-button_start.connect("clicked", start_msq, msq, track, tracked, tup)
+button_start.connect("clicked", start_msq, msq, track, tup)
 button_stop =  gtk.Button("Stop")
 button_stop.connect("clicked", stop_msq, msq)
 
 hbox.pack_start(button_start)
 hbox.pack_start(button_stop)
+hbox.pack_start(spinbut)
 
 win.add(hbox)
 win.connect('delete_event', gtk.main_quit)
