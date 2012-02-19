@@ -60,7 +60,10 @@ static PyObject *midiseq_evwr_next(PyObject *obj, PyObject *args)
   if (ev)
     return build_event_repr(ev);
   else
-    return Py_None;
+    {
+      Py_INCREF(Py_None);
+      return Py_None;
+    }
 }
 
 static PyMethodDef midiseq_evwr_methods[] = {

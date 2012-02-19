@@ -56,6 +56,7 @@ static PyObject *midiseq_settickpos(PyObject *obj,
     return NULL;
   self->engine_ctx->looph.clocktick.number = tickpos;
 
+  Py_INCREF(Py_None);
   return Py_None;
 }
 
@@ -84,6 +85,7 @@ static PyObject *midiseq_setppq(PyObject *obj,
   debug("set ppq=%d\n", ppq);
   self->engine_ctx->ppq = ppq;
 
+  Py_INCREF(Py_None);
   return Py_None;
 }
 
@@ -105,6 +107,7 @@ static PyObject *midiseq_setbpm(PyObject *obj,
                           bpm,
                           self->engine_ctx->ppq);
 
+  Py_INCREF(Py_None);
   return Py_None;
 }
 
@@ -125,6 +128,7 @@ static PyObject *midiseq_setms(PyObject *obj,
   set_msnppq_to_timespec(&(self->engine_ctx->looph.res),
                          ms,
                          self->engine_ctx->ppq);
+  Py_INCREF(Py_None);
   return Py_None;
 }
 
@@ -150,6 +154,7 @@ static PyObject *midiseq_settrack(PyObject *obj,
   iter_init(&(self->engine_ctx->track_ctx.current_tickev),
             &(self->engine_ctx->track_ctx.track->tickev_list));
   trace_func;
+  Py_INCREF(Py_None);
   return Py_None;
 }
 
@@ -158,7 +163,10 @@ static PyObject *midiseq_start(PyObject *obj,
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
+  Py_BEGIN_ALLOW_THREADS;
   start_engine(self->engine_ctx);
+  Py_END_ALLOW_THREADS;
+  Py_INCREF(Py_None);
   return Py_None;
 }
 
@@ -169,6 +177,7 @@ static PyObject *midiseq_stop(PyObject *obj,
   midiseq_Object *self = (midiseq_Object *) obj;
 
   stop_engine(self->engine_ctx);
+  Py_INCREF(Py_None);
   return Py_None;
 }
 
@@ -179,6 +188,7 @@ static PyObject *midiseq_wait(PyObject *obj,
   midiseq_Object *self = (midiseq_Object *) obj;
 
   wait_engine(self->engine_ctx);
+  Py_INCREF(Py_None);
   return Py_None;
 }
 
@@ -187,10 +197,16 @@ static PyObject *midiseq_isrunning(PyObject *obj,
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
-  if (engine_isrunning(self->engine_ctx))
-    return Py_True;
+  if (self->engine_ctx->info.isrunning)
+    {
+      Py_INCREF(Py_True);
+      return Py_True;
+    }
   else
-    return Py_False;
+    {
+      Py_INCREF(Py_False);
+      return Py_False;
+    }
 }
 
 static PyMethodDef midiseq_methods[] = {
@@ -213,7 +229,7 @@ static PyMethodDef midiseq_methods[] = {
   {"wait", midiseq_wait, METH_NOARGS,
    "Wait for engine thread end"},
   {"isrunning", midiseq_isrunning, METH_NOARGS,
-   ""},
+   "Get if engine is running"},
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
   /* {"getname", midiseq_readtrack, METH_NOARGS, "get track name"}, */
   {NULL, NULL, 0, NULL}

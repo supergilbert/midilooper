@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import gobject
+gobject.threads_init()
+
 import pygtk
 pygtk.require("2.0")
 import gtk
@@ -12,54 +14,39 @@ if gtk.pygtk_version < (2, 8):
 
 import sys
 
-# from threading import Thread
-# import time
-
 sys.path.append('./module')
 import midiseq
 
-# gobject.threads_init()
-
 from track_editor import TrackEditor
 
-# class tracked_updater(Thread):
-#     def update_all_tracked(self):
-#         for chan_num, channed in self.tracked.chaned_dict.items():
-#             print "in chan num", chan_num
-#             channed.grid.update_pos(self.midi_seq.gettickpos())
-#     def run(self):
-#         print "hoho"
-#         print "msq", self.midi_seq
-#         print "tracked", self.tracked
-#         time_in_s = 0.1
-#         print "time_in_s", time_in_s
-#         while not self.quit:
-#             # for chan_num, channed in self.tracked.chaned_dict.items():
-#             #     print "in chan num", chan_num
-#             #     channed.grid.update_pos(self.midi_seq.gettickpos())
-#             if self.midi_seq.isrunning():
-#                 print "midi_seq.isrunning"
-#             #     gobject.idle_add(self.update_all_tracked)
-#             print "time_in_s", time_in_s
-#             time.sleep(time_in_s)
-#         print "exiting loop_on_update"
-#         # return True
+class tracked_updater(object):
+    def update_all_tracked(self):
+        tickpos = self.midi_seq.gettickpos()
+        for chan_num, channed in self.tracked.chaned_dict.items():
+            channed.grid.update_pos(tickpos)
+    def clear_all_tracked(self):
+        for chan_num, channed in self.tracked.chaned_dict.items():
+            channed.grid.clear_progressline()
+    def run(self):
+        if self.midi_seq.isrunning():
+            self.update_all_tracked()
+            return True
+        else:
+            self.clear_all_tracked()
+            return False
 
-#     def __init__(self, msq, tracked):
-#         super(tracked_updater, self).__init__()
-#         # Thread.__init__(self, target=self.loop_on_update)
-#         self.midi_seq = msq
-#         self.tracked = tracked
-#         self.quit = False
+    def __init__(self, msq, tracked):
+        self.midi_seq = msq
+        self.tracked = tracked
 
-
-def start_msq(button, msq, track, tracked):
+def start_msq(button, msq, track, tracked, tup):
     if msq.isrunning():
         print "start_msq: sequencer already running"
         return True
     msq.settrack(track)
     msq.settickpos(0)
     msq.start()
+    gobject.timeout_add(50, tup.run)
     return True
 
 def stop_msq(button, msq):
@@ -77,11 +64,12 @@ msq.setppq(ppq)
 msq.setbpm(120)
 
 tracked = TrackEditor(track, ppq, track_len=track_len)
+tup = tracked_updater(msq, tracked)
 
 win = gtk.Window()
 hbox = gtk.HBox()
 button_start =  gtk.Button("Start")
-button_start.connect("clicked", start_msq, msq, track, tracked)
+button_start.connect("clicked", start_msq, msq, track, tracked, tup)
 button_stop =  gtk.Button("Stop")
 button_stop.connect("clicked", stop_msq, msq)
 
@@ -93,17 +81,4 @@ win.connect('delete_event', gtk.main_quit)
 
 win.show_all()
 tracked.show_all()
-
-# tup = tracked_updater(msq, tracked)
-# def start_updater_cb(tup):
-#     print "tup.isAlive()", tup.isAlive()
-#     if tup.isAlive():
-#         print "updater is alive"
-#         return
-#     tup.start()
-# start_updater_cb(tup)
-# time.sleep(30)
-
 gtk.main()
-# tup.quit = True
-# time.sleep(1)

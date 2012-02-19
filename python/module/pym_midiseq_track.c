@@ -145,6 +145,7 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
   mcev->event.note.num = num;
   mcev->event.note.val = val;
   add_new_seqev(self->track, tick, mcev, MIDICEV);
+  Py_INCREF(Py_None);
   return Py_None;
 }
 
@@ -153,6 +154,7 @@ static PyObject *midiseq_track_clear(PyObject *obj, PyObject *args)
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
   clear_tickev_list(&(self->track->tickev_list));
+  Py_INCREF(Py_None);
   return Py_None;
 }
 

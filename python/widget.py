@@ -32,7 +32,12 @@ class ProgressLineWidget(object):
             self.window.draw_line(self.style.fg_gc[gtk.STATE_NORMAL],
                                   self.line_xpos, ymin, self.line_xpos, ymax)
 
-    def update_pos(self, pos):
+    def clear_progressline(self):
+        lwidth, lheight = self.line_cache.get_size()
+        self.window.draw_drawable(self.style.fg_gc[gtk.STATE_NORMAL],
+                                  self.line_cache, 0, 0, self.line_xpos, 0, 1, lheight)
+
+    def _update_pos(self, pos):
         print "pos", pos
         width, height = self.window.get_size()
         if self.line_cache == None:
@@ -229,6 +234,10 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         self.xpadsz = xpadsz
         self.ypadsz = ypadsz
         self.max_height = (NOTE_MAX + 1) * self.ypadsz + 1
+
+    def update_pos(self, tickpos):
+        xpos = int(tickpos * self.xpadsz / self.ppq)
+        self._update_pos(xpos)
 
     def __init__(self, chan_num, track_events, track_len, track, mlen=4, ppq=48, xpadsz=DEFAULT_XPADSZ, ypadsz=DEFAULT_YPADSZ, note_type=NOTE_BAR_TYPE):
         gtk.Widget.__init__(self)
