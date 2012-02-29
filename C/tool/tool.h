@@ -66,5 +66,6 @@ void iter_init(list_iterator_t *iterator, list_t *list);
 #define iter_next(iterator) (iterator)->node = (iterator)->node->next
 
 void iter_push_before(list_iterator_t *iterator, void *addr);
+void iter_node_del(list_iterator_t *iterator, free_list_func func);
 
 #endif

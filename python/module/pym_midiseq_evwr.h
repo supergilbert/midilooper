@@ -4,6 +4,6 @@
 #include <Python.h>
 #include "seqtool/seqtool.h"
 
-PyObject *create_midiseq_evwr(tickev_t *tickev);
+PyObject *create_midiseq_evwr(list_iterator_t *tickit);
 
 #endif

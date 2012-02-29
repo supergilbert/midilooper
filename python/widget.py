@@ -251,6 +251,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         self.note_type = note_type
         self.button3down = False
         self.line_cache = None
+        self.selection = ([], [])
 
     def add_note_to_seq(self, tick, note):
         for idx, elt in enumerate(self.track_events):
@@ -277,10 +278,16 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             ypos = 0
         self.draw_all(gtk.gdk.Rectangle(xpos, ypos, xsize + NOTE_PX_SIZE, self.ypadsz + NOTE_PX_SIZE))
 
+    def xpos2tick(self, xpos):
+        return int(xpos * self.ppq / self.xpadsz)
+
+    def ypos2noteval(self, ypos):
+        return int(128 - (ypos / self.ypadsz))
+
     def add_note(self, xpos, ypos):
-        tick = int(xpos * self.ppq / self.xpadsz)
+        tick = self.xpos2tick(xpos)
         tick = int(tick / self.note_param["quant"]) * self.note_param["quant"]
-        note = int(128 - (ypos / self.ypadsz))
+        note = self.ypos2noteval(ypos)
         noteon = (MIDI_NOTEON_EVENT,
                   self.note_param["channel"],
                   note,
@@ -319,10 +326,72 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         if event.button == 1 and self.button3down:
             self.add_note(event.x, event.y)
 
+    def select_note(self, xpos, ypos):
+        tick = self.xpos2tick(xpos)
+        noteval = self.ypos2noteval(ypos)
+        selection = []
+        noteon = []
+        noteon_tmp_len = 0
+        noteoff = []
+        for evtick, midiev_list in self.track_events:
+            if evtick <= tick:
+                noteon_list = filter(lambda midiev: midiev[0] == MIDI_NOTEON_EVENT and midiev[2] == noteval,
+                                     midiev_list)
+                if len(noteon_list) > 0:
+                    noteon.append((evtick, noteon_list))
+                for midiev in filter(lambda midiev: midiev[0] == MIDI_NOTEOFF_EVENT and midiev[2] == noteval,
+                                     midiev_list):
+                    if len(noteon) > 0:
+                        noteon[0][1].pop()
+                        if len(noteon[0][1]) == 0:
+                            noteon.pop(0)
+            else:
+                noteoff_list = filter(lambda midiev: midiev[0] == MIDI_NOTEOFF_EVENT and midiev[2] == noteval,
+                                      midiev_list)
+                noteoff_list_len = len(noteoff_list)
+                # print "tick:%i, noteon_tmp_len:" % evtick, noteon_tmp_len
+                # print "tick:%i, noteoff_list:" % evtick, noteoff_list
+                # if noteon_tmp_len >= noteoff_list_len:
+                #     noteoff_list = []
+                #     noteon_tmp_len -= noteoff_list_len
+                # else:
+                #     noteoff_list = noteoff_list[:(noteoff_list_len - noteon_tmp_len)]
+                #     noteon_tmp_len = 0
+                noteon_tmp_len += len(filter(lambda midiev: midiev[0] == MIDI_NOTEON_EVENT and midiev[2] == noteval,
+                                             midiev_list))
+                if len(noteoff_list) > 0:
+                    noteoff.append((evtick, noteoff_list))
+        while noteon_tmp_len > 0 and len(noteoff) > 0:
+            noteoff[-1][1].pop()
+            if len(noteoff):
+                noteoff.pop()
+            noteon_tmp_len -= 1
+        selection.extend(noteon)
+        selection.extend(noteoff)
+        selection.sort(cmp=lambda x, y: x[0] > y[0])
+        return selection
+
+    def delete_selection(self):
+        tickevwr = self.track.get_tickevwr()
+        for tick, ev in self.selection:
+            print "for ev:", ev
+            if tickevwr.goto_tick(tick) == True:
+                evwr = tickevwr.get_evwr()
+                while (True):
+                    evwr_ev = evwr.get_event()
+                    if evwr_ev in ev:
+                        evwr.del_event()
+                    if evwr.next() == None:
+                        break
+            print "---"
+
     def handle_button_press(self, widget, event):
         if event.button == 3:
             self.window.set_cursor(self.cursor_pencil)
             self.button3down = True
+        if event.button == 1 and self.button3down == False:
+            self.selection = self.select_note(event.x, event.y)
+            # self.delete_selection()
 
     def do_realize(self):
         self.set_flags(gtk.REALIZED)

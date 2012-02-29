@@ -139,14 +139,13 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
 
   if (type != NOTEOFF && type != NOTEON)
     return NULL;
-  mcev = malloc(sizeof (midicev_t));
+  mcev = myalloc(sizeof (midicev_t));
   mcev->chan = channel;
   mcev->type = type;
   mcev->event.note.num = num;
   mcev->event.note.val = val;
   add_new_seqev(self->track, tick, mcev, MIDICEV);
-  Py_INCREF(Py_None);
-  return Py_None;
+  Py_RETURN_NONE;
 }
 
 static PyObject *midiseq_track_clear(PyObject *obj, PyObject *args)
@@ -154,8 +153,7 @@ static PyObject *midiseq_track_clear(PyObject *obj, PyObject *args)
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
   clear_tickev_list(&(self->track->tickev_list));
-  Py_INCREF(Py_None);
-  return Py_None;
+  Py_RETURN_NONE;
 }
 
 static PyMethodDef midiseq_track_methods[] = {

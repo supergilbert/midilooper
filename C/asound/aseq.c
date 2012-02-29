@@ -1,11 +1,17 @@
 #include "asound/aseq.h"
+#include "debug_tool/debug_tool.h"
 
 snd_seq_t     *create_aseqh(char *name)
 {
   snd_seq_t     *handle = NULL;
+  int         err = 0;
 
-  if (0 > snd_seq_open(&handle, "default", SND_SEQ_OPEN_OUTPUT, SND_SEQ_NONBLOCK))
-    return NULL;
+  err = snd_seq_open(&handle, "default", SND_SEQ_OPEN_OUTPUT, SND_SEQ_NONBLOCK);
+  if (0 > err)
+    {
+      output_error("problem while creating alsa handler:\n%s\n", snd_strerror(err));
+      return NULL;
+    }
   snd_seq_set_client_name(handle, name);
   return handle;
 }
@@ -26,8 +32,14 @@ aseq_ctx_t  *init_aseq(char *name)
 
 void free_aseq(aseq_ctx_t *aseq)
 {
-  snd_seq_delete_port(aseq->handle, aseq->output_port);
-  snd_seq_close(aseq->handle);
+  int err = 0;
+
+  err = snd_seq_delete_port(aseq->handle, aseq->output_port);
+  if (0 != err)
+    output_error("problem while deleting alsa port\n%s\n", snd_strerror(err));
+  err = snd_seq_close(aseq->handle);
+  if (0 != err)
+    output_error("problem while closing alsa seq handler\n%s\n", snd_strerror(err));
   free(aseq);
 }
 

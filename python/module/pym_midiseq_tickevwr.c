@@ -41,24 +41,52 @@ static PyObject *midiseq_tickevwr_next(PyObject *obj, PyObject *args)
   if (tickev)
     return Py_BuildValue("i", tickev->tick);
   else
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 #include "./pym_midiseq_evwr.h"
+#include "debug_tool/debug_tool.h"
 
 static PyObject *midiseq_tickevwr_get_evwr(PyObject *obj, PyObject *args)
 {
   midiseq_tickevwrObject *self = (midiseq_tickevwrObject *) obj;
-  tickev_t *tickev = (tickev_t *) iter_node_ptr(&(self->tickit));
+  /* tickev_t *tickev = (tickev_t *) iter_node_ptr(&(self->tickit)); */
 
-  return create_midiseq_evwr(tickev);
+  return create_midiseq_evwr(&(self->tickit));
+}
+
+static PyObject *midiseq_tickevwr_gototick(PyObject *obj, PyObject *args)
+{
+  midiseq_tickevwrObject *self = (midiseq_tickevwrObject *) obj;
+  unsigned int          tick = 0;
+  /* tickev_t              *tickev = NULL; */
+  node_t                *node = NULL;
+
+  if (!PyArg_ParseTuple(args, "i", &tick))
+    {
+      output_error("track_get_evwr: Problem with argument");
+      return NULL;
+    }
+  node = search_ticknode(self->tickit.list, tick);
+  if (node != NULL)
+    {
+      self->tickit.node = node;
+      Py_RETURN_TRUE;
+    }
+  else
+    Py_RETURN_FALSE;
 }
 
 static PyMethodDef midiseq_tickevwr_methods[] = {
-  {"gotohead", midiseq_tickevwr_gotohead, METH_NOARGS, "Go to first tick event"},
-  {"gettick", midiseq_tickevwr_gettick, METH_NOARGS, "Get tick number"},
-  {"next", midiseq_tickevwr_next, METH_NOARGS, "Go to next tick"},
-  {"get_evwr", midiseq_tickevwr_get_evwr, METH_NOARGS, "Get event wrapper"},
+  {"goto_head", midiseq_tickevwr_gotohead, METH_NOARGS,
+   "Go to the first tick event"},
+  {"get_tick", midiseq_tickevwr_gettick, METH_NOARGS,
+   "Get tick event actual tick number"},
+  {"goto_tick", midiseq_tickevwr_gototick, METH_VARARGS,
+   "Go to tick number, return true if it found the tick else it while return false"},
+  {"next", midiseq_tickevwr_next, METH_NOARGS,
+   "Go to the next tick event"},
+  {"get_evwr", midiseq_tickevwr_get_evwr, METH_NOARGS,"Get event wrapper"},
   {NULL, NULL, 0, NULL}
 };
 

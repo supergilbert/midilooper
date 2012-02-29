@@ -60,7 +60,7 @@ tickev_t *_create_new_tick_ev(uint_t tick)
   return tickev;
 }
 
-tickev_t *_search_tickev(track_t *track, uint_t tick)
+tickev_t *_search_or_add_tickev(track_t *track, uint_t tick)
 {
   list_iterator_t iter;
   tickev_t *tickev = NULL;
@@ -86,7 +86,7 @@ tickev_t *_search_tickev(track_t *track, uint_t tick)
 
 /* Search in track for  tick event set tick time if the tick time doesnt
    exit it create a new one */
-tickev_t *_get_or_addnget_tickev(track_t *track, uint_t tick)
+tickev_t *_get_or_add_tickev(track_t *track, uint_t tick)
 {
   tickev_t *tickev = NULL;
 
@@ -96,7 +96,7 @@ tickev_t *_get_or_addnget_tickev(track_t *track, uint_t tick)
       push_to_list(&(track->tickev_list), (void *) tickev);
       return tickev;
     }
-  return _search_tickev(track, tick);
+  return _search_or_add_tickev(track, tick);
 }
 
 void add_new_seqev(track_t *track,
@@ -112,11 +112,27 @@ void add_new_seqev(track_t *track,
       output_error(ERROR_FMT"track == NULL", ERROR_ARG);
       return;
     }
-  tickev = _get_or_addnget_tickev(track, tick);
+  tickev = _get_or_add_tickev(track, tick);
 
   seqev = myalloc(sizeof (seqev_t));
   bzero(seqev, sizeof (seqev_t));
   seqev->addr = addr;
   seqev->type = type;
   push_to_list_tail(&(tickev->seqev_list), (void *) seqev);
+}
+
+node_t *search_ticknode(list_t *tickev_list, uint_t tick)
+{
+  tickev_t      *tickev = NULL;
+  list_iterator_t iter;
+
+  iter_init(&iter, tickev_list);
+  while (iter_node(&iter))
+    {
+      tickev = iter_node_ptr(&iter);
+      if (tickev->tick == tick)
+        return iter_node(&iter);
+      iter_next(&iter);
+    }
+  return NULL;
 }

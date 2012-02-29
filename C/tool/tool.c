@@ -48,8 +48,7 @@ void push_to_list(list_t *list, void *addr)
       new_node->next = NULL;
       new_node->prev = NULL;
       list->tail = new_node;
-#warning TODO: Atomic assigment
-      /* Atomic assigment */
+      /* TODO: Atomic assigment */
       list->head = new_node;
     }
   else
@@ -62,6 +61,36 @@ void push_to_list(list_t *list, void *addr)
       list->head = new_node;
     }
   (list->len)++;
+}
+
+void _del_list_node(list_t *list, node_t *node, free_list_func func)
+{
+  if (list->head == node)
+    {
+      if (list->tail == node)
+        {
+          list->head = NULL;
+          list->tail = NULL;
+        }
+      else
+        {
+          list->head = node->next;
+          node->next->prev = NULL;
+        }
+    }
+  else if (list->tail == node)
+    {
+      node->prev->next = NULL;
+      list->tail = node->prev;
+    }
+  else
+    {
+      node->prev->next = node->next;
+      node->next->prev = node->prev;
+    }
+  (list->len)--;
+  func(node->addr);
+  free(node);
 }
 
 void push_to_list_tail(list_t *list, void *addr)
@@ -130,4 +159,33 @@ void iter_push_before(list_iterator_t *iterator, void *addr)
     }
   (iterator->list->len)++;
   return;
+}
+
+void iter_node_del(list_iterator_t *iterator, free_list_func func)
+{
+  list_t        *list = iterator->list;
+  node_t        *node = NULL;
+
+  if (list->head)
+    {
+      if (list->head == list->tail)
+        {
+          _del_list_node(list, iterator->node, func);
+          iterator->node = NULL;
+        }
+      else
+        {
+          if (iterator->node->next == NULL)
+            {
+              _del_list_node(list, iterator->node, func);
+              iterator->node = list->tail;
+            }
+          else
+            {
+              node = iterator->node->next;
+              _del_list_node(list, iterator->node, func);
+              iterator->node = node;
+            }
+        }
+    }
 }
