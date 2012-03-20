@@ -194,6 +194,8 @@ class ChannelEditor(gtk.VBox):
         table.attach(vsb, 2, 3, 1, 2, 0, gtk.FILL)
         table.attach(hsb, 1, 2, 2, 3, gtk.FILL, 0)
 
+        table.set_focus_child(grid_vp) # test
+
         note_setting_frame = gtk.Frame("Note setting")
         note_setting_frame.add(NoteSettingTable(self.grid))
 
@@ -219,6 +221,8 @@ class ChannelEditor(gtk.VBox):
         debug_frame = gtk.Frame("Note grid debug")
         debug_frame.add(debug_hbox)
         self.pack_end(debug_frame, expand=False)
+
+        self.set_focus_child(table)
 
 
 

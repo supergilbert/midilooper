@@ -323,8 +323,12 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         if event.button == 3:
             self.window.set_cursor(self.cursor_arrow)
             self.button3down = False
-        if event.button == 1 and self.button3down:
-            self.add_note(event.x, event.y)
+        if event.button == 1:
+            if self.button3down:
+                self.add_note(event.x, event.y)
+            else:
+                self.selection = self.select_note(event.x, event.y)
+                print self.selection
 
     def select_note(self, xpos, ypos):
         tick = self.xpos2tick(xpos)
@@ -371,27 +375,17 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         selection.sort(cmp=lambda x, y: x[0] > y[0])
         return selection
 
-    def delete_selection(self):
-        tickevwr = self.track.get_tickevwr()
-        for tick, ev in self.selection:
-            print "for ev:", ev
-            if tickevwr.goto_tick(tick) == True:
-                evwr = tickevwr.get_evwr()
-                while (True):
-                    evwr_ev = evwr.get_event()
-                    if evwr_ev in ev:
-                        evwr.del_event()
-                    if evwr.next() == None:
-                        break
-            print "---"
-
     def handle_button_press(self, widget, event):
+        self.grab_focus()
         if event.button == 3:
             self.window.set_cursor(self.cursor_pencil)
             self.button3down = True
-        if event.button == 1 and self.button3down == False:
-            self.selection = self.select_note(event.x, event.y)
-            # self.delete_selection()
+
+    def handle_key_press(self, widget, event):
+        self.grab_focus()
+        print "receive event"
+        print gtk.gdk.keyval_name(event.keyval)
+        print event.string
 
     def do_realize(self):
         self.set_flags(gtk.REALIZED)
@@ -400,7 +394,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
                                  height=self.allocation.height,
                                  window_type=gdk.WINDOW_CHILD,
                                  wclass=gdk.INPUT_OUTPUT,
-                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK | gdk.BUTTON_PRESS_MASK | gdk.BUTTON_RELEASE_MASK)
+                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK | gdk.BUTTON_PRESS_MASK | gdk.BUTTON_RELEASE_MASK | gdk.KEY_PRESS_MASK)
         self.window.set_user_data(self)
         self.window.move_resize(*self.allocation)
 
@@ -423,9 +417,11 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
 
         self.connect("button_press_event", self.handle_button_press)
         self.connect("button_release_event", self.handle_button_release)
+        self.connect("key_press_event", self.handle_key_press)
         self.cursor_arrow = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
         self.cursor_pencil = gtk.gdk.Cursor(gtk.gdk.PENCIL)
         self.window.set_cursor(self.cursor_arrow)
+        self.set_can_focus(True)
 
 
     def do_unrealize(self):

@@ -9,7 +9,6 @@ module1 = Extension('midiseq',
                     # extra_link_args = "-fPIC",
                     sources = ['pym_midiseq_class.c',
                                'pym_midiseq_track.c',
-                               'pym_midiseq_tickevwr.c',
                                'pym_midiseq_evwr.c',
                                'pym_midiseq_file.c',
                                'pym_midiseq.c'])

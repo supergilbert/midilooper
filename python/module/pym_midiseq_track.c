@@ -116,13 +116,13 @@ static PyObject *midiseq_track_get_events(PyObject *self, PyObject *args)
   return Py_BuildValue("iiO", min, max, track_obj);
 }
 
-#include "./pym_midiseq_tickevwr.h"
+#include "./pym_midiseq_evwr.h"
 
-static PyObject *midiseq_track_get_tickevwr(PyObject *obj, PyObject *args)
+static PyObject *midiseq_track_get_evwr(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  return create_midiseq_tickevwr(self->track);
+  return create_midiseq_evwr(self->track);
 }
 
 static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
@@ -160,7 +160,7 @@ static PyMethodDef midiseq_track_methods[] = {
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
   {"get_name", midiseq_track_get_name, METH_NOARGS, "Get track name"},
   {"get_events", midiseq_track_get_events, METH_VARARGS, "Get track events"},
-  {"get_tickevwr", midiseq_track_get_tickevwr, METH_NOARGS, "Get tick event wrapper"},
+  {"get_evwr", midiseq_track_get_evwr, METH_NOARGS, "Get event wrapper"},
   {"add_note_event", midiseq_track_add_note_event, METH_VARARGS, "Add a note event"},
   {"clear", midiseq_track_clear, METH_NOARGS, "free all track list to use with caution (/!\\ not while running for now)"},
   {NULL, NULL, 0, NULL}
