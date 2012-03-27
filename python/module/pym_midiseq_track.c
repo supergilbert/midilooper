@@ -141,8 +141,6 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
   if (type != NOTEOFF && type != NOTEON)
     return NULL;
 
-  printf("=> %i %i %i %i %i\n", tick, type, channel, num, val);
-
   mcev = myalloc(sizeof (midicev_t));
   mcev->chan = channel;
   mcev->type = type;
