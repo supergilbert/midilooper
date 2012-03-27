@@ -36,6 +36,7 @@ void free_tickev(void *addr)
 void clear_tickev_list(list_t *tickev_list)
 {
   free_list_node(tickev_list, free_tickev);
+  tickev_list->len = 0;
 }
 
 void free_track(void *addr)

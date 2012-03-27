@@ -2,11 +2,7 @@
 #include "seqtool/seqtool.h"
 #include "midi/midiev_inc.h"
 
-typedef struct {
-  PyObject_HEAD
-  list_iterator_t tickit;
-  list_iterator_t evit;
-} midiseq_evwrObject;
+#include "./pym_midiseq_evwr.h"
 
 static void midiseq_evwr_dealloc(PyObject *obj)
 {
@@ -15,32 +11,41 @@ static void midiseq_evwr_dealloc(PyObject *obj)
   self->ob_type->tp_free((PyObject*)self);
 }
 
-static PyObject *build_event_repr(seqev_t *ev)
+static PyObject *build_event_repr(uint_t tick, seqev_t *ev)
 {
   midicev_t *midicev = NULL;
+
+  /* printf("ev=%p ev->type=%d   \n", ev, ev->type); */
 
   if (ev->type == MIDICEV)
     {
       midicev = (midicev_t *) ev->addr;
       if (midicev->type == NOTEOFF || midicev->type == NOTEON)
-        return Py_BuildValue("(iiii)",
+        return Py_BuildValue("(iiiii)",
+                             tick,
                              midicev->type,
                              midicev->chan,
                              midicev->event.note.num,
                              midicev->event.note.val);
+      else
+        printf("midi channel event type: %i\n", midicev->type);
     }
+  else
+    printf("Unsupported ev type: %i\n", ev->type);
   return Py_BuildValue("s", "Unsupported");
 }
 
 static PyObject *midiseq_evwr_getevent(PyObject *obj, PyObject *args)
 {
   midiseq_evwrObject *self = (midiseq_evwrObject *) obj;
+  tickev_t *tickev = NULL;
   seqev_t *ev = NULL;
 
   if (iter_node(&(self->evit)) != NULL)
     {
       ev = iter_node_ptr(&(self->evit));
-      return build_event_repr(ev);
+      tickev = iter_node_ptr(&(self->tickit));
+      return build_event_repr(tickev->tick, ev);
     }
   Py_RETURN_NONE;
 }
@@ -52,46 +57,75 @@ static void goto_next_tick(midiseq_evwrObject *self)
   if (iter_node(&(self->tickit)) != NULL)
     {
       iter_next(&(self->tickit));
-      tickev = (tickev_t *) iter_node(&(self->tickit));
-      if (tickev != NULL)
-	iter_init(&(self->evit), &(tickev->seqev_list));
+      if (iter_node(&(self->tickit)) != NULL)
+        {
+          tickev = (tickev_t *) iter_node_ptr(&(self->tickit));
+          if (tickev != NULL)   /* maybe or not */
+            iter_init(&(self->evit), &(tickev->seqev_list));
+        }
     }
 }
 
-static PyObject *midiseq_evwr_next(PyObject *obj)
+static PyObject *midiseq_evwr_goto_next(PyObject *obj, PyObject *args)
 {
   midiseq_evwrObject *self = (midiseq_evwrObject *) obj;
+  tickev_t *tickev = NULL;
+  seqev_t *ev = NULL;
 
-  printf("in evwr next self:%p\n", self);
+  /* printf("in evwr next self:%p\n", self); */
   if (iter_node(&(self->evit)) != NULL)
     {
       iter_next(&(self->evit));
       if (iter_node(&(self->evit)) != NULL)
-        return obj;
+	{
+	  /* printf("node = %p\n", iter_node(&(self->evit))); */
+          ev = iter_node_ptr(&(self->evit));
+          tickev = (tickev_t *) iter_node_ptr(&(self->tickit));
+          return build_event_repr(tickev->tick, ev);
+	}
       else
 	{
 	  goto_next_tick(self);
 	  if (iter_node(&(self->evit)) != NULL)
-	    return obj;
+	    {
+	      /* printf("node = %p\n", iter_node(&(self->evit))); */
+              ev = iter_node_ptr(&(self->evit));
+              tickev = (tickev_t *) iter_node_ptr(&(self->tickit));
+              return build_event_repr(tickev->tick, ev);
+	    }
 	}
     }
-  PyErr_SetNone(PyExc_StopIteration);
-  return NULL;
+  Py_RETURN_NONE;
 }
 
-static PyObject *midiseq_evwr_iter(PyObject *obj)
+static PyObject *midiseq_evwr_del_event(PyObject *obj, PyObject *args)
 {
   midiseq_evwrObject *self = (midiseq_evwrObject *) obj;
+  tickev_t           *tickev = NULL;
 
-   if (iter_node(&(self->evit)) != NULL)
-     return obj;
-   /* ??? */
-   return NULL;
+  iter_node_del(&(self->evit), free_seqev);
+  if (self->evit.list->len <= 0)
+    {
+      iter_node_del(&(self->tickit), free_tickev);
+      if (self->tickit.list->len > 0)
+        {
+          tickev = iter_node_ptr(&(self->tickit));
+          iter_init(&(self->evit), &(tickev->seqev_list));
+        }
+    }
+  Py_RETURN_NONE;
 }
+static PyObject *midiseq_evwr_copy(PyObject *obj, PyObject *args);
 
 static PyMethodDef midiseq_evwr_methods[] = {
   {"get_event", midiseq_evwr_getevent, METH_NOARGS,
    "Get the event representation as a tuple of integer"},
+  {"goto_next", midiseq_evwr_goto_next, METH_NOARGS,
+   "Go to the next event, end return its representation"},
+  {"del_event", midiseq_evwr_del_event, METH_NOARGS,
+   "Delete the currnent event of the track"},
+  {"copy", midiseq_evwr_copy, METH_NOARGS,
+   "Delete the currnent event of the track"},
   {NULL, NULL, 0, NULL}
 };
 
@@ -122,8 +156,8 @@ static PyTypeObject midiseq_evwrType = {
     0,                          /* tp_clear */
     0,                          /* tp_richcompare */
     0,                          /* tp_weaklistoffset */
-    midiseq_evwr_iter,          /* tp_iter */
-    midiseq_evwr_next,          /* tp_iternext */
+    0,                          /* tp_iter */
+    0,                          /* tp_iternext */
     midiseq_evwr_methods,       /* tp_methods */
     0,                          /* tp_members */
     0,                          /* tp_getset */
@@ -137,14 +171,33 @@ static PyTypeObject midiseq_evwrType = {
     0,                          /* tp_new */
 };
 
+static PyObject *midiseq_evwr_copy(PyObject *obj, PyObject *args)
+{
+  midiseq_evwrObject *evwr = (midiseq_evwrObject *) obj;
+  midiseq_evwrObject *newevwr = (midiseq_evwrObject *) PyObject_New(midiseq_evwrObject,
+                                                                 &midiseq_evwrType);
+
+  memcpy(&(newevwr->tickit), &(evwr->tickit), sizeof(list_iterator_t));
+  memcpy(&(newevwr->evit), &(evwr->evit), sizeof(list_iterator_t));
+  return (PyObject *) newevwr;
+}
+
+
+
 PyObject *create_midiseq_evwr(track_t *track)
 {
   tickev_t *tickev = NULL;
-  midiseq_evwrObject *evwr = (midiseq_evwrObject *) PyObject_New(midiseq_evwrObject,
-                                                                 &midiseq_evwrType);
+  midiseq_evwrObject *evwr = NULL;
 
+  if (track->tickev_list.len <= 0)
+    Py_RETURN_NONE;
+
+  evwr = (midiseq_evwrObject *) PyObject_New(midiseq_evwrObject,
+                                             &midiseq_evwrType);
   iter_init(&(evwr->tickit), &(track->tickev_list));
   tickev = (tickev_t *) iter_node_ptr(&(evwr->tickit));
+  if (tickev == NULL)
+    Py_RETURN_NONE;
   iter_init(&(evwr->evit), &(tickev->seqev_list));
   return (PyObject *) evwr;
 }

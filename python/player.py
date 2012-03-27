@@ -6,7 +6,7 @@ gobject.threads_init()
 import pygtk
 pygtk.require("2.0")
 import gtk
-from gtk import gdk
+#from gtk import gdk
 
 if gtk.pygtk_version < (2, 8):
     print "PyGtk 2.8 or later required for this example"
@@ -39,7 +39,7 @@ class tracked_updater(object):
         self.midi_seq = msq
         self.tracked = tracked
 
-player_name = "player"
+player_name = "Player"
 
 bpm = 120
 ppq = 240

@@ -137,8 +137,12 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
       return NULL;
     }
 
+
   if (type != NOTEOFF && type != NOTEON)
     return NULL;
+
+  printf("=> %i %i %i %i %i\n", tick, type, channel, num, val);
+
   mcev = myalloc(sizeof (midicev_t));
   mcev->chan = channel;
   mcev->type = type;
@@ -165,6 +169,16 @@ static PyMethodDef midiseq_track_methods[] = {
   {"clear", midiseq_track_clear, METH_NOARGS, "free all track list to use with caution (/!\\ not while running for now)"},
   {NULL, NULL, 0, NULL}
 };
+
+/* #include "./pym_midiseq_evwr.h" */
+
+/* static PyObject *midiseq_track_iter(PyObject *obj) */
+/* { */
+/*   midiseq_trackObject *self = (midiseq_trackObject *) obj; */
+/*   PyObject *evwr = create_midiseq_evwr(self->track); */
+
+/*   return evwr; */
+/* } */
 
 static PyTypeObject midiseq_trackType = {
     PyObject_HEAD_INIT(NULL)

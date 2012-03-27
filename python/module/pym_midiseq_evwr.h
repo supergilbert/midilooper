@@ -6,4 +6,11 @@
 
 PyObject *create_midiseq_evwr(track_t *track);
 
+typedef struct {
+  PyObject_HEAD
+  list_iterator_t tickit;
+  list_iterator_t evit;
+} midiseq_evwrObject;
+
+
 #endif

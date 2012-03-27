@@ -10,7 +10,7 @@ if gtk.pygtk_version < (2, 8):
     print "PyGtk 2.8 or later required for this example"
     raise SystemExit
 
-import sys
+#import sys
 
 DEFAULT_XPADSZ = 70
 DEFAULT_FONT_NAME = "-misc-fixed-medium-r-normal--10-70-100-100-c-60-iso8859-1"
@@ -238,13 +238,13 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         xpos = int(tickpos * self.xpadsz / self.ppq)
         self._update_pos(xpos)
 
-    def __init__(self, chan_num, track_events, track_len, track, mlen=4, ppq=48, xpadsz=DEFAULT_XPADSZ, ypadsz=DEFAULT_YPADSZ, note_type=NOTE_BAR_TYPE):
+    def __init__(self, chan_num, track_len, track, mlen=4, ppq=48, xpadsz=DEFAULT_XPADSZ, ypadsz=DEFAULT_YPADSZ, note_type=NOTE_BAR_TYPE):
         gtk.Widget.__init__(self)
         self.chan_num = chan_num
         self.mlen = mlen # 4/4 or 3/4
         self.ppq = ppq
         self.set_pad_size(xpadsz, ypadsz)
-        self.track_events = track_events
+        # self.track_events = track_events
         self.track_len = track_len
         self.track = track
         self.note_param = {"channel": 0, "val_on": DEFAULT_NOTEON_VAL, "val_off": 0, "len": ppq / 4, "quant": ppq / 4}
@@ -253,18 +253,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         self.line_cache = None
         self.selection = ([], [])
 
-    def add_note_to_seq(self, tick, note):
-        for idx, elt in enumerate(self.track_events):
-            if elt[0] == tick:
-                elt[1].append(note)
-                return
-            elif elt[0] > tick:
-                self.track_events.insert(idx,
-                                  (tick, [note]))
-                return
-        self.track_events.append((tick, [note]))
-
-    def draw_note(self, tick, note, len, val_on, val_off=0):
+    def refresh_note(self, tick, note, len, val_on, val_off=0):
         xpos = tick * self.xpadsz / self.ppq
         xsize = len * self.xpadsz / self.ppq
         ypos = ((127 - note) * self.ypadsz) + 1
@@ -288,19 +277,6 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         tick = self.xpos2tick(xpos)
         tick = int(tick / self.note_param["quant"]) * self.note_param["quant"]
         note = self.ypos2noteval(ypos)
-        noteon = (MIDI_NOTEON_EVENT,
-                  self.note_param["channel"],
-                  note,
-                  self.note_param["val_on"])
-
-        self.add_note_to_seq(tick, (MIDI_NOTEON_EVENT,
-                                    self.note_param["channel"],
-                                    note,
-                                    self.note_param["val_on"]))
-        self.add_note_to_seq(tick + self.note_param["len"], (MIDI_NOTEOFF_EVENT,
-                                                             self.note_param["channel"],
-                                                             note,
-                                                             self.note_param["val_off"]))
 
         self.track.add_note_event(tick,
                                   MIDI_NOTEON_EVENT,
@@ -313,11 +289,11 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
                                   note,
                                   self.note_param["val_off"])
 
-        self.draw_note(tick,
-                       note,
-                       self.note_param["len"],
-                       self.note_param["val_on"],
-                       self.note_param["val_off"])
+        self.refresh_note(tick,
+                          note,
+                          self.note_param["len"],
+                          self.note_param["val_on"],
+                          self.note_param["val_off"])
 
     def handle_button_release(self, widget, event):
         if event.button == 3:
@@ -328,51 +304,51 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
                 self.add_note(event.x, event.y)
             else:
                 self.selection = self.select_note(event.x, event.y)
-                print self.selection
+                # print self.selection
 
     def select_note(self, xpos, ypos):
+        evwr = self.track.get_evwr()
+        if not evwr:
+            return []
+
         tick = self.xpos2tick(xpos)
         noteval = self.ypos2noteval(ypos)
         selection = []
         noteon = []
         noteon_tmp_len = 0
         noteoff = []
-        for evtick, midiev_list in self.track_events:
-            if evtick <= tick:
-                noteon_list = filter(lambda midiev: midiev[0] == MIDI_NOTEON_EVENT and midiev[2] == noteval,
-                                     midiev_list)
-                if len(noteon_list) > 0:
-                    noteon.append((evtick, noteon_list))
-                for midiev in filter(lambda midiev: midiev[0] == MIDI_NOTEOFF_EVENT and midiev[2] == noteval,
-                                     midiev_list):
+
+        event = evwr.get_event()
+        while event:
+            ev_channel = event[2]
+            if ev_channel != self.chan_num:
+                event = evwr.goto_next()
+                continue
+            ev_tick = event[0]
+            ev_type = event[1]
+            ev_note = event[3]
+            if ev_tick <= tick:
+                if ev_type == MIDI_NOTEON_EVENT and ev_note == noteval:
+                    noteon.append(evwr.copy())
+                    event = evwr.goto_next()
+                    continue
+                if ev_type == MIDI_NOTEOFF_EVENT and ev_note == noteval:
                     if len(noteon) > 0:
-                        noteon[0][1].pop()
-                        if len(noteon[0][1]) == 0:
-                            noteon.pop(0)
+                        noteon.pop(0)
             else:
-                noteoff_list = filter(lambda midiev: midiev[0] == MIDI_NOTEOFF_EVENT and midiev[2] == noteval,
-                                      midiev_list)
-                noteoff_list_len = len(noteoff_list)
-                # print "tick:%i, noteon_tmp_len:" % evtick, noteon_tmp_len
-                # print "tick:%i, noteoff_list:" % evtick, noteoff_list
-                # if noteon_tmp_len >= noteoff_list_len:
-                #     noteoff_list = []
-                #     noteon_tmp_len -= noteoff_list_len
-                # else:
-                #     noteoff_list = noteoff_list[:(noteoff_list_len - noteon_tmp_len)]
-                #     noteon_tmp_len = 0
-                noteon_tmp_len += len(filter(lambda midiev: midiev[0] == MIDI_NOTEON_EVENT and midiev[2] == noteval,
-                                             midiev_list))
-                if len(noteoff_list) > 0:
-                    noteoff.append((evtick, noteoff_list))
+                if ev_type == MIDI_NOTEOFF_EVENT and ev_note == noteval:
+                    noteoff.append(evwr.copy())
+                    event = evwr.goto_next()
+                    continue
+                if ev_type == MIDI_NOTEON_EVENT and ev_note == noteval:
+                    noteon_tmp_len += 1
+            event = evwr.goto_next()
         while noteon_tmp_len > 0 and len(noteoff) > 0:
-            noteoff[-1][1].pop()
-            if len(noteoff):
-                noteoff.pop()
+            noteoff.pop()
             noteon_tmp_len -= 1
         selection.extend(noteon)
         selection.extend(noteoff)
-        selection.sort(cmp=lambda x, y: x[0] > y[0])
+        selection.sort(cmp=lambda x, y: x.get_event()[0] > y.get_event()[0])
         return selection
 
     def handle_button_press(self, widget, event):
@@ -383,9 +359,13 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
 
     def handle_key_press(self, widget, event):
         self.grab_focus()
-        print "receive event"
-        print gtk.gdk.keyval_name(event.keyval)
-        print event.string
+        # print event.keyval, gtk.DELETE
+        # print gtk.gdk.keyval_name(event.keyval)
+        # print event.string
+        if event.keyval == gtk.keysyms.Delete or event.keyval == gtk.keysyms.BackSpace:
+            for evwr in self.selection:
+                evwr.del_event()
+            self.selection = []
 
     def do_realize(self):
         self.set_flags(gtk.REALIZED)
@@ -495,63 +475,71 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
 
         noteon_list = []
         noteon_bkp = []
-        for tick, midiev_list in self.track_events:
-            # import pdb; pdb.set_trace()
+        evwr = self.track.get_evwr()
+        if evwr:
+            event = evwr.get_event()
+        else:
+            event = None
+        while event:
+            ev_type = event[1]
+            ev_chan = event[2]
+            if ev_chan != self.chan_num or not ev_type in (MIDI_NOTEOFF_EVENT, MIDI_NOTEON_EVENT):
+                event = evwr.goto_next()
+                continue
+            tick = event[0]
+            ev_note = event[3]
             xpos = tick * self.xpadsz / self.ppq
-            # Handling possible couple of 'note on' 'note off' around area position
+            # Handling possible couple of 'note on' and 'note off' around area position
             if xpos < area.x:
-                for midiev in midiev_list:
-                    if midiev[0] == MIDI_NOTEON_EVENT:
-                        noteon_bkp.append((midiev[2], xpos))
-                    elif midiev[0] == MIDI_NOTEOFF_EVENT:
-                        pop_1st_note_in_list(midiev[2], noteon_bkp)
+                if ev_type == MIDI_NOTEON_EVENT:
+                    noteon_bkp.append((ev_note, xpos))
+                elif ev_type == MIDI_NOTEOFF_EVENT:
+                    pop_1st_note_in_list(ev_note, noteon_bkp)
+                event = evwr.goto_next()
                 continue
             if xpos > xmax:
-                for midiev in filter(lambda midiev: midiev[0] == MIDI_NOTEOFF_EVENT,
-                                     midiev_list):
-                    note = midiev[2]
-                    noteon = pop_1st_note_in_list(note, noteon_bkp)
+                if ev_type == MIDI_NOTEOFF_EVENT:
+                    noteon = pop_1st_note_in_list(ev_note, noteon_bkp)
                     if noteon:
-                        ypos = ((127 - note) * self.ypadsz)
+                        ypos = ((127 - ev_note) * self.ypadsz)
                         ysize = self.ypadsz - 1
                         if ypos > ymax or (ypos + ysize) < area.y:
                             continue
                         if (ypos + ysize) > ymax:
                             ysize = ymax - ypos
                         self.window.draw_rectangle(self.light, True, area.x, ypos + 1, area.width, ysize)
+                event = evwr.goto_next()
                 continue
 
             # Handling note on area position
-            midiev_list = filter(lambda midiev: midiev[0] == MIDI_NOTEOFF_EVENT or midiev[0] == MIDI_NOTEON_EVENT,
-                                 midiev_list)
-            for midiev in midiev_list:
-                type = midiev[0]
-                note = midiev[2]
-                ypos = ((127 - note) * self.ypadsz)
-                ysize = self.ypadsz - 1
-                if ypos > ymax:
-                    continue
-                if (ypos + ysize) < area.y:
-                    continue
-                if (ypos + ysize) > ymax:
-                    ysize = ymax - ypos
+            ypos = ((127 - ev_note) * self.ypadsz)
+            ysize = self.ypadsz - 1
+            if ypos > ymax:
+                event = evwr.goto_next()
+                continue
+            if (ypos + ysize) < area.y:
+                event = evwr.goto_next()
+                continue
+            if (ypos + ysize) > ymax:
+                ysize = ymax - ypos
 
-
-                if ysize > 0:
-                    if type == MIDI_NOTEON_EVENT:
-                        noteon_list.append((midiev[2], xpos, ypos + 1, ysize))
-                    else: # MIDI_NOTEOFF_EVENT
-                        noteon = pop_1st_note_in_list(note, noteon_list)
-                        if noteon == None:
-                            noteon = pop_1st_note_in_list(note, noteon_bkp)
-                        if noteon == None:
-                            # Handling noteoff with no preceding noteon
-                            xsize = xpos - area.x
-                            if xsize > 0:
-                                self.window.draw_rectangle(self.light, True, area.x, ypos + 1, xsize, ysize)
-                        else:
-                            xsize = xpos - noteon[1]
-                            self.window.draw_rectangle(self.light, True, noteon[1], ypos + 1, xsize, ysize)
+            if ysize > 0:
+                if ev_type == MIDI_NOTEON_EVENT:
+                    noteon_list.append((ev_note, xpos, ypos + 1, ysize))
+                else: # MIDI_NOTEOFF_EVENT
+                    noteon = pop_1st_note_in_list(ev_note, noteon_list)
+                    if noteon == None:
+                        noteon = pop_1st_note_in_list(ev_note, noteon_bkp)
+                    if noteon == None:
+                        # Handling noteoff with no preceding noteon
+                        xsize = xpos - area.x
+                        if xsize > 0:
+                            self.window.draw_rectangle(self.light, True, area.x, ypos + 1, xsize, ysize)
+                    else:
+                        xsize = xpos - noteon[1]
+                        self.window.draw_rectangle(self.light, True, noteon[1], ypos + 1, xsize, ysize)
+            event = evwr.goto_next()
+            continue
 
         # Handling noteon with no noteoff (to resolve some scroll problem)
         for noteon in noteon_list:
@@ -563,28 +551,41 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         ymax = area.y + area.height
         if ymax > self.max_height: # Handling max notes height
             ymax = self.max_height
-        for tick, midiev_list in self.track_events:
-            xpos = tick * self.xpadsz / self.ppq
-            if xpos < area.x:
-                continue
-            if xpos > xmax:
-                continue
-            # Handling note on area position
-            midiev_list = filter(lambda midiev: midiev[0] == MIDI_NOTEOFF_EVENT or midiev[0] == MIDI_NOTEON_EVENT,
-                                 midiev_list)
-            for midiev in midiev_list:
-                type = midiev[0]
-                note = midiev[2]
-                ypos = ((127 - note) * self.ypadsz) + 1
+        evwr = self.track.get_evwr()
+        if evwr:
+            event = evwr.get_event()
+            while event != None:
+                ev_channel = event[2]
+                if ev_channel != self.chan_num:
+                    event = evwr.goto_next()
+                    continue
+                ev_tick = event[0]
+                xpos = ev_tick * self.xpadsz / self.ppq
+                if xpos < area.x:
+                    event = evwr.goto_next()
+                    continue
+                if xpos > xmax:
+                    event = evwr.goto_next()
+                    continue
+                ev_type = event[1]
+                # Handling note on area position
+                if not (ev_type == MIDI_NOTEOFF_EVENT or ev_type == MIDI_NOTEON_EVENT):
+                    event = evwr.goto_next()
+                    continue
+                ev_note = event[3]
+                ypos = ((127 - ev_note) * self.ypadsz) + 1
                 ysize = self.ypadsz - 1
                 if ypos > ymax:
+                    event = evwr.goto_next()
                     continue
                 if (ypos + ysize) < area.y:
+                    event = evwr.goto_next()
                     continue
-                if type == MIDI_NOTEON_EVENT:
+                if ev_type == MIDI_NOTEON_EVENT:
                     self.window.draw_pixbuf(None, self.cross_pxb, 0, 0, xpos - (NOTE_PX_SIZE / 2), ypos + (ysize / 2) - (NOTE_PX_SIZE / 2))
-                if type == MIDI_NOTEOFF_EVENT:
+                if ev_type == MIDI_NOTEOFF_EVENT:
                     self.window.draw_pixbuf(None, self.square_pxb, 0, 0, xpos - (NOTE_PX_SIZE / 2), ypos + (ysize / 2) - (NOTE_PX_SIZE / 2))
+                event = evwr.goto_next()
 
 
     def draw_all(self, area):

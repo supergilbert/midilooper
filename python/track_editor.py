@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import gobject
+#import gobject
 import pygtk
 pygtk.require("2.0")
 import gtk
@@ -10,7 +10,7 @@ if gtk.pygtk_version < (2, 8):
     print "PyGtk 2.8 or later required for this example"
     raise SystemExit
 
-from widget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, DEFAULT_XPADSZ, DEFAULT_FONT_NAME, DEFAULT_NOTEON_VAL
+from widget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, DEFAULT_XPADSZ, DEFAULT_FONT_NAME#, DEFAULT_NOTEON_VAL
 
 class LengthSettingHBox(gtk.HBox):
     def numerator_cb(self, combobox):
@@ -141,13 +141,10 @@ class ChannelEditor(gtk.VBox):
         self.redraw_grid_vp(grid_vp)
 
     def debug_grid(self, button, grid_vp, track):
-        minev, maxev, events = track.get_events()
-        track_dict = get_track_dict(events)
-        for channel_num, chan_events in track_dict.items():
-            self.tracked.chaned_dict[channel_num].grid.track_events = chan_events
+        print "redraw"
         self.redraw_grid_vp(grid_vp)
 
-    def __init__(self, tracked, chan_num, events):
+    def __init__(self, tracked, chan_num):
         gtk.VBox.__init__(self)
         self.tracked = tracked
 
@@ -170,7 +167,6 @@ class ChannelEditor(gtk.VBox):
         vbar_vp.connect("scroll_event", self.set_chaned_adj, hadj, vadj, xpadsz, ypadsz)
 
         self.grid = MsqNoteGridWidget(chan_num,
-                                      events,
                                       self.tracked.track_len,
                                       self.tracked.track,
                                       ppq=self.tracked.ppq,
@@ -226,30 +222,27 @@ class ChannelEditor(gtk.VBox):
 
 
 
-def get_track_dict(trackev_list):
 
-    def append_cev(event_list, tick, event):
-        for idx, tickev in enumerate(event_list):
-            if tick > tickev[0]:
-                continue
-            elif tick == tickev[0]:
-                tickev[1].append(event)
-                return
-            else:
-                event_list.insert(idx, (tick, [event]))
-                return
-        event_list.append((tick, [event]))
 
-    track_dict = {}
-    for tickev in trackev_list:
-        tick = tickev[0]
-        for event in tickev[1]:
-            if not track_dict.has_key(event[1]):
-                track_dict[event[1]] = [(tick, [event])]
-            else:
-                append_cev(track_dict[event[1]], tick, event)
-    return track_dict
-
+def get_track_info(track):
+    evwr = track.get_evwr()
+    track_min = 0
+    track_max = 0
+    channel_list = []
+    if evwr:
+        event = evwr.get_event()
+        if event:
+            track_min = event[0]
+            while event:
+                if event[0] < track_min:
+                    track_min = event[0]
+                if event[0] < track_max:
+                    track_max = event[0]
+                if not event[2] in channel_list:
+                    channel_list.append(event[2])
+                event = evwr.goto_next()
+    channel_list.sort()
+    return (track_min, track_max, channel_list)
 
 class TrackEditor(gtk.Window):
     def __init__(self, track, ppq, track_len=None, xpadsz=DEFAULT_XPADSZ, font_name=DEFAULT_FONT_NAME, sequencer=None):
@@ -257,13 +250,9 @@ class TrackEditor(gtk.Window):
         # temporary
         self.sequencer = sequencer
         self.track = track
-        track_min, track_max, track_events = track.get_events()
-        if len(track_events) == 0:
-            track_dict = {0: []}
-        else:
-            track_dict = get_track_dict(track_events)
-
         self.ppq = ppq
+
+        track_min, track_max, channel_list = get_track_info(track)
 
         if track_len == None:
             self.track_len = track_max
@@ -280,19 +269,23 @@ class TrackEditor(gtk.Window):
         #noteb.set_tab_pos(gtk.POS_LEFT)
 
         self.chaned_dict = {}
-        for channel_num, events in track_dict.items():
-            chaned = ChannelEditor(self, channel_num, events)
+        if len(channel_list) > 0:
+            for channel_num in channel_list:
+                chaned = ChannelEditor(self, channel_num)
+                noteb.append_page(chaned, gtk.Label("Channel %i" % channel_num))
+                self.chaned_dict[channel_num] = chaned
+        else:
+            channel_num = 0
+            chaned = ChannelEditor(self, channel_num)
             noteb.append_page(chaned, gtk.Label("Channel %i" % channel_num))
             self.chaned_dict[channel_num] = chaned
 
-        self.set_title('Track editor')
+        self.set_title(self.track.get_name())
         # def hide_track(tracked, event):
         #     tracked.hide()
         #     return True
         # self.connect('delete_event', hide_track)
-
         self.add(noteb)
-        # self.connect('delete_event', lambda billy, bob: True) # temporary
         self.connect('delete_event', gtk.main_quit)
 
 
