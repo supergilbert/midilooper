@@ -225,22 +225,17 @@ class ChannelEditor(gtk.VBox):
 
 
 def get_track_info(track):
-    evwr = track.get_evwr()
     track_min = 0
     track_max = 0
     channel_list = []
-    if evwr:
+    for evwr in track:
         event = evwr.get_event()
-        if event:
+        if event[0] < track_min:
             track_min = event[0]
-            while event:
-                if event[0] < track_min:
-                    track_min = event[0]
-                if event[0] < track_max:
-                    track_max = event[0]
-                if not event[2] in channel_list:
-                    channel_list.append(event[2])
-                event = evwr.goto_next()
+        if event[0] < track_max:
+            track_max = event[0]
+        if not event[2] in channel_list:
+            channel_list.append(event[2])
     channel_list.sort()
     return (track_min, track_max, channel_list)
 

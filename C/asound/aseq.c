@@ -16,30 +16,32 @@ snd_seq_t     *create_aseqh(char *name)
   return handle;
 }
 
-aseq_ctx_t  *init_aseq(char *name)
+aseqport_ctx_t  *init_aseqport(snd_seq_t *handle, char *name)
 {
-  aseq_ctx_t        *aseq = NULL;
-  snd_seq_t     *handle = create_aseqh(name);
+  aseqport_ctx_t        *aseq = NULL;
 
-  if (!handle)
-    return NULL;
-
-  aseq = myalloc(sizeof (aseq_ctx_t));
+  aseq = myalloc(sizeof (aseqport_ctx_t));
   aseq->handle = handle;
-  aseq->output_port = _create_aseq_port(aseq, "output_1");
+  aseq->output_port = _create_aseq_port(aseq, name);
   return aseq;
 }
 
-void free_aseq(aseq_ctx_t *aseq)
+void free_aseqh(snd_seq_t *handle)
+{
+  int err = 0;
+
+  err = snd_seq_close(handle);
+  if (0 != err)
+    output_error("problem while closing alsa seq handler\n%s\n", snd_strerror(err));
+}
+
+void free_aseqport(aseqport_ctx_t *aseq)
 {
   int err = 0;
 
   err = snd_seq_delete_port(aseq->handle, aseq->output_port);
   if (0 != err)
     output_error("problem while deleting alsa port\n%s\n", snd_strerror(err));
-  err = snd_seq_close(aseq->handle);
-  if (0 != err)
-    output_error("problem while closing alsa seq handler\n%s\n", snd_strerror(err));
   free(aseq);
 }
 

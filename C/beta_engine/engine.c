@@ -3,7 +3,7 @@
 #include "debug_tool/debug_tool.h"
 #include "midi/midifile.h"
 
-void	play_midiev(list_t *seqevlist, aseq_ctx_t *aseq_ctx)
+void	play_midiev(list_t *seqevlist, aseqport_ctx_t *aseq_ctx)
 {
   snd_seq_event_t aseqev;
   list_iterator_t iter;
@@ -32,55 +32,48 @@ engine_rq get_engine_rq(engine_ctx_t *ctx)
 {
   engine_rq rq;
 
-  pthread_rwlock_rdlock(&(ctx->rq.lock));
-  rq = ctx->rq.rq;
-  pthread_rwlock_unlock(&(ctx->rq.lock));
+  /* pthread_rwlock_rdlock(&(ctx->rq.lock)); */
+  rq = ctx->rq;
+  /* pthread_rwlock_unlock(&(ctx->rq.lock)); */
   return rq;
 }
 
 void set_engine_rq(engine_ctx_t *ctx, engine_rq rq)
 {
-  pthread_rwlock_rdlock(&(ctx->rq.lock));
-  ctx->rq.rq = rq;
-  pthread_rwlock_unlock(&(ctx->rq.lock));
+  /* pthread_rwlock_rdlock(&(ctx->rq.lock)); */
+  ctx->rq = rq;
+  /* pthread_rwlock_unlock(&(ctx->rq.lock)); */
 }
 
 clock_req_t engine_cb(void *arg)
 {
-  engine_ctx_t  *ctx = (engine_ctx_t *) arg;
-  aseq_ctx_t    *aseq_ctx  = ctx->aseq_ctx;
-  track_ctx_t   *track_ctx = &(ctx->track_ctx);
-  clockloop_t   *looph     = &(ctx->looph);
-  tickev_t      *tickev;
+  engine_ctx_t   *ctx       = (engine_ctx_t *) arg;
+  track_ctx_t    *track_ctx = &(ctx->track_ctx);
+  clockloop_t    *looph     = &(ctx->looph);
+  tickev_t       *tickev    = NULL;
 
+  /* Handling of one track */
   tickev = iter_node_ptr(&(track_ctx->current_tickev));
-  /* debug("@ tick %i waiting for tick %i\r", looph->clocktick.number, tickev->tick); */
-
   if (tickev->tick == looph->clocktick.number)
     {
-      /* debug("\ngot tick number %i at %ds %dns\n", */
-      /*       tickev->tick, */
-      /*       looph->clocktick.time.tv_sec, */
-      /*       looph->clocktick.time.tv_nsec); */
-      play_midiev(&(tickev->seqev_list), aseq_ctx);
+      play_midiev(&(tickev->seqev_list), ctx->track_ctx.aseqport_ctx);
       iter_next(&(track_ctx->current_tickev));
       if (iter_node(&(track_ctx->current_tickev)) == NULL)
         {
           debug("End of track\n");
-          pthread_rwlock_wrlock(&(ctx->info.lock));
           ctx->info.isrunning = FALSE;
-          pthread_rwlock_unlock(&(ctx->info.lock));
           set_engine_rq(ctx, engine_stop);
           return STOP;
         }
     }
+  /* End of handling */
 
   if (get_engine_rq(ctx) == engine_stop)
     {
       debug("engine: Got stop request\n");
-      pthread_rwlock_wrlock(&(ctx->info.lock));
+      /* pthread_rwlock_wrlock(&(ctx->info.lock)); */
       ctx->info.isrunning = FALSE;
-      pthread_rwlock_unlock(&(ctx->info.lock));
+      /* pthread_rwlock_unlock(&(ctx->info.lock)); */
       return STOP;
     }
   return CONTINUE;
@@ -103,9 +96,9 @@ bool_t engine_isrunning(engine_ctx_t *ctx)
 {
   bool_t isrunning;
 
-  pthread_rwlock_rdlock(&(ctx->info.lock));
+  /* pthread_rwlock_rdlock(&(ctx->info.lock)); */
   isrunning = ctx->info.isrunning;
-  pthread_rwlock_unlock(&(ctx->info.lock));
+  /* pthread_rwlock_unlock(&(ctx->info.lock)); */
   return isrunning;
 }
 
@@ -113,23 +106,26 @@ void free_engine_ctx(engine_ctx_t *ctx)
 {
   if (engine_isrunning(ctx))
     stop_engine(ctx);
-  pthread_rwlock_destroy(&(ctx->rq.lock));
-  pthread_rwlock_destroy(&(ctx->info.lock));
-  free_aseq(ctx->aseq_ctx);
+  pthread_rwlock_destroy(&(ctx->lock));
+  /* pthread_rwlock_destroy(&(ctx->info.lock)); */
+  free_aseqport(ctx->aseqport_ctx);
+  free_aseqh(ctx->aseqh);
   free(ctx);
   /* free_clockloop_struct(ctx->looph); */
 }
 
-engine_ctx_t *init_engine(char *aport_name)
+engine_ctx_t *init_engine(char *name)
 {
   engine_ctx_t *ctx = myalloc(sizeof (engine_ctx_t));
-  ctx->aseq_ctx = init_aseq(aport_name);
+  ctx->aseqh = create_aseqh(name);
+  ctx->aseqport_ctx = init_aseqport(ctx->aseqh, "Output");
+  ctx->track_ctx.aseqport_ctx = ctx->aseqport_ctx;
   ctx->looph.cb_func = engine_cb;
   ctx->looph.cb_arg = ctx;
   ctx->info.isrunning = FALSE;
-  ctx->rq.rq = engine_stop;
-  pthread_rwlock_init(&(ctx->info.lock), NULL);
-  pthread_rwlock_init(&(ctx->rq.lock), NULL);
+  ctx->rq = engine_stop;
+  /* pthread_rwlock_init(&(ctx->info.lock), NULL); */
+  pthread_rwlock_init(&(ctx->lock), NULL);
   /* pthread_attr_init(&(ctx->thread_attr)); */
   return ctx;
 }
@@ -140,9 +136,9 @@ void *engine_thread_wrapper(void *arg)
 
   set_engine_rq(ctx, engine_cont);
 
-  pthread_rwlock_wrlock(&(ctx->info.lock));
+  /* pthread_rwlock_wrlock(&(ctx->info.lock)); */
   ctx->info.isrunning = TRUE;
-  pthread_rwlock_unlock(&(ctx->info.lock));
+  /* pthread_rwlock_unlock(&(ctx->info.lock)); */
 
   ctx->thread_ret = clockloop(&(ctx->looph));
   return &(ctx->thread_ret);
@@ -161,7 +157,7 @@ bool_t start_engine(engine_ctx_t *ctx)
       return FALSE;
     }
   ctx->looph.clocktick.number = 0;
-  ctx->rq.rq = engine_cont;
+  ctx->rq = engine_cont;
   pthread_create(&(ctx->thread_id), NULL, engine_thread_wrapper, ctx);
   usleep(200000);
   return TRUE;

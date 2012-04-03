@@ -59,11 +59,12 @@ typedef struct
 
 void iter_init(list_iterator_t *iterator, list_t *list);
 /* #define iter_init(iterator, list) (iterator)->node = (list)->head; (iterator)->list = (list) */
-#define iter_node(iterator) (iterator)->node
-#define iter_node_ptr(iterator) (iterator)->node->addr
-#define iter_node_prev_ptr(iterator) (iterator)->node->prev->addr
+#define iter_node(iterator) ((iterator)->node)
+#define iter_node_ptr(iterator) ((iterator)->node->addr)
+#define iter_node_prev_ptr(iterator) ((iterator)->node->prev->addr)
 
-#define iter_next(iterator) (iterator)->node = (iterator)->node->next
+#define iter_next(iterator) ((iterator)->node = (iterator)->node->next)
+#define iter_head(iterator) ((iterator)->node = (iterator)->list->head)
 
 void iter_push_before(list_iterator_t *iterator, void *addr);
 void iter_node_del(list_iterator_t *iterator, free_list_func func);
