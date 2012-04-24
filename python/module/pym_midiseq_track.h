@@ -3,14 +3,14 @@
 
 #include <Python.h>
 
-#include "seqtool/seqtool.h"
+#include "./engine.h"
 
-PyObject *create_midiseq_track(track_t *track);
+PyObject *create_midiseq_track(track_ctx_t *trackctx);
 
 /* track header */
 typedef struct {
     PyObject_HEAD
-    track_t     *track;
+    track_ctx_t *trackctx;
 } midiseq_trackObject;
 
 

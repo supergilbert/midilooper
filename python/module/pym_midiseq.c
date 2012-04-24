@@ -74,5 +74,6 @@ PyMODINIT_FUNC initmidiseq(void)
   PyModule_AddObject(midiseq_module, "midiseq", (PyObject *) init_midiseq_Type());
   PyModule_AddObject(midiseq_module, "evwr", (PyObject *) init_midiseq_evwrType());
   PyModule_AddObject(midiseq_module, "track", (PyObject *) init_midiseq_trackType());
-  PyModule_AddObject(midiseq_module, "midifile", (PyObject *) init_midiseq_fileType());
+  /* PyModule_AddObject(midiseq_module, "midifile", (PyObject *) init_midiseq_fileType()); */
+  PyModule_AddObject(midiseq_module, "aport", (PyObject *) init_midiseq_aportType());
 }

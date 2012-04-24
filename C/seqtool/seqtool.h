@@ -13,6 +13,7 @@ typedef struct
 {
   seqevtype_t   type;
   void          *addr;
+  bool_t        todel;
 } seqev_t;
 
 typedef struct
@@ -27,6 +28,8 @@ typedef struct
   char          *name;
   list_t        tickev_list;
 }	        track_t;
+
+void dumpaddr_seqevlist(list_t *seqev_list);
 
 void add_new_seqev(track_t *track,
                    uint_t tick,

@@ -7,7 +7,6 @@ SRC=asound/aseq.c\
 	clock/clock.c\
 	tool/tool.c\
 	debug_tool/debug_tool.c\
-	beta_engine/engine.c
 
 OBJ=$(SRC:.c=.o)
 

@@ -9,8 +9,9 @@
 
 typedef struct  aseqport_ctx_s
 {
-  snd_seq_t     *handle;
-  int           output_port;
+  snd_seq_t           *handle;
+  int                 output_port;
+  snd_seq_port_info_t *info;
 }               aseqport_ctx_t;
 
 #define _create_aseq_port(aseq, name)   snd_seq_create_simple_port((aseq)->handle, (name), \
@@ -70,9 +71,10 @@ typedef struct  aseqport_ctx_s
    snd_seq_ev_set_direct(seqev))
 
 snd_seq_t      *create_aseqh(char *name);
-aseqport_ctx_t *init_aseqport(snd_seq_t *handle, char *name);
+aseqport_ctx_t *create_aseqport_ctx(snd_seq_t *handle, char *name);
 void           free_aseqport(aseqport_ctx_t *aseq);
 void           free_aseqh(snd_seq_t *handle);
+const char     *aseqport_name(aseqport_ctx_t *aseq);
 
 #include "midi/midiev_inc.h"
 

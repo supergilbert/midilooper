@@ -4,6 +4,17 @@
 
 #include "debug_tool/debug_tool.h"
 
+
+void dumpaddr_seqevlist(list_t *seqev_list)
+{
+  list_iterator_t evit;
+
+  for (iter_init(&evit, seqev_list);
+       iter_node(&evit);
+       iter_next(&evit))
+    output("ev node addr = %p\n", iter_node(&evit));
+}
+
 void free_seqev(void *addr)
 {
   seqev_t *seqev = (seqev_t *) addr;
@@ -119,6 +130,7 @@ void add_new_seqev(track_t *track,
   bzero(seqev, sizeof (seqev_t));
   seqev->addr = addr;
   seqev->type = type;
+  seqev->todel = FALSE;
   push_to_list_tail(&(tickev->seqev_list), (void *) seqev);
 }
 

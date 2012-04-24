@@ -26,7 +26,7 @@ class tracked_updater(object):
             channed.grid.update_pos(tickpos)
     def clear_all_tracked(self):
         for chan_num, channed in self.tracked.chaned_dict.items():
-            channed.grid.clear_progressline()
+            channed.grid.clear_progress()
     def run(self):
         if self.midi_seq.isrunning():
             self.update_all_tracked()
@@ -44,14 +44,16 @@ player_name = "Player"
 bpm = 120
 ppq = 240
 track_len = 4 * 4 * 10
-track = midiseq.track("%s test track" % player_name)
+# track = midiseq.track("%s test track" % player_name)
 msq = midiseq.midiseq("%s test alsa port" % player_name)
 msq.setppq(ppq)
 msq.setbpm(120)
 
-tracked = TrackEditor(track, ppq, track_len=track_len)
+print "X" * 80
 
-tup = tracked_updater(msq, tracked)
+# tracked = TrackEditor(track, ppq, track_len=track_len)
+
+# tup = tracked_updater(msq, tracked)
 
 
 def start_msq(button, msq, track, tup):

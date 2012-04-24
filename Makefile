@@ -9,3 +9,5 @@ PYTHONAPI :
 clean :
 	make -C C clean
 	make -C python clean
+
+re : clean all

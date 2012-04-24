@@ -48,7 +48,7 @@ static PyObject *midiseq_evwr_getevent(PyObject *obj, PyObject *args)
   Py_RETURN_NONE;
 }
 
-static void evwr_goto_tickit_head(midiseq_evwrObject *self)
+static void evwr_goto_seqevlist_head(midiseq_evwrObject *self)
 {
   tickev_t *tickev = NULL;
 
@@ -62,17 +62,43 @@ static void evwr_goto_tickit_head(midiseq_evwrObject *self)
 static void evwr_goto_head(midiseq_evwrObject *self)
 {
   iter_head(&(self->tickit));
-  evwr_goto_tickit_head(self);
+  evwr_goto_seqevlist_head(self);
 }
 
 static void evwr_goto_next_tick(midiseq_evwrObject *self)
 {
-  /* if (iter_node(&(self->tickit)) != NULL) */
-  /*   { */
-  iter_next(&(self->tickit));
   if (iter_node(&(self->tickit)) != NULL)
-    evwr_goto_tickit_head(self);
-  /* } */
+    {
+      iter_next(&(self->tickit));
+      if (iter_node(&(self->tickit)) != NULL)
+        evwr_goto_seqevlist_head(self);
+    }
+}
+
+static void _evwr_goto_available_ev(midiseq_evwrObject *self)
+{
+  seqev_t *ev = NULL;
+
+  while (iter_node(&(self->evit)) != NULL)
+    {
+      ev = iter_node_ptr(&(self->evit));
+      if (ev->todel == TRUE)
+        {
+          iter_next(&(self->evit));
+          if (iter_node(&(self->evit)) != NULL)
+            continue;
+          else
+            {
+              evwr_goto_next_tick(self);
+              if (iter_node(&(self->evit)) != NULL)
+                continue;
+              else
+                return;
+            }
+        }
+      else
+        return;
+    }
 }
 
 static PyObject *midiseq_evwr_iter_next(PyObject *obj)
@@ -81,33 +107,42 @@ static PyObject *midiseq_evwr_iter_next(PyObject *obj)
 
   if (iter_node(&(self->tickit)) != NULL)
     {
-      if (self->evwr_itflag == FALSE)
+      if (self->evit_started == FALSE)
         {
-          self->evwr_itflag = TRUE;
-          Py_INCREF(obj);
-          return obj;
-        }
-      if (iter_node(&(self->evit)) != NULL)
-        {
-          iter_next(&(self->evit));
+          self->evit_started = TRUE;
+          _evwr_goto_available_ev(self);
           if (iter_node(&(self->evit)) != NULL)
             {
               Py_INCREF(obj);
               return obj;
             }
-          else
+        }
+      else
+        {
+          if (iter_node(&(self->evit)) != NULL)
             {
-              evwr_goto_next_tick(self);
+              iter_next(&(self->evit));
+              _evwr_goto_available_ev(self);
               if (iter_node(&(self->evit)) != NULL)
                 {
                   Py_INCREF(obj);
                   return obj;
                 }
+              else
+                {
+                  evwr_goto_next_tick(self);
+                  _evwr_goto_available_ev(self);
+                  if (iter_node(&(self->evit)) != NULL)
+                    {
+                      Py_INCREF(obj);
+                      return obj;
+                    }
+                }
             }
         }
       evwr_goto_head(self);
     }
-  self->evwr_itflag = FALSE;
+  self->evit_started = FALSE;
   PyErr_SetNone(PyExc_StopIteration);
   return NULL;
 }
@@ -131,7 +166,12 @@ static PyObject *midiseq_evwr_del_event(PyObject *obj, PyObject *args)
 }
 
 /* TODO */
-static PyObject *midiseq_evwr_copy(PyObject *obj, PyObject *args);
+/* static PyObject *midiseq_evwr_repr(midiseq_evwrObject *self) */
+/* { */
+/*   return PyString_FromFormat("midiseq evwr type"); */
+/* } */
+
+PyObject *midiseq_evwr_copy(PyObject *obj, PyObject *args);
 
 static PyMethodDef midiseq_evwr_methods[] = {
   {"get_event", midiseq_evwr_getevent, METH_NOARGS,
@@ -191,7 +231,7 @@ static PyTypeObject midiseq_evwrType = {
     0,                          /* tp_new */
 };
 
-static PyObject *midiseq_evwr_copy(PyObject *obj, PyObject *args)
+PyObject *midiseq_evwr_copy(PyObject *obj, PyObject *args)
 {
   midiseq_evwrObject *evwr = (midiseq_evwrObject *) obj;
   midiseq_evwrObject *newevwr = (midiseq_evwrObject *) PyObject_New(midiseq_evwrObject,
@@ -216,7 +256,7 @@ PyObject *create_midiseq_evwr(track_t *track)
       if (tickev != NULL)
         {
           iter_init(&(evwr->evit), &(tickev->seqev_list));
-          evwr->evwr_itflag = FALSE;
+          evwr->evit_started = FALSE;
         }
     }
   return (PyObject *) evwr;

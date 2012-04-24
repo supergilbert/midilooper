@@ -1,6 +1,6 @@
 #include <Python.h>
 #include "debug_tool/debug_tool.h"
-#include "beta_engine/engine.h"
+#include "./engine.h"
 #include "./pym_midiseq_track.h"
 
 
@@ -39,7 +39,7 @@ static int midiseq_init(midiseq_Object *self,
       if (tmp != NULL)
         aport_name = tmp;
     }
-  self->engine_ctx = init_engine(aport_name);
+  self->engine_ctx = init_engine_ctx(aport_name);
   return 0;
 }
 
@@ -69,6 +69,14 @@ static PyObject *midiseq_gettickpos(PyObject *obj,
   return Py_BuildValue("i", self->engine_ctx->looph.clocktick.number);
 }
 
+
+static PyObject *midiseq_getppq(PyObject *obj,
+                                PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  return Py_BuildValue("i", self->engine_ctx->ppq);
+}
 
 static PyObject *midiseq_setppq(PyObject *obj,
                                 PyObject *args)
@@ -133,31 +141,6 @@ static PyObject *midiseq_setms(PyObject *obj,
 }
 
 
-static PyObject *midiseq_settrack(PyObject *obj,
-                                  PyObject *args)
-{
-  midiseq_Object *self = (midiseq_Object *) obj;
-  midiseq_trackObject *pytrack = NULL;
-
-  trace_func;
-  if (args == NULL)
-    return NULL;
-  trace_func;
-  if (!PyArg_ParseTuple(args , "O", &pytrack))
-    return NULL;
-  trace_func;
-  Py_INCREF(pytrack);
-  self->engine_ctx->track_ctx.track = pytrack->track;
-  if (self->pytrack != NULL)
-    Py_DECREF(self->pytrack);
-  self->pytrack = pytrack;
-  iter_init(&(self->engine_ctx->track_ctx.current_tickev),
-            &(self->engine_ctx->track_ctx.track->tickev_list));
-  trace_func;
-  Py_INCREF(Py_None);
-  return Py_None;
-}
-
 static PyObject *midiseq_start(PyObject *obj,
                                PyObject *args)
 {
@@ -203,9 +186,79 @@ static PyObject *midiseq_isrunning(PyObject *obj,
     Py_RETURN_FALSE;
 }
 
+#include "./pym_midiseq_track.h"
+
+static PyObject *midiseq_newtrack(PyObject *obj,
+                                  PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+  char           *name = NULL;
+  track_ctx_t    *trackctx = NULL;
+
+  if (!PyArg_ParseTuple(args , "s", &name))
+    return NULL;
+  trackctx = engine_create_track(self->engine_ctx, name);
+  return create_midiseq_track(trackctx);
+}
+
+static PyObject *midiseq_gettracks(PyObject *obj,
+                                   PyObject *args)
+{
+  midiseq_Object  *self = (midiseq_Object *) obj;
+  list_iterator_t iter;
+  track_ctx_t    *trackctx = NULL;
+  PyObject        *tracklist = PyList_New(0);
+
+
+  for (iter_init(&iter, &(self->engine_ctx->track_list));
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      trackctx = iter_node_ptr(&iter);
+      PyList_Append(tracklist, create_midiseq_track(trackctx));
+    }
+  return tracklist;
+}
+
+#include "./pym_midiseq_aport.h"
+
+static PyObject *midiseq_newoutput(PyObject *obj,
+                                   PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+  char           *name = NULL;
+  aseqport_ctx_t *aport = NULL;
+
+  if (!PyArg_ParseTuple(args , "s", &name))
+    return NULL;
+  aport = engine_create_aport(self->engine_ctx, name);
+  return create_midiseq_aport(aport);
+}
+
+static PyObject *midiseq_getports(PyObject *obj,
+                                 PyObject *args)
+{
+  midiseq_Object  *self = (midiseq_Object *) obj;
+  list_iterator_t iter;
+  aseqport_ctx_t  *aport = NULL;
+  PyObject        *portlist = PyList_New(0);
+
+
+  for (iter_init(&iter, &(self->engine_ctx->aseqport_list));
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      aport = iter_node_ptr(&iter);
+      PyList_Append(portlist, create_midiseq_aport(aport));
+    }
+  return portlist;
+}
+
 static PyMethodDef midiseq_methods[] = {
   {"setppq", midiseq_setppq, METH_VARARGS,
    "Set sequencer pulsation per quater note"},
+  {"getppq", midiseq_getppq, METH_NOARGS,
+   "Get sequencer pulsation per quarter note"},
   {"setbpm", midiseq_setbpm, METH_VARARGS,
    "Set sequencer tempo in beat per minute"},
   {"settickpos", midiseq_settickpos, METH_VARARGS,
@@ -214,8 +267,8 @@ static PyMethodDef midiseq_methods[] = {
    "Get sequencer tick position"},
   {"setms", midiseq_setms, METH_VARARGS,
    "Set sequencer tempo in micro seconde"},
-  {"settrack", midiseq_settrack, METH_VARARGS,
-   "Set sequencer track"},
+  /* {"settrack", midiseq_settrack, METH_VARARGS, */
+  /*  "Set sequencer track"}, */
   {"start", midiseq_start, METH_NOARGS,
    "Start the engine"},
   {"stop", midiseq_stop, METH_NOARGS,
@@ -224,11 +277,18 @@ static PyMethodDef midiseq_methods[] = {
    "Wait for engine thread end"},
   {"isrunning", midiseq_isrunning, METH_NOARGS,
    "Get if engine is running"},
+  {"newoutput", midiseq_newoutput, METH_VARARGS,
+   "Create new sequencer output port"},
+  {"getports", midiseq_getports, METH_NOARGS,
+   "Get output ports list"},
+  {"newtrack", midiseq_newtrack, METH_VARARGS,
+   "Create new track"},
+  {"gettracks", midiseq_gettracks, METH_NOARGS,
+   "Create new sequencer track"},
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
   /* {"getname", midiseq_readtrack, METH_NOARGS, "get track name"}, */
   {NULL, NULL, 0, NULL}
 };
-
 
 static PyTypeObject midiseq_Type = {
     PyObject_HEAD_INIT(NULL)
@@ -271,7 +331,6 @@ static PyTypeObject midiseq_Type = {
     0,                      /* tp_alloc */
     PyType_GenericNew,      /* tp_new */
 };
-
 
 PyTypeObject *init_midiseq_Type(void)
 {

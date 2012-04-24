@@ -148,7 +148,9 @@ class ChannelEditor(gtk.VBox):
         gtk.VBox.__init__(self)
         self.tracked = tracked
 
-        hbar = MsqHBarTimeWidget(self.tracked.track_len, xpadsz=self.tracked.xpadsz)
+        track_len = self.tracked.track.get_len() / self.tracked.ppq
+
+        hbar = MsqHBarTimeWidget(track_len, xpadsz=self.tracked.xpadsz)
         xpadsz = hbar.xpadsz
         hbar_vp = gtk.Viewport()
         hbar_vp.set_size_request(self.tracked.min_width, -1)
@@ -166,12 +168,18 @@ class ChannelEditor(gtk.VBox):
         vadj = vbar_vp.get_vadjustment()
         vbar_vp.connect("scroll_event", self.set_chaned_adj, hadj, vadj, xpadsz, ypadsz)
 
-        self.grid = MsqNoteGridWidget(chan_num,
-                                      self.tracked.track_len,
-                                      self.tracked.track,
-                                      ppq=self.tracked.ppq,
-                                      xpadsz=xpadsz,
-                                      ypadsz=ypadsz)
+        if self.tracked.sequencer:
+            self.grid = MsqNoteGridWidget(chan_num,
+                                          self.tracked.track,
+                                          ppq=self.tracked.ppq,
+                                          xpadsz=xpadsz,
+                                          ypadsz=ypadsz)
+        else:
+            self.grid = MsqNoteGridWidget(chan_num,
+                                          self.tracked.track,
+                                          ppq=self.tracked.ppq,
+                                          xpadsz=xpadsz,
+                                          ypadsz=ypadsz)
         grid_vp = gtk.Viewport()
         grid_vp.set_size_request(self.tracked.min_width, self.tracked.min_height)
         grid_vp.add(self.grid)
@@ -180,8 +188,8 @@ class ChannelEditor(gtk.VBox):
         grid_vp.set_hadjustment(hadj)
         grid_vp.set_vadjustment(vadj)
 
-        vsb = gtk.VScrollbar(vadj)
         hsb = gtk.HScrollbar(hadj)
+        vsb = gtk.VScrollbar(vadj)
 
         table = gtk.Table(3, 3)
         table.attach(hbar_vp, 1, 2, 0, 1, gtk.FILL, 0)
@@ -221,9 +229,6 @@ class ChannelEditor(gtk.VBox):
         self.set_focus_child(table)
 
 
-
-
-
 def get_track_info(track):
     track_min = 0
     track_max = 0
@@ -240,7 +245,15 @@ def get_track_info(track):
     return (track_min, track_max, channel_list)
 
 class TrackEditor(gtk.Window):
-    def __init__(self, track, ppq, track_len=None, xpadsz=DEFAULT_XPADSZ, font_name=DEFAULT_FONT_NAME, sequencer=None):
+    def update_pos(self, tickpos):
+        for channed in self.chaned_dict.values():
+            channed.grid.update_pos(tickpos)
+
+    def clear_progress(self):
+        for channed in self.chaned_dict.values():
+            channed.grid.clear_progress()
+
+    def __init__(self, track, ppq, xpadsz=DEFAULT_XPADSZ, font_name=DEFAULT_FONT_NAME, sequencer=None):
         gtk.Window.__init__(self)
         # temporary
         self.sequencer = sequencer
@@ -248,11 +261,6 @@ class TrackEditor(gtk.Window):
         self.ppq = ppq
 
         track_min, track_max, channel_list = get_track_info(track)
-
-        if track_len == None:
-            self.track_len = track_max
-        else:
-            self.track_len = track_len
 
         self.min_width = 320
         self.min_height = 240
@@ -276,12 +284,17 @@ class TrackEditor(gtk.Window):
             self.chaned_dict[channel_num] = chaned
 
         self.set_title(self.track.get_name())
-        # def hide_track(tracked, event):
-        #     tracked.hide()
-        #     return True
-        # self.connect('delete_event', hide_track)
+        def hide_track(tracked, event, win):
+            #tracked.hide()
+            win.hide()
+            return True
+        self.connect('delete-event', hide_track, self)
         self.add(noteb)
-        self.connect('delete_event', gtk.main_quit)
+        # def _handle_delev(win):
+        #     win.unmap()
+        # self.set_decorated(False)
+        # self.connect('delete_event', _handle_delev)
+        # self.connect('destroy', _handle_delev)
 
 
 if __name__ == '__main__':

@@ -16,13 +16,15 @@ snd_seq_t     *create_aseqh(char *name)
   return handle;
 }
 
-aseqport_ctx_t  *init_aseqport(snd_seq_t *handle, char *name)
+aseqport_ctx_t  *create_aseqport_ctx(snd_seq_t *handle, char *name)
 {
   aseqport_ctx_t        *aseq = NULL;
 
   aseq = myalloc(sizeof (aseqport_ctx_t));
   aseq->handle = handle;
   aseq->output_port = _create_aseq_port(aseq, name);
+  snd_seq_port_info_malloc(&(aseq->info));
+  snd_seq_get_port_info(handle, aseq->output_port, aseq->info);
   return aseq;
 }
 
@@ -42,7 +44,13 @@ void free_aseqport(aseqport_ctx_t *aseq)
   err = snd_seq_delete_port(aseq->handle, aseq->output_port);
   if (0 != err)
     output_error("problem while deleting alsa port\n%s\n", snd_strerror(err));
+  snd_seq_port_info_free(aseq->info);
   free(aseq);
+}
+
+const char *aseqport_name(aseqport_ctx_t *aseq)
+{
+  return snd_seq_port_info_get_name(aseq->info);
 }
 
 bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)

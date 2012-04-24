@@ -16,6 +16,8 @@ void free_list_node(list_t *list, free_list_func func)
 {
   node_t *node = list->head;
   node_t *next = NULL;
+
+  list->len = 0;
   list->head = NULL;
   list->tail = NULL;
   while (node)
@@ -170,20 +172,20 @@ void iter_node_del(list_iterator_t *iterator, free_list_func func)
     {
       if (list->head == list->tail)
         {
-          _del_list_node(list, iterator->node, func);
+          _del_list_node(iterator->list, iterator->node, func);
           iterator->node = NULL;
         }
       else
         {
           if (iterator->node->next == NULL)
             {
-              _del_list_node(list, iterator->node, func);
+              _del_list_node(iterator->list, iterator->node, func);
               iterator->node = list->tail;
             }
           else
             {
               node = iterator->node->next;
-              _del_list_node(list, iterator->node, func);
+              _del_list_node(iterator->list, iterator->node, func);
               iterator->node = node;
             }
         }

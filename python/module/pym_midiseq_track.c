@@ -1,35 +1,36 @@
 #include "./pym_midiseq_track.h"
+#include "./pym_midiseq_aport.h"
 
 #include "debug_tool/debug_tool.h"
 
-static int midiseq_track_init(midiseq_trackObject *self,
-                               PyObject *args,
-                               PyObject *kwds)
-{
-  track_t       *track = NULL;
-  char          *name = NULL;
+/* static int midiseq_track_init(midiseq_trackObject *self, */
+/*                                PyObject *args, */
+/*                                PyObject *kwds) */
+/* { */
+/*   track_t       *track = NULL; */
+/*   char          *name = NULL; */
 
-  track = myalloc(sizeof (track_t));
-  bzero(track, sizeof (track_t));
+/*   track = myalloc(sizeof (track_t)); */
+/*   bzero(track, sizeof (track_t)); */
 
-  if (args != NULL)
-    {
-      if (!PyArg_ParseTuple(args, "s", &name))
-        return -1;
-      if (name == NULL)
-        name = "no track name";
-    }
-  track->name = strdup(name);
-  self->track = track;
-  return 0;
-}
+/*   if (args != NULL) */
+/*     { */
+/*       if (!PyArg_ParseTuple(args, "s", &name)) */
+/*         return -1; */
+/*       if (name == NULL) */
+/*         name = "no track name"; */
+/*     } */
+/*   track->name = strdup(name); */
+/*   self->track = track; */
+/*   return 0; */
+/* } */
 
 static void midiseq_track_dealloc(PyObject *obj)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
-  if (self->track != NULL) {
-    free_track(self->track);
-  }
+  /* if (self->track != NULL) { */
+  /*   free_track(self->track); */
+  /* } */
   self->ob_type->tp_free((PyObject*)self);
 }
 
@@ -38,9 +39,30 @@ static PyObject *midiseq_track_get_name(PyObject *self, PyObject *args)
   midiseq_trackObject *trackpy = (midiseq_trackObject *) self;
   char *track_name = "no track name";
 
-  if (trackpy->track && trackpy->track->name)
-    track_name = trackpy->track->name;
+  if (trackpy->trackctx && trackpy->trackctx->track->name)
+    track_name = trackpy->trackctx->track->name;
   return Py_BuildValue("s", track_name);
+}
+
+static PyObject *midiseq_track_get_len(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  return Py_BuildValue("i", self->trackctx->len);
+}
+
+static PyObject *midiseq_track_set_len(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+  unsigned int        len;
+
+  if (!PyArg_ParseTuple(args, "i", &len))
+    {
+      output_error("track_add_note_event: Problem with argument");
+      return NULL;
+    }
+  self->trackctx->len = len;
+  Py_RETURN_NONE;
 }
 
 #include "midi/midiev_inc.h"
@@ -65,7 +87,7 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
   mcev->type = type;
   mcev->event.note.num = num;
   mcev->event.note.val = val;
-  add_new_seqev(self->track, tick, mcev, MIDICEV);
+  add_new_seqev(self->trackctx->track, tick, mcev, MIDICEV);
   Py_RETURN_NONE;
 }
 
@@ -73,13 +95,86 @@ static PyObject *midiseq_track_clear(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  clear_tickev_list(&(self->track->tickev_list));
+  clear_tickev_list(&(self->trackctx->track->tickev_list));
   Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_track_set_port(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+  midiseq_aportObject *pyaport = NULL;
+
+  if (!PyArg_ParseTuple(args , "O", &pyaport))
+    return NULL;
+  self->trackctx->aseqport_ctx = pyaport->aport;
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_track_lock(PyObject *obj,
+                                    PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  pthread_rwlock_rdlock(&(self->trackctx->lock));
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_track_unlock(PyObject *obj,
+                                      PyObject *args)
+{
+  midiseq_trackObject     *self = (midiseq_trackObject *) obj;
+
+  pthread_rwlock_unlock(&(self->trackctx->lock));
+  Py_RETURN_NONE;
+}
+
+#include "pym_midiseq_evwr.h"
+
+static PyObject *midiseq_track_event2trash(PyObject *obj,
+                                           PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+  midiseq_evwrObject  *evwr = NULL;
+
+  if (!PyArg_ParseTuple(args , "O", &evwr))
+    return NULL;
+  trackctx_event2trash(self->trackctx,
+                       &(evwr->tickit),
+                       &(evwr->evit));
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_track_ishandled(PyObject *obj,
+                                         PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  if (self->trackctx->is_handled == TRUE)
+    Py_RETURN_TRUE;
+  Py_RETURN_FALSE;
+}
+
+static PyObject *midiseq_track_repr(PyObject *obj)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  return Py_BuildValue("s", self->trackctx->track->name);
 }
 
 static PyMethodDef midiseq_track_methods[] = {
   {"get_name", midiseq_track_get_name, METH_NOARGS, "Get track name"},
+  {"get_len", midiseq_track_get_len, METH_NOARGS, "Get track len"},
+  {"set_len", midiseq_track_set_len, METH_VARARGS, "Set track len"},
+  {"set_port", midiseq_track_set_port, METH_VARARGS, "Set track port"},
   {"add_note_event", midiseq_track_add_note_event, METH_VARARGS, "Add a note event"},
+  {"lock", midiseq_track_lock, METH_NOARGS,
+   "Lock track"},
+  {"unlock", midiseq_track_unlock, METH_NOARGS,
+   "Unlock track"},
+  {"event2trash", midiseq_track_event2trash, METH_VARARGS,
+   "Put event to the trash"},
+  {"is_handled", midiseq_track_ishandled, METH_NOARGS,
+   "Get if the track is handled"},
   {"clear", midiseq_track_clear, METH_NOARGS, "free all track list to use with caution (/!\\ not while running for now)"},
   {NULL, NULL, 0, NULL}
 };
@@ -90,7 +185,7 @@ static PyObject *midiseq_track_get_iter(PyObject *obj)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  return create_midiseq_evwr(self->track);
+  return create_midiseq_evwr(self->trackctx->track);
 }
 
 static PyTypeObject midiseq_trackType = {
@@ -104,7 +199,7 @@ static PyTypeObject midiseq_trackType = {
     0,                             /* tp_getattr */
     0,                             /* tp_setattr */
     0,                             /* tp_compare */
-    0,                             /* tp_repr */
+    midiseq_track_repr,            /* tp_repr */
     0,                             /* tp_as_number */
     0,                             /* tp_as_sequence */
     0,                             /* tp_as_mapping */
@@ -130,17 +225,17 @@ static PyTypeObject midiseq_trackType = {
     0,                             /* tp_descr_get */
     0,                             /* tp_descr_set */
     0,                             /* tp_dictoffset */
-    (initproc) midiseq_track_init, /* tp_init */
+    0,                             /* tp_init */
     0,                             /* tp_alloc */
     PyType_GenericNew,             /* tp_new */
 };
 
-PyObject *create_midiseq_track(track_t *track)
+PyObject *create_midiseq_track(track_ctx_t *trackctx)
 {
   midiseq_trackObject *pytrack = PyObject_New(midiseq_trackObject,
                                               &midiseq_trackType);
 
-  pytrack->track = track;
+  pytrack->trackctx = trackctx;
   return (PyObject *) pytrack;
 }
 
