@@ -250,12 +250,13 @@ bool_t		get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr)
 {
   char		*str = ptr;
   unsigned char	*buffer = ptr;
-  size_t	size = 0;
+  /* size_t	size = 0; */
 
   if (strncmp(str, "MThd", 4))
     return 0;
   buffer += 4;
-  copy_to_2B(size, buffer);
+  /* size = buffer[0]; size += (size << 8) + buffer[1]; */
+  /* copy_to_2B(size, buffer); */
   if (buffer[3] != 6)
     return 0;
   buffer += 4;

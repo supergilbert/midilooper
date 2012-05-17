@@ -34,14 +34,32 @@ static void midiseq_track_dealloc(PyObject *obj)
   self->ob_type->tp_free((PyObject*)self);
 }
 
-static PyObject *midiseq_track_get_name(PyObject *self, PyObject *args)
+static PyObject *midiseq_track_get_name(PyObject *obj, PyObject *args)
 {
-  midiseq_trackObject *trackpy = (midiseq_trackObject *) self;
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
   char *track_name = "no track name";
 
-  if (trackpy->trackctx && trackpy->trackctx->track->name)
-    track_name = trackpy->trackctx->track->name;
+  if (self->trackctx->track->name)
+    track_name = self->trackctx->track->name;
   return Py_BuildValue("s", track_name);
+}
+
+static PyObject *midiseq_track_set_name(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+  char *name = NULL;
+  char *tmp;
+
+  if (!PyArg_ParseTuple(args, "s", &name))
+    {
+      output_error("track_set_name: Problem with argument");
+      return NULL;
+    }
+  tmp = self->trackctx->track->name;
+  self->trackctx->track->name = strdup(name);
+  if (tmp)
+    free(tmp);
+  Py_RETURN_NONE;
 }
 
 static PyObject *midiseq_track_get_len(PyObject *obj, PyObject *args)
@@ -163,6 +181,7 @@ static PyObject *midiseq_track_repr(PyObject *obj)
 
 static PyMethodDef midiseq_track_methods[] = {
   {"get_name", midiseq_track_get_name, METH_NOARGS, "Get track name"},
+  {"set_name", midiseq_track_set_name, METH_VARARGS, "Set track name"},
   {"get_len", midiseq_track_get_len, METH_NOARGS, "Get track len"},
   {"set_len", midiseq_track_set_len, METH_VARARGS, "Set track len"},
   {"set_port", midiseq_track_set_port, METH_VARARGS, "Set track port"},

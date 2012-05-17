@@ -48,9 +48,20 @@ void free_aseqport(aseqport_ctx_t *aseq)
   free(aseq);
 }
 
-const char *aseqport_name(aseqport_ctx_t *aseq)
+const char *aseqport_get_name(aseqport_ctx_t *aseq)
 {
   return snd_seq_port_info_get_name(aseq->info);
+}
+
+void aseqport_set_name(aseqport_ctx_t *aseq, char *name)
+{
+  int err = 0;
+
+  snd_seq_port_info_set_name(aseq->info, name);
+  err = snd_seq_set_port_info(aseq->handle, aseq->output_port, aseq->info);
+  if (0 != err)
+    output_error("problem while setting alsa port info\n%s\n", snd_strerror(err));
+
 }
 
 bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)

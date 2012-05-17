@@ -5,13 +5,13 @@
 #include "seqtool/seqtool.h"
 #include "midi/midiev.h"
 
-#define copy_to_2B(dst, src)	(dst) = *(src);			\
-                                      (dst) = *(src + 1)
+/* #define copy_to_2B(dst, src)	(dst) = *(src);			\ */
+/*                                       (dst) = *(src + 1) */
 
-#define copy_to_4B(dst, src)	(dst) = *(src);		\
-                                      (dst) = *(src + 1);	\
-                                      (dst) = *(src + 2);	\
-                                      (dst) = *(src + 3))
+/* #define copy_to_4B(dst, src)	(dst) = *(src);		\ */
+/*                                       (dst) = *(src + 1);	\ */
+/*                                       (dst) = *(src + 2);	\ */
+/*                                       (dst) = *(src + 3)) */
 
 #define get_midifile_type_str(type) ((type) == 0 ?	"Single track"	\
 				     : (type) == 1 ?	"Multiple tracks, synchronous" \

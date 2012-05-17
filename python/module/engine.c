@@ -150,7 +150,8 @@ void play_trackev(uint_t tick, track_ctx_t *track_ctx)
 
   if (tickev->tick == tick)
     {
-      play_midiev(&(tickev->seqev_list), track_ctx->aseqport_ctx);
+      if (track_ctx->aseqport_ctx)
+        play_midiev(&(tickev->seqev_list), track_ctx->aseqport_ctx);
       iter_next(&(track_ctx->current_tickev));
       if (iter_node(&(track_ctx->current_tickev)) == NULL)
         {
@@ -161,6 +162,15 @@ void play_trackev(uint_t tick, track_ctx_t *track_ctx)
         }
     }
   return;
+}
+
+void _free_trackctx(void *addr)
+{
+  track_ctx_t *trackctx = (track_ctx_t  *) addr;
+
+  pthread_rwlock_destroy(&(trackctx->lock));
+  free_track(trackctx->track);
+  free(trackctx);
 }
 
 void play_all_trackev(engine_ctx_t *ctx)
@@ -174,6 +184,12 @@ void play_all_trackev(engine_ctx_t *ctx)
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
+      if (track_ctx->to_del == TRUE)
+        iter_node_del(&trackit, _free_trackctx);
+      if (iter_node(&trackit) != NULL)
+        track_ctx = iter_node_ptr(&trackit);
+      else
+        break;
       play_trackev(looph->clocktick.number, track_ctx);
     }
 }
@@ -237,13 +253,63 @@ bool_t engine_isrunning(engine_ctx_t *ctx)
   return isrunning;
 }
 
-aseqport_ctx_t  *engine_create_aport(engine_ctx_t *ctx, char *name)
+void _free_port(void *addr)
+{
+  aseqport_ctx_t *aseqport_ctx = (aseqport_ctx_t  *) addr;
+
+  free_aseqport(aseqport_ctx);
+}
+
+bool_t engine_del_port(engine_ctx_t *ctx, aseqport_ctx_t *aseqportctx)
+{
+  list_iterator_t aseqportit;
+  aseqport_ctx_t *aseqport_ctx = NULL;
+
+  for (iter_init(&aseqportit, &(ctx->aseqport_list));
+       iter_node(&aseqportit) != NULL;
+       iter_next(&aseqportit))
+    {
+      aseqport_ctx = iter_node_ptr(&aseqportit);
+      if (aseqport_ctx == aseqportctx)
+        {
+          iter_node_del(&aseqportit, _free_port);
+          /* free_aseqport(aseqport_ctx); */
+          return TRUE;
+        }
+    }
+  return FALSE;
+}
+
+aseqport_ctx_t *engine_create_aport(engine_ctx_t *ctx, char *name)
 {
   aseqport_ctx_t  *aseqport_ctx = myalloc(sizeof (aseqport_ctx_t));
 
   aseqport_ctx = create_aseqport_ctx(ctx->aseqh, name);
   push_to_list_tail(&(ctx->aseqport_list), aseqport_ctx);
   return aseqport_ctx;
+}
+
+bool_t engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx)
+{
+  list_iterator_t trackit;
+  track_ctx_t *track_ctx = NULL;
+
+  for (iter_init(&trackit, &(ctx->track_list));
+       iter_node(&trackit) != NULL;
+       iter_next(&trackit))
+    {
+      track_ctx = iter_node_ptr(&trackit);
+      if (track_ctx == trackctx)
+        {
+          if (track_ctx->is_handled == TRUE)
+            track_ctx->to_del = TRUE;
+          else
+            iter_node_del(&trackit, _free_trackctx);
+          /* free_track(track_ctx); */
+          return TRUE;
+        }
+    }
+  return FALSE;
 }
 
 track_ctx_t  *engine_create_track(engine_ctx_t *ctx, char *name)
@@ -255,26 +321,11 @@ track_ctx_t  *engine_create_track(engine_ctx_t *ctx, char *name)
   trackctx->len = ctx->ppq * 4;
   trackctx->loop_start = 0;
   trackctx->is_handled = FALSE;
+  trackctx->to_del = FALSE;
   pthread_rwlock_init(&(trackctx->lock), NULL);
   iter_init(&(trackctx->current_tickev), &(trackctx->track->tickev_list));
   push_to_list_tail(&(ctx->track_list), trackctx);
   return trackctx;
-}
-
-void _free_port(void *addr)
-{
-  aseqport_ctx_t *aseqport_ctx = (aseqport_ctx_t  *) addr;
-
-  free_aseqport(aseqport_ctx);
-}
-
-void _free_trackctx(void *addr)
-{
-  track_ctx_t *trackctx = (track_ctx_t  *) addr;
-
-  pthread_rwlock_destroy(&(trackctx->lock));
-  free_track(trackctx->track);
-  free(trackctx);
 }
 
 void free_engine_ctx(engine_ctx_t *ctx)
@@ -292,6 +343,13 @@ void free_engine_ctx(engine_ctx_t *ctx)
   /* free_clockloop_struct(ctx->looph); */
 }
 
+void engine_setbpm(engine_ctx_t *ctx, uint_t bpm)
+{
+  set_bpmnppq_to_timespec(&(ctx->looph.res),
+                          ctx->ppq,
+                          bpm);
+}
+
 engine_ctx_t *init_engine_ctx(char *name)
 {
   engine_ctx_t *ctx = myalloc(sizeof (engine_ctx_t));
@@ -301,6 +359,8 @@ engine_ctx_t *init_engine_ctx(char *name)
   ctx->looph.cb_arg = ctx;
   ctx->info.isrunning = FALSE;
   ctx->rq = engine_stop;
+  ctx->ppq = 192;
+  engine_setbpm(ctx, 120);
   /* pthread_rwlock_init(&(ctx->info.lock), NULL); */
   pthread_rwlock_init(&(ctx->lock), NULL);
   /* pthread_attr_init(&(ctx->thread_attr)); */
@@ -330,7 +390,16 @@ void unset_engine_trackev_handling(engine_ctx_t *ctx)
   for (iter_init(&trackit, &(ctx->track_list));
        iter_node(&trackit) != NULL;
        iter_next(&trackit))
-    track_ctx->is_handled = FALSE;
+    {
+      track_ctx = iter_node_ptr(&trackit);
+      if (track_ctx->to_del == TRUE)
+        iter_node_del(&trackit, _free_trackctx);
+      if (iter_node(&trackit) != NULL)
+        track_ctx = iter_node_ptr(&trackit);
+      else
+        break;
+      track_ctx->is_handled = FALSE;
+    }
 }
 
 void *engine_thread_wrapper(void *arg)
@@ -343,6 +412,8 @@ void *engine_thread_wrapper(void *arg)
   /* pthread_rwlock_unlock(&(ctx->info.lock)); */
   init_engine_trackev(ctx);
   ctx->thread_ret = clockloop(&(ctx->looph));
+  unset_engine_trackev_handling(ctx);
+  /* engine_free_trash(ctx); */
   return &(ctx->thread_ret);
 }
 

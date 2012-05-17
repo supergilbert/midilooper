@@ -12,32 +12,19 @@ OBJ=$(SRC:.c=.o)
 
 MIDISEQLIB=./libmidiseq.a
 
-CFLAGS= -Wall -g -fPIC -I ./
+CFLAGS=-Wall -g -fPIC -I ./
 CC=gcc
-
-TEST_SRC=test/test_engine.c
-TEST_OBJ=$(TEST_SRC:.c=.o)
-TEST=test_midiseq
 
 all : $(MIDISEQLIB)
 
 $(MIDISEQLIB) : $(OBJ)
 	ar -rvs $(MIDISEQLIB) $(OBJ)
 
+clean :
+	rm -f $(OBJ) $(MIDISEQLIB)
+
 debug_flags :
 	CFLAGS=$(CFLAGS) -DDEBUG_MODE
 
 debug : debug_flags $(OBJ)
 	ar -rvs $(MIDISEQLIB) $(OBJ)
-
-$(TEST) :  $(OBJ) $(TEST_OBJ)
-	$(CC) -o $(TEST) $(TEST_OBJ) $(OBJ) -lasound
-	$(CC) -o $(TEST).efence $(TEST_OBJ) $(OBJ) -lasound -lefence
-
-test : $(TEST)
-
-test_clean :
-	rm -f $(TEST_OBJ) $(OBJ) $(TEST) $(TEST).efence
-
-clean : test_clean
-	rm -f $(OBJ) $(MIDISEQLIB)

@@ -1,6 +1,6 @@
 all:
-	make -C ./module all
+	@make -C ./module all
 
 clean:
 	find ./ -iname '*pyc' -exec rm -rf {} \;
-	make -C ./module clean
+	@make -C ./module clean

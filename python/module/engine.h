@@ -30,6 +30,7 @@ typedef struct
   pthread_rwlock_t lock;
   list_t           trash;
   bool_t           is_handled;
+  bool_t           to_del;
 } track_ctx_t;
 
 typedef struct
@@ -57,6 +58,9 @@ void            wait_engine(engine_ctx_t *ctx);
 clock_req_t     engine_cb(void *arg);
 bool_t          engine_isrunning(engine_ctx_t *ctx);
 aseqport_ctx_t  *engine_create_aport(engine_ctx_t *ctx, char *name);
+bool_t          engine_del_port(engine_ctx_t *ctx,
+                                aseqport_ctx_t *aseqportctx);
+bool_t          engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx);
 track_ctx_t     *engine_create_track(engine_ctx_t *ctx, char *name);
 void            trackctx_event2trash(track_ctx_t *traxkctx,
                                      list_iterator_t *tickit,

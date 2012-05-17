@@ -53,6 +53,22 @@ class LengthSettingHBox(gtk.HBox):
         self.pack_start(den_cbbox)
 
 
+class TrackSettingTable(gtk.Table):
+    def set_track_len(self, widget):
+        self.track.set_len(int(widget.get_value()) * self.ppq)
+
+    def __init__(self, track, ppq):
+        self.track = track
+        self.ppq = ppq
+        label = gtk.Label("Track length")
+        gtk.Table.__init__(self, 3, 3)
+        spinadj = gtk.Adjustment(track.get_len() / self.ppq, 1, 240, 1)
+        spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
+        spinadj.connect("value-changed", self.set_track_len)
+        self.attach(label, 0, 2, 0, 1)
+        self.attach(spinbut, 2, 3, 0, 1)
+
+
 class NoteSettingTable(gtk.Table):
     def set_note_length(self, numerator, denominator, grid):
         grid.note_param["len"] = grid.ppq * numerator / denominator
@@ -81,9 +97,6 @@ class NoteSettingTable(gtk.Table):
         label = gtk.Label("Noteon value")
         spinadj = gtk.Adjustment(grid.note_param["val_on"], 0, 127, 1)
         spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
-        # spinbut = gtk.SpinButton(climb_rate=1)
-        # spinbut.set_range(0, 127)
-        # spinbut.set_value(grid.note_param["val_on"])
         spinbut.set_numeric(True)
         spinadj.connect("value-changed", self.set_note_value_cb, grid)
         self.attach(label, 0, 2, 2, 3)
@@ -148,7 +161,7 @@ class ChannelEditor(gtk.VBox):
         gtk.VBox.__init__(self)
         self.tracked = tracked
 
-        track_len = self.tracked.track.get_len() / self.tracked.ppq
+        track_len = self.tracked.track.get_len() / self.tracked.sequencer.getppq()
 
         hbar = MsqHBarTimeWidget(track_len, xpadsz=self.tracked.xpadsz)
         xpadsz = hbar.xpadsz
@@ -168,18 +181,11 @@ class ChannelEditor(gtk.VBox):
         vadj = vbar_vp.get_vadjustment()
         vbar_vp.connect("scroll_event", self.set_chaned_adj, hadj, vadj, xpadsz, ypadsz)
 
-        if self.tracked.sequencer:
-            self.grid = MsqNoteGridWidget(chan_num,
-                                          self.tracked.track,
-                                          ppq=self.tracked.ppq,
-                                          xpadsz=xpadsz,
-                                          ypadsz=ypadsz)
-        else:
-            self.grid = MsqNoteGridWidget(chan_num,
-                                          self.tracked.track,
-                                          ppq=self.tracked.ppq,
-                                          xpadsz=xpadsz,
-                                          ypadsz=ypadsz)
+        self.grid = MsqNoteGridWidget(chan_num,
+                                      self.tracked.track,
+                                      ppq=self.tracked.sequencer.getppq(),
+                                      xpadsz=xpadsz,
+                                      ypadsz=ypadsz)
         grid_vp = gtk.Viewport()
         grid_vp.set_size_request(self.tracked.min_width, self.tracked.min_height)
         grid_vp.add(self.grid)
@@ -203,11 +209,18 @@ class ChannelEditor(gtk.VBox):
         note_setting_frame = gtk.Frame("Note setting")
         note_setting_frame.add(NoteSettingTable(self.grid))
 
+        track_setting_frame = gtk.Frame("Track setting")
+        track_setting_frame.add(TrackSettingTable(self.tracked.track, self.tracked.sequencer.getppq()))
+
+        setting_hbox = gtk.HBox()
+        setting_hbox.pack_start(note_setting_frame, expand=False)
+        setting_hbox.pack_start(track_setting_frame, expand=False)
+
+        self.pack_start(setting_hbox, expand=False)
         self.pack_start(table)
-        self.pack_start(note_setting_frame, expand=False)
 
         debug_hbox = gtk.HBox()
-        button_clear = gtk.Button("Reset all")
+        button_clear = gtk.Button("Clear all")
         button_clear.connect("clicked", self.reset_track, grid_vp)
         debug_hbox.pack_start(button_clear)
 
@@ -245,6 +258,11 @@ def get_track_info(track):
     return (track_min, track_max, channel_list)
 
 class TrackEditor(gtk.Window):
+    def set_name(self, name):
+        if name:
+            self.set_title("Track %s" % name)
+            self.track.set_name(name)
+
     def update_pos(self, tickpos):
         for channed in self.chaned_dict.values():
             channed.grid.update_pos(tickpos)
@@ -253,12 +271,18 @@ class TrackEditor(gtk.Window):
         for channed in self.chaned_dict.values():
             channed.grid.clear_progress()
 
-    def __init__(self, track, ppq, xpadsz=DEFAULT_XPADSZ, font_name=DEFAULT_FONT_NAME, sequencer=None):
+    def port_changed(self, combobox):
+        portlist = combobox.get_model()
+        port_idx = combobox.get_active()
+        if port_idx >= 0:
+            port = portlist[port_idx][0]
+            self.track.set_port(port)
+
+    def __init__(self, track, sequencer, portlist=None, xpadsz=DEFAULT_XPADSZ, font_name=DEFAULT_FONT_NAME):
         gtk.Window.__init__(self)
         # temporary
         self.sequencer = sequencer
         self.track = track
-        self.ppq = ppq
 
         track_min, track_max, channel_list = get_track_info(track)
 
@@ -283,23 +307,25 @@ class TrackEditor(gtk.Window):
             noteb.append_page(chaned, gtk.Label("Channel %i" % channel_num))
             self.chaned_dict[channel_num] = chaned
 
-        self.set_title(self.track.get_name())
-        def hide_track(tracked, event, win):
-            #tracked.hide()
+        self.set_title("Track %s" % self.track.get_name())
+        def hide_tracked(win, event):
             win.hide()
             return True
-        self.connect('delete-event', hide_track, self)
-        self.add(noteb)
-        # def _handle_delev(win):
-        #     win.unmap()
-        # self.set_decorated(False)
-        # self.connect('delete_event', _handle_delev)
-        # self.connect('destroy', _handle_delev)
-
+        self.connect('delete-event', hide_tracked)
+        print "portlist", portlist
+        vbox = gtk.VBox()
+        combobox = gtk.ComboBox(portlist)
+        cell = gtk.CellRendererText()
+        combobox.pack_start(cell, True)
+        combobox.add_attribute(cell, 'text', 1)
+        combobox.connect("changed", self.port_changed)
+        vbox.pack_start(combobox, expand=False)
+        vbox.pack_end(noteb)
+        self.add(vbox)
 
 if __name__ == '__main__':
     import sys
-    sys.path.append('./module')
+    sys.path.append('../module')
     import midiseq
     # midif = midiseq.midifile("../../file/midi/Highway_to_Hell.mid")
     # track = midif.getmergedtrack()
@@ -311,8 +337,11 @@ if __name__ == '__main__':
     # len = max - min
     # track = TrackEditor(track_dict, max - min, ppq)
     ppq = 48
-    track_len = 4 * 4 * 10
-    track = midiseq.track("bobo")
-    tracked = TrackEditor(track, ppq, track_len=track_len)
+    # track_len = 4 * 4 * 10
+    msq = midiseq.midiseq("test track")
+    track = msq.newtrack("track 1")
+    # TrackEditor(track
+    # track = midiseq.track("bobo")
+    tracked = TrackEditor(track, msq)
     tracked.show_all()
     gtk.main()

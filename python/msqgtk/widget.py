@@ -233,6 +233,19 @@ note_on_xpm = ["%i %i 2 1" % (NOTE_PX_SIZE, NOTE_PX_SIZE),
 NOTE_BAR_TYPE = 0
 NOTE_POINT_TYPE = 1
 
+# def invertcharval(val):
+#     return 255 - val
+
+
+# def fxcolor(col, fxcb):
+#     red = fxcb(color[0])
+#     green = fxcb(color[1])
+#     blue = fxcb(color[2])
+#     return gdk.Color(red, green blue)
+
+# def invertcolor(col):
+#      fxcolor(col, invertcharval)
+
 class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
     def set_pad_size(self, xpadsz, ypadsz):
         self.xpadsz = xpadsz
@@ -259,6 +272,9 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         self.button3down = False
         self.line_cache = None
         self.selection = []
+        self.rect_select_start = None
+        self.rect_select = None
+        self.selecting = False
 
     def refresh_rectangle(self, x, y, width, height):
         self.draw_all(gtk.gdk.Rectangle(x, y, width, height))
@@ -282,12 +298,12 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         return int(xpos * self.ppq / self.xpadsz)
 
     def ypos2noteval(self, ypos):
-        return int(128 - (ypos / self.ypadsz))
+        return int(127 - (ypos / self.ypadsz))
 
     def add_note(self, xpos, ypos):
         tick = self.xpos2tick(xpos)
         tick = int(tick / self.note_param["quant"]) * self.note_param["quant"]
-        note = self.ypos2noteval(ypos)
+        note = self.ypos2noteval(int(ypos))
 
         self.track.add_note_event(tick,
                                   MIDI_NOTEON_EVENT,
@@ -307,28 +323,125 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
                           self.note_param["val_off"])
 
     def get_selection_area(self):
-        if not len(self.selection):
+        if len(self.selection) == 0:
             return None
-        event = self.selection[0].get_event()
-        min_tick = event[0]
-        max_tick = event[0]
-        min_note = event[3]
-        max_note = event[3]
-        for evwr in self.selection:
-            event = evwr.get_event()
-            if event[0] > max_tick:
-                max_tick = event[0]
-            if event[0] < min_tick:
-                min_tick = event[0]
-            if event[3] > max_note:
-                max_note = event[3]
-            if event[3] < min_note:
-                min_note = event[3]
+        evwr_noteon, evwr_noteoff = self.selection[0]
+        ev_noteon = evwr_noteon.get_event()
+        ev_noteoff = evwr_noteoff.get_event()
+        min_tick = ev_noteon[0]
+        max_tick = ev_noteoff[0]
+        min_note = ev_noteon[3]
+        max_note = ev_noteon[3]
+        for evwr_noteon, evwr_noteoff in self.selection:
+            ev_noteon = evwr_noteon.get_event()
+            ev_noteoff = evwr_noteoff.get_event()
+            if ev_noteon[0] < min_tick:
+                min_tick = ev_noteon[0]
+            if ev_noteoff[0] > max_tick:
+                max_tick = ev_noteoff[0]
+            if ev_noteon[3] < min_note:
+                min_note = ev_noteon[3]
+            if ev_noteon[3] > max_note:
+                max_note = ev_noteon[3]
         xmax = max_tick * self.xpadsz / self.ppq
         xmin = min_tick * self.xpadsz / self.ppq
         ymax = ((127 - min_note) * self.ypadsz)
         ymin = ((127 - max_note) * self.ypadsz)
         return gtk.gdk.Rectangle(xmin - 1, ymin - 1, xmax - xmin + 2, ymax - ymin + self.ypadsz + 2)
+
+    # def select_note(self, xpos, ypos):
+    #     tick = self.xpos2tick(xpos)
+    #     noteval = self.ypos2noteval(ypos)
+    #     selection = []
+    #     noteon = []
+    #     noteon_tmp_len = 0
+    #     noteoff = []
+
+    #     if self.track.is_handled():
+    #         self.track.lock()
+    #     for evwr in self.track:
+    #         event = evwr.get_event()
+    #         ev_channel = event[2]
+    #         if ev_channel != self.chan_num:
+    #             continue
+    #         ev_tick = event[0]
+    #         ev_type = event[1]
+    #         ev_note = event[3]
+    #         if ev_tick <= tick:
+    #             if ev_type == MIDI_NOTEON_EVENT and ev_note == noteval:
+    #                 noteon.append(evwr.copy())
+    #                 continue
+    #             if ev_type == MIDI_NOTEOFF_EVENT and ev_note == noteval:
+    #                 if len(noteon) > 0:
+    #                     noteon.pop(0)
+    #         else:
+    #             if ev_type == MIDI_NOTEOFF_EVENT and ev_note == noteval:
+    #                 noteoff.append(evwr.copy())
+    #                 continue
+    #             if ev_type == MIDI_NOTEON_EVENT and ev_note == noteval:
+    #                 noteon_tmp_len += 1
+    #     if self.track.is_handled():
+    #         self.track.unlock()
+    #     while noteon_tmp_len > 0 and len(noteoff) > 0:
+    #         noteoff.pop()
+    #         noteon_tmp_len -= 1
+    #     selection.extend(noteon)
+    #     selection.extend(noteoff)
+    #     selection.sort(cmp=lambda x, y: x.get_event()[0] > y.get_event()[0])
+    #     return selection
+
+    def select_note(self, rectangle):
+        tick_min = self.xpos2tick(rectangle.x)
+        tick_max = self.xpos2tick(rectangle.x + rectangle.width)
+        note_max = self.ypos2noteval(rectangle.y)
+        note_min = self.ypos2noteval(rectangle.y + rectangle.height)
+
+        noteon = {}
+        selection = []
+        locked = False
+
+        if self.track.is_handled():
+            self.track.lock()
+            locked = True
+
+        for evwr in self.track:
+            event = evwr.get_event()
+            ev_tick = event[0]
+            ev_type = event[1]
+            if ev_type != MIDI_NOTEON_EVENT and ev_type != MIDI_NOTEOFF_EVENT:
+                continue
+            ev_channel = event[2]
+            if ev_channel != self.chan_num:
+                continue
+            ev_note = event[3]
+            if ev_note < note_min or ev_note > note_max:
+                continue
+
+            if ev_tick < tick_min:
+                if ev_type == MIDI_NOTEON_EVENT:
+                    noteon[ev_note] = evwr.copy()
+                else:
+                    if noteon.has_key(ev_note):
+                        noteon.pop(ev_note)
+                continue
+            elif ev_tick <= tick_max:
+                if ev_type == MIDI_NOTEON_EVENT:
+                    noteon[ev_note] = evwr.copy()
+                else:
+                    if noteon.has_key(ev_note):
+                        selection.append((noteon[ev_note], evwr.copy()))
+                        noteon.pop(ev_note)
+                continue
+            else:
+                if ev_type == MIDI_NOTEOFF_EVENT:
+                    if noteon.has_key(ev_note):
+                        selection.append((noteon[ev_note], evwr.copy()))
+                        noteon.pop(ev_note)
+
+        if locked:
+            self.track.unlock()
+
+        return selection
 
     def handle_button_release(self, widget, event):
         if event.button == 3:
@@ -338,74 +451,74 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             if self.button3down:
                 self.add_note(event.x, event.y)
             else:
-                sel_area = self.get_selection_area()
-                self.selection = self.select_note(event.x, event.y)
-                if sel_area:
-                    self.draw_all(sel_area)
-                if len(self.selection):
-                    self.draw_all(self.get_selection_area())
+                if self.rect_select: # clear rectangle selection
+                    self.draw_all(self.rect_select) # temporary change draw_all to reversible effect
 
-    def select_note(self, xpos, ypos):
-        tick = self.xpos2tick(xpos)
-        noteval = self.ypos2noteval(ypos)
-        selection = []
-        noteon = []
-        noteon_tmp_len = 0
-        noteoff = []
+                if self.rect_select:
+                    self.selection = self.select_note(self.rect_select)
+                    if len(self.selection): # render new selection
+                        self.draw_all(self.get_selection_area())
 
-        if self.track.is_handled():
-            self.track.lock()
-        for evwr in self.track:
-            event = evwr.get_event()
-            ev_channel = event[2]
-            if ev_channel != self.chan_num:
-                continue
-            ev_tick = event[0]
-            ev_type = event[1]
-            ev_note = event[3]
-            if ev_tick <= tick:
-                if ev_type == MIDI_NOTEON_EVENT and ev_note == noteval:
-                    noteon.append(evwr.copy())
-                    continue
-                if ev_type == MIDI_NOTEOFF_EVENT and ev_note == noteval:
-                    if len(noteon) > 0:
-                        noteon.pop(0)
-            else:
-                if ev_type == MIDI_NOTEOFF_EVENT and ev_note == noteval:
-                    noteoff.append(evwr.copy())
-                    continue
-                if ev_type == MIDI_NOTEON_EVENT and ev_note == noteval:
-                    noteon_tmp_len += 1
-        if self.track.is_handled():
-            self.track.unlock()
-        while noteon_tmp_len > 0 and len(noteoff) > 0:
-            noteoff.pop()
-            noteon_tmp_len -= 1
-        selection.extend(noteon)
-        selection.extend(noteoff)
-        selection.sort(cmp=lambda x, y: x.get_event()[0] > y.get_event()[0])
-        return selection
+                # self.rect_select = None
+                self.rect_select_start = None
 
     def handle_button_press(self, widget, event):
         self.grab_focus()
         if event.button == 3:
             self.window.set_cursor(self.cursor_pencil)
             self.button3down = True
+        elif event.button == 1 and not self.button3down:
+            sel_area = self.get_selection_area()
+            self.selection = []
+            self.rect_select = None
+            if sel_area:    # clear previous selection
+                self.draw_all(sel_area)
+            self.rect_select_start = (event.x, event.y)
+            self.selecting = True
+
+    def handle_motion(self, widget, event):
+        if event.is_hint and self.rect_select_start:
+            xmin = None
+            xmax = None
+            ymin = None
+            ymax = None
+            if event.x > self.rect_select_start[0]:
+                xmax = event.x
+                xmin = self.rect_select_start[0]
+            else:
+                xmax = self.rect_select_start[0]
+                xmin = event.x
+            if event.y > self.rect_select_start[1]:
+                ymax = event.y
+                ymin = self.rect_select_start[1]
+            else:
+                ymax = self.rect_select_start[1]
+                ymin = event.y
+            if self.rect_select:
+                self.draw_all(self.rect_select)
+            cr = self.window.cairo_create()
+            # import cairo
+            # cr.set_operator(cairo.OPERATOR_DEST_IN)
+            # cr.set_operator(cairo.OPERATOR_DIFFERENCE)
+            # cr.set_source_color(gtk.gdk.Color(255, 1, 1))
+            self.rect_select = gtk.gdk.Rectangle(int(xmin), int(ymin), int(xmax - xmin), int(ymax - ymin))
+            cr.set_source_rgba(0, 0, 0, 0.5)
+            cr.rectangle(int(xmin), int(ymin), int(xmax - xmin), int(ymax - ymin))
+            cr.fill()
 
     def delete_selection(self):
         if self.track.is_handled():
-            for evwr in self.selection:
-                self.track.event2trash(evwr)
+            for ev_noteon, ev_noteoff in self.selection:
+                self.track.event2trash(ev_noteon)
+                self.track.event2trash(ev_noteoff)
         else:
-            for evwr in self.selection:
-                evwr.del_event()
+            for ev_noteon, ev_noteoff in self.selection:
+                ev_noteon.del_event()
+                ev_noteoff.del_event()
         self.selection = []
 
     def handle_key_press(self, widget, event):
         self.grab_focus()
-        # print event.keyval, gtk.DELETE
-        # print gtk.gdk.keyval_name(event.keyval)
-        # print event.string
         if event.keyval == gtk.keysyms.Delete or event.keyval == gtk.keysyms.BackSpace:
             sel_area = self.get_selection_area()
             self.delete_selection()
@@ -419,7 +532,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
                                  height=self.allocation.height,
                                  window_type=gdk.WINDOW_CHILD,
                                  wclass=gdk.INPUT_OUTPUT,
-                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK | gdk.BUTTON_PRESS_MASK | gdk.BUTTON_RELEASE_MASK | gdk.KEY_PRESS_MASK)
+                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK | gdk.BUTTON_PRESS_MASK | gdk.BUTTON_RELEASE_MASK | gdk.KEY_PRESS_MASK | gdk.POINTER_MOTION_MASK | gdk.POINTER_MOTION_HINT_MASK)
         self.window.set_user_data(self)
         self.window.move_resize(*self.allocation)
 
@@ -443,11 +556,11 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         self.connect("button_press_event", self.handle_button_press)
         self.connect("button_release_event", self.handle_button_release)
         self.connect("key_press_event", self.handle_key_press)
+        self.connect("motion_notify_event", self.handle_motion)
         self.cursor_arrow = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
         self.cursor_pencil = gtk.gdk.Cursor(gtk.gdk.PENCIL)
         self.window.set_cursor(self.cursor_arrow)
         self.set_can_focus(True)
-
 
     def do_unrealize(self):
         self.window.set_user_data(None)
@@ -507,9 +620,8 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             ypos += self.ypadsz
 
     def is_selected(self, event):
-        for evwr in self.selection:
-            ev = evwr.get_event()
-            if ev == event:
+        for ev_noteon, ev_noteoff in self.selection:
+            if event == ev_noteon.get_event() or event == ev_noteoff.get_event():
                 return True
         return False
 
@@ -626,16 +738,18 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
 
     def draw_all(self, area):
         self.draw_grid(area)
+        locked = False
 
         if self.track.is_handled():
             self.track.lock()
+            locked = True
 
         if self.note_type == NOTE_BAR_TYPE:
             self.draw_notes_bar(area)
         else:
             self.draw_notes_points(area)
 
-        if self.track.is_handled():
+        if locked:
             self.track.unlock()
 
     def set_draw_points_mode(self):

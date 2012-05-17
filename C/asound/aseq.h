@@ -74,7 +74,8 @@ snd_seq_t      *create_aseqh(char *name);
 aseqport_ctx_t *create_aseqport_ctx(snd_seq_t *handle, char *name);
 void           free_aseqport(aseqport_ctx_t *aseq);
 void           free_aseqh(snd_seq_t *handle);
-const char     *aseqport_name(aseqport_ctx_t *aseq);
+const char     *aseqport_get_name(aseqport_ctx_t *aseq);
+void           aseqport_set_name(aseqport_ctx_t *aseq, char *name);
 
 #include "midi/midiev_inc.h"
 

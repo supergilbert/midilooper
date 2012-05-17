@@ -99,23 +99,18 @@ void push_to_list_tail(list_t *list, void *addr)
 {
   node_t *new_node = myalloc(sizeof (node_t));
 
+  new_node->addr = addr;
+  new_node->next = NULL;
   if (list->tail == NULL)
     {
-      new_node->addr = addr;
-      new_node->next = NULL;
       new_node->prev = NULL;
       list->tail = new_node;
-      /* Atomic assigment */
       list->head = new_node;
     }
   else
     {
-      new_node->addr = addr;
-      new_node->next = NULL;
       new_node->prev = list->tail;
-      //      list->tail->next = new_node;
       list->tail = new_node;
-      /* Atomic assigment */
       new_node->prev->next = new_node;
     }
   (list->len)++;

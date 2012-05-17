@@ -3,6 +3,7 @@
 #include "asound/aseq.h"
 
 #include "./pym_midiseq_aport.h"
+#include "debug_tool/debug_tool.h"
 
 static void midiseq_aport_dealloc(PyObject *obj)
 {
@@ -15,7 +16,21 @@ static PyObject *midiseq_aport_getname(PyObject *obj, PyObject *args)
 {
   midiseq_aportObject *self = (midiseq_aportObject *) obj;
 
-  return Py_BuildValue("s", aseqport_name(self->aport));
+  return Py_BuildValue("s", aseqport_get_name(self->aport));
+}
+
+static PyObject *midiseq_aport_setname(PyObject *obj, PyObject *args)
+{
+  midiseq_aportObject *self = (midiseq_aportObject *) obj;
+  char *name = NULL;
+
+  if (!PyArg_ParseTuple(args, "s", &name))
+    {
+      output_error("track_set_name: Problem with argument");
+      return NULL;
+    }
+  aseqport_set_name(self->aport, name);
+  Py_RETURN_NONE;
 }
 
 static PyObject *midiseq_aport_repr(PyObject *obj)
@@ -30,6 +45,8 @@ static PyObject *midiseq_aport_repr(PyObject *obj)
 static PyMethodDef midiseq_aport_methods[] = {
   {"get_name", midiseq_aport_getname, METH_NOARGS,
    "Return alsa seq port name"},
+  {"set_name", midiseq_aport_setname, METH_VARARGS,
+   "Set alsa seq port name"},
   {NULL, NULL, 0, NULL}
 };
 

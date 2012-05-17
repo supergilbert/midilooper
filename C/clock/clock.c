@@ -68,7 +68,7 @@ bool_t clockloop(clockloop_t *looph)
 /* } */
 
 /* /!\ Caution ppm must not be zero */
-void set_bpmnppq_to_timespec(struct timespec *res, uint_t bpm, uint_t ppq)
+void set_bpmnppq_to_timespec(struct timespec *res, uint_t ppq, uint_t bpm)
 {
   uint_t ppm = bpm * ppq; /* /!\ bpm and ppq musnt be zero */
   double tmp;
@@ -85,7 +85,7 @@ void set_bpmnppq_to_timespec(struct timespec *res, uint_t bpm, uint_t ppq)
 }
 
 /* /!\ Caution ppq must not be zero */
-void set_msnppq_to_timespec(struct timespec *res, uint_t ms, uint_t ppq)
+void set_msnppq_to_timespec(struct timespec *res, uint_t ppq, uint_t ms)
 {
   uint_t pulse_nsec = (ms * 1000) / ppq;
 
@@ -110,7 +110,7 @@ void set_clockloop_bpm_ppq(clockloop_t *clockloop,
                            clockloop_cb cb_func,
                            void *cb_arg)
 {
-  set_bpmnppq_to_timespec(&(clockloop->res), bpm, ppq);
+  set_bpmnppq_to_timespec(&(clockloop->res), ppq, bpm);
   _set_callback(clockloop, cb_func, cb_arg);
 }
 
@@ -120,7 +120,7 @@ void set_clockloop_ms_ppq(clockloop_t *clockloop,
                           clockloop_cb cb_func,
                           void *cb_arg)
 {
-  set_msnppq_to_timespec(&(clockloop->res), ms, ppq);
+  set_msnppq_to_timespec(&(clockloop->res), ppq, ms);
   _set_callback(clockloop, cb_func, cb_arg);
 }
 

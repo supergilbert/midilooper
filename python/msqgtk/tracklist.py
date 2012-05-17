@@ -7,16 +7,74 @@ import pygtk
 pygtk.require("2.0")
 import gtk
 
-import sys
-sys.path.append('./module')
-
 from track_editor import TrackEditor
+from tool import prompt_gettext, MsqListMenu
+
+
+
+# xpm_button_add = ["8 8 2 1",
+#                   "  c None",
+#                   "x c #000000",
+#                   "        ",
+#                   "   xx   ",
+#                   "   xx   ",
+#                   " xxxxxx ",
+#                   " xxxxxx ",
+#                   "   xx   ",
+#                   "   xx   ",
+#                   "        "]
+
+# pxb_button_add = gtk.gdk.pixbuf_new_from_xpm_data(xpm_button_add)
+# img_button_add = gtk.image_new_from_pixbuf(pxb_button_add)
+
+class TrackListMenu(MsqListMenu):
+    def show_track(self, menuitem):
+        if self.path:
+            tv_iter = self.tracklist.liststore.get_iter(self.path[0])
+            tedit = self.tracklist.liststore.get_value(tv_iter, 0)
+            tedit.show_all()
+            tedit.map()
+            self.path = None
+
+    def del_track(self, menuitem):
+        if self.path:
+            tv_iter = self.tracklist.liststore.get_iter(self.path[0])
+            tedit = self.tracklist.liststore.get_value(tv_iter, 0)
+            track = tedit.track
+            self.tracklist.liststore.remove(tv_iter)
+            tedit.destroy()
+            self.tracklist.seq.deltrack(track)
+            self.path = None
+
+    def rename_track(self, menuitem):
+        if self.path:
+            new_trackname = prompt_gettext("Rename track")
+            if new_trackname:
+                tedit = self.tracklist.liststore.get_value(self.tv_iter, 0)
+                tedit.set_name(new_trackname)
+                self.tracklist.liststore.set_value(self.tv_iter, 1, repr(tedit.track))
+            self.path = None
+
+    def __init__(self, tracklist):
+        MsqListMenu.__init__(self)
+        self.tracklist = tracklist
+
+        self.mlm_add_item("Show track", self.show_track)
+        self.mlm_add_item("Rename track", self.rename_track)
+        separator = gtk.SeparatorMenuItem()
+        separator.show()
+        self.append(separator)
+        self.mlm_add_item("Del track", self.del_track)
 
 class TrackList(gtk.Window):
     def update_pos(self, tickpos):
         def update_tedit(tvmodel, path, tv_iter, tickpos):
             tedit = tvmodel.get_value(tv_iter, 0)
             tedit.update_pos(tickpos)
+            def get_percent(tick, track_len):
+                val = tick % track_len
+                return val * 100 / track_len
+            self.liststore.set_value(tv_iter, 2, get_percent(tickpos, tedit.track.get_len()))
         tvmodel = self.treev.get_model()
         tvmodel.foreach(update_tedit, tickpos)
 
@@ -24,49 +82,70 @@ class TrackList(gtk.Window):
         def clear_tedit_progress(tvmodel, path, tv_iter):
             tedit = tvmodel.get_value(tv_iter, 0)
             tedit.clear_progress()
-        tvmodel = self.treev.get_model()
-        tvmodel.foreach(clear_tedit_progress)
+            self.liststore.set_value(tv_iter, 2, 0)
+        self.liststore.foreach(clear_tedit_progress)
 
     def tvbutton_press_event(self, treeview, event):
-        tvdata = treeview.get_path_at_pos(int(event.x), int(event.y))
-        if tvdata:
-            tvmodel = self.treev.get_model()
-            tv_iter = tvmodel.get_iter(tvdata[0])
-            tedit = tvmodel.get_value(tv_iter, 0)
-            if tedit.get_mapped():
-                tedit.unmap()
+        path = treeview.get_path_at_pos(int(event.x), int(event.y))
+        if path:
+            if event.button == 3:
+                self.menu.path = path
+                self.menu.popup(None, None, None, event.button, event.time)
             else:
-                tedit.show_all()
-                tedit.map()
+                tv_iter = self.liststore.get_iter(path[0])
+                tedit = self.liststore.get_value(tv_iter, 0)
+                if tedit.get_mapped():
+                    tedit.unmap()
+                else:
+                    tedit.show_all()
+                    tedit.map()
 
-    # TODO
-    # def add_track(self, button):
+    def add_track(self):
+        track_name = prompt_gettext("Enter new track name")
+        if track_name:
+            track = self.seq.newtrack(track_name);
+            tedit = TrackEditor(track, self.seq, self.portlist)
+            tedit.unmap()
+            self.liststore.append([tedit, repr(track), 0])
 
-    def __init__(self, seq):
-         gtk.Window.__init__(self)
-         self.seq = seq
-         self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str)
-         for track in seq.gettracks():
-             tedit = TrackEditor(track, seq.getppq(), sequencer=self.seq)
-             tedit.unmap()
-             self.liststore.append([tedit, repr(track)])
-         treev = gtk.TreeView(self.liststore)
+    def button_add_track(self, button):
+        self.add_track()
 
-         tvcolumn = gtk.TreeViewColumn('Track name')
-         cell = gtk.CellRendererText()
-         tvcolumn.pack_start(cell, True)
-         tvcolumn.add_attribute(cell, 'text', 1)
-         treev.append_column(tvcolumn)
+    def __init__(self, seq, portlist):
+        gtk.Window.__init__(self)
+        self.set_resizable(False)
+        self.seq = seq
+        self.portlist = portlist
+        self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str, int)
+        for track in seq.gettracks():
+            tedit = TrackEditor(track, self.seq, self.portlist)
+            tedit.unmap()
+            self.liststore.append([tedit, repr(track), 0])
+        self.treev = gtk.TreeView(self.liststore)
+        self.treev.set_enable_search(False)
+        self.menu = TrackListMenu(self)
 
-         treev.connect('button-press-event', self.tvbutton_press_event)
-         self.treev = treev
+        tvcolumn = gtk.TreeViewColumn('Track')
+        cell = gtk.CellRendererProgress()
+        tvcolumn.pack_start(cell, True)
+        tvcolumn.add_attribute(cell, 'text', 1)
+        tvcolumn.add_attribute(cell, 'value', 2)
+        self.treev.append_column(tvcolumn)
+        self.treev.connect('button-press-event', self.tvbutton_press_event)
 
-         # button_add = gtk.Button("Add")
-         # button_add.connect("clicked", self.add_track)
+        button_add = gtk.Button(stock=gtk.STOCK_ADD)
+        # button_add.add(img_button_add)
+        button_add.connect("clicked", self.button_add_track)
 
-         vbox = gtk.VBox()
-         vbox.pack_start(self.treev)
-         # vbox.pack_start(button_add)
+        vbox = gtk.VBox()
+        vbox.pack_start(self.treev)
+        hbox = gtk.HBox()
+        hbox.pack_start(button_add)
+        vbox.pack_start(hbox)
 
-         self.add(vbox)
-         self.connect('delete_event', gtk.main_quit)
+        self.add(vbox)
+
+        def hide_tracklist(win, event):
+            win.hide()
+            return True
+        self.connect('delete_event', hide_tracklist)
