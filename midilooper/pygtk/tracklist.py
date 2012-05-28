@@ -64,7 +64,7 @@ class TrackListMenu(MsqListMenu):
         separator = gtk.SeparatorMenuItem()
         separator.show()
         self.append(separator)
-        self.mlm_add_item("Del track", self.del_track)
+        self.mlm_add_item("Delete track", self.del_track)
 
 class TrackList(gtk.Window):
     def update_pos(self, tickpos):

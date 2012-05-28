@@ -124,8 +124,23 @@ static PyObject *midiseq_track_set_port(PyObject *obj, PyObject *args)
 
   if (!PyArg_ParseTuple(args , "O", &pyaport))
     return NULL;
-  self->trackctx->aseqport_ctx = pyaport->aport;
+  if (Py_None == (PyObject *) pyaport)
+    self->trackctx->aseqport_ctx = NULL;
+  else
+    self->trackctx->aseqport_ctx = pyaport->aport;
   Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_track_has_port(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+  midiseq_aportObject *pyaport = NULL;
+
+  if (!PyArg_ParseTuple(args , "O", &pyaport))
+    return NULL;
+  if (self->trackctx->aseqport_ctx == pyaport->aport)
+    Py_RETURN_TRUE;
+  Py_RETURN_FALSE;
 }
 
 static PyObject *midiseq_track_lock(PyObject *obj,
@@ -185,15 +200,12 @@ static PyMethodDef midiseq_track_methods[] = {
   {"get_len", midiseq_track_get_len, METH_NOARGS, "Get track len"},
   {"set_len", midiseq_track_set_len, METH_VARARGS, "Set track len"},
   {"set_port", midiseq_track_set_port, METH_VARARGS, "Set track port"},
+  {"has_port", midiseq_track_has_port, METH_VARARGS, "Check if track has port"},
   {"add_note_event", midiseq_track_add_note_event, METH_VARARGS, "Add a note event"},
-  {"lock", midiseq_track_lock, METH_NOARGS,
-   "Lock track"},
-  {"unlock", midiseq_track_unlock, METH_NOARGS,
-   "Unlock track"},
-  {"event2trash", midiseq_track_event2trash, METH_VARARGS,
-   "Put event to the trash"},
-  {"is_handled", midiseq_track_ishandled, METH_NOARGS,
-   "Get if the track is handled"},
+  {"lock", midiseq_track_lock, METH_NOARGS, "Lock track"},
+  {"unlock", midiseq_track_unlock, METH_NOARGS, "Unlock track"},
+  {"event2trash", midiseq_track_event2trash, METH_VARARGS, "Put event to the trash"},
+  {"is_handled", midiseq_track_ishandled, METH_NOARGS, "Get if the track is handled"},
   {"clear", midiseq_track_clear, METH_NOARGS, "free all track list to use with caution (/!\\ not while running for now)"},
   {NULL, NULL, 0, NULL}
 };

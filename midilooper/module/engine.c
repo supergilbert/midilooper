@@ -54,7 +54,8 @@ void trackctx_event2trash(track_ctx_t *trackctx,
   seqev_t     *seqev = (seqev_t *) iter_node_ptr(evit);
 
   seqev->todel = TRUE;
-  play_if_noteoff(seqev, trackctx->aseqport_ctx);
+  if (trackctx->aseqport_ctx != NULL)
+    play_if_noteoff(seqev, trackctx->aseqport_ctx);
   bcopy(evit, &(ctn->evit), sizeof (list_iterator_t));
   bcopy(tickit, &(ctn->tickit), sizeof (list_iterator_t));
   push_to_list_tail(&(trackctx->trash), ctn);
@@ -148,7 +149,7 @@ void play_trackev(uint_t tick, track_ctx_t *track_ctx)
     }
   tickev = iter_node_ptr(&(track_ctx->current_tickev));
 
-  if (tickev->tick == tick)
+  if (tickev && tickev->tick == tick)
     {
       if (track_ctx->aseqport_ctx)
         play_midiev(&(tickev->seqev_list), track_ctx->aseqport_ctx);

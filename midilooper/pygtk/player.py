@@ -49,8 +49,6 @@ msq = midiseq.midiseq("%s test alsa port" % player_name)
 msq.setppq(ppq)
 msq.setbpm(120)
 
-print "X" * 80
-
 # tracked = TrackEditor(track, ppq, track_len=track_len)
 
 # tup = tracked_updater(msq, tracked)

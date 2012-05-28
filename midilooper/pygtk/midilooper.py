@@ -22,6 +22,7 @@ class MidiLooper(gtk.Window):
         else:
             self.tracklist_win.clear_progress()
             return False
+
     def start_msq(self, button):
         if self.msq.isrunning():
             print "start_msq: sequencer already running"
@@ -52,6 +53,8 @@ class MidiLooper(gtk.Window):
 
         self.portlist_win = PortList(self.msq)
         self.tracklist_win = TrackList(self.msq, self.portlist_win.liststore)
+
+        self.portlist_win.tracklist = self.tracklist_win.liststore
 
         button_start =  gtk.Button("Start")
         button_start.connect("clicked", self.start_msq)
@@ -87,12 +90,6 @@ class MidiLooper(gtk.Window):
         vbox.pack_start(menubar)
         vbox.pack_start(hbox)
 
-        # hbox = gtk.HBox()
-        # hbox.pack_start(button_show_tracklist)
-        # hbox.pack_start(button_show_portlist)
-
-        # vbox.pack_start(hbox)
-
         self.add(vbox)
         self.connect('delete_event', gtk.main_quit)
 
@@ -107,6 +104,7 @@ class MidiLooper(gtk.Window):
 # }
 # widget "*" style "midiseq_default_style"
 # """)
+# gtk.rc_parse("/tmp/Clearlooks-DarkOrange/gtk-2.0/gtkrc")
 
 mlooper = MidiLooper()
 mlooper.show_all()

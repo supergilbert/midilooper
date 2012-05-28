@@ -4,10 +4,10 @@ CAPI :
 	@make -C C
 
 PYTHONAPI :
-	@make -C python
+	@make -C midilooper
 
 clean :
 	@make -C C clean
-	@make -C python clean
+	@make -C midilooper clean
 
 re : clean all

@@ -2,6 +2,6 @@ This code is still in development so there is just an example of code that
 can be tested it's the "minilib.py".
 
 To test "minilib.py" you need:
-libasound2-dev package
+python-dev libasound2-dev package
 Launch "make" and try to solve dependencies.
 minilib need midiseq.so in his PYTHONPATH

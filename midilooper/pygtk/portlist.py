@@ -9,6 +9,7 @@ import gtk
 
 from tool import prompt_gettext, MsqListMenu
 
+
 class PortListMenu(MsqListMenu):
     def rename_port(self, menuitem):
         if self.path:
@@ -24,6 +25,12 @@ class PortListMenu(MsqListMenu):
         if self.path:
             iter = self.portlist.liststore.get_iter(self.path[0])
             seqport = self.portlist.liststore.get_value(iter, 0)
+            def check_port(model, path, iter):
+                tedit = model.get_value(iter, 0)
+                if tedit.track.has_port(seqport):
+                    tedit.track.set_port(None)
+            self.portlist.tracklist.foreach(check_port)
+
             self.portlist.seq.delport(seqport)
             self.portlist.liststore.remove(iter)
             self.path = None
@@ -32,12 +39,11 @@ class PortListMenu(MsqListMenu):
         MsqListMenu.__init__(self)
         self.portlist = portlist
 
-        self.mlm_add_item("Rename track", self.rename_port)
+        self.mlm_add_item("Rename port", self.rename_port)
         separator = gtk.SeparatorMenuItem()
         separator.show()
         self.append(separator)
-        self.mlm_add_item("Del track", self.del_port)
-
+        self.mlm_add_item("Delete port", self.del_port)
 
 
 class PortList(gtk.Window):
@@ -85,4 +91,6 @@ class PortList(gtk.Window):
         def hide_portlist(win, event):
             win.hide()
             return True
+
         self.connect('delete_event', hide_portlist)
+        self.tracklist = None

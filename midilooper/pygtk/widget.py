@@ -61,6 +61,10 @@ class ProgressLineWidget(object):
 
 
 class MsqHBarTimeWidget(gtk.Widget):
+    def set_len(self, track_len):
+        self.hbarlen = self.xpadsz * track_len
+        self.set_size_request(self.hbarlen, self.height)
+
     def __init__(self, track_len, mlen=4, xpadsz=DEFAULT_XPADSZ, font_name=DEFAULT_FONT_NAME):
         gtk.Widget.__init__(self)
 
@@ -247,6 +251,10 @@ NOTE_POINT_TYPE = 1
 #      fxcolor(col, invertcharval)
 
 class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
+    def resize_grid(self):
+        width  = self.xpadsz * self.track.get_len() / self.ppq
+        height = self.max_height
+        self.set_size_request(width, height)
     def set_pad_size(self, xpadsz, ypadsz):
         self.xpadsz = xpadsz
         self.ypadsz = ypadsz
