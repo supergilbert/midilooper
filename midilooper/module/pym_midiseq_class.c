@@ -29,6 +29,7 @@ static int midiseq_init(midiseq_Object *self,
                               PyObject *args,
                               PyObject *kwds)
 {
+  trace_func;
   char *aport_name = "midiseq_output";
   char *tmp = NULL;
 
