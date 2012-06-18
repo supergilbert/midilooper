@@ -1,12 +1,14 @@
 SRC=asound/aseq.c\
-	midi/midifile.c\
 	midi/midi_meta_ev.c\
 	midi/midi_channel_ev.c\
-	midi/midiev_tool.c\
+	midi/midi_tool.c\
+	midi/midifile.c\
+	midi/midifile_get_varlen.c\
+	midi/midifile_tool.c\
 	seqtool/seqtool.c\
 	clock/clock.c\
 	tool/tool.c\
-	debug_tool/debug_tool.c\
+	debug_tool/debug_tool.c
 
 OBJ=$(SRC:.c=.o)
 

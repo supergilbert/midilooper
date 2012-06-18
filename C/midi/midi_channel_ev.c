@@ -33,7 +33,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
     case NOTEOFF:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
-      chan_ev->chan--;
+      /* chan_ev->chan--; */
       chan_ev->event.ctrl.num = buffer[1];
       chan_ev->event.ctrl.val = buffer[2];
       debug_midi("*** NOTEOFF Event ***\n"
@@ -48,7 +48,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
     case NOTEON:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
-      chan_ev->chan--;
+      /* chan_ev->chan--; */
       chan_ev->event.ctrl.num = buffer[1];
       chan_ev->event.ctrl.val = buffer[2];
       debug_midi("*** NOTEON Event ***\n"
@@ -63,7 +63,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
     case CONTROLCHANGE:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
-      chan_ev->chan--;
+      /* chan_ev->chan--; */
       chan_ev->event.ctrl.num = buffer[1];
       chan_ev->event.ctrl.val = buffer[2];
       /* debug_midi("*** Controller Event ***\n" */
@@ -78,7 +78,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
     case KEYAFTERTOUCH:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
-      chan_ev->chan--;
+      /* chan_ev->chan--; */
       chan_ev->event.aftertouch.num = buffer[1];
       chan_ev->event.aftertouch.val = buffer[2];
       /* debug_midi("*** Controller Event ***\n" */
@@ -93,7 +93,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
     case PROGRAMCHANGE:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
-      chan_ev->chan--;
+      /* chan_ev->chan--; */
       chan_ev->event.prg_chg = buffer[1];
       /* debug_midi("*** Program change Event ***\n" */
       /*       "\tchannel: %d\n" */
@@ -105,7 +105,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
     case CHANNELAFTERTOUCH:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
-      chan_ev->chan--;
+      /* chan_ev->chan--; */
       chan_ev->event.chan_aftertouch = buffer[1];
       /* debug_midi("*** Program change Event ***\n" */
       /*       "\tchannel: %d\n" */
@@ -117,7 +117,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
     case PITCHWHEELCHANGE:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
-      chan_ev->chan--;
+      /* chan_ev->chan--; */
       chan_ev->event.pitchbend.Lval = buffer[1];
       chan_ev->event.pitchbend.Hval = buffer[2];
       /* debug_midi("*** Program change Event ***\n" */
@@ -177,12 +177,17 @@ void _list_copy_tickev(void *addr, void *track_addr)
   foreach_list_node(&(tickev->seqev_list), _list_copy_seqev, (void *) &list_arg);
 }
 
-void _list_copy_track(void *addr, void *track_addr)
+void copy_track(track_t *track_src, track_t *track_dst)
 {
-  track_t *track_src = (track_t *) addr;
-  track_t *track_dst = (track_t *) track_addr;
-
   foreach_list_node(&(track_src->tickev_list), _list_copy_tickev, (void *) track_dst);
+}
+
+void _list_copy_track(void *src_addr, void *dst_addr)
+{
+  track_t *track_src = (track_t *) src_addr;
+  track_t *track_dst = (track_t *) dst_addr;
+
+  copy_track(track_src, track_dst);
 }
 
 #include <string.h>

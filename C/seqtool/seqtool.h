@@ -20,11 +20,13 @@ typedef struct
 {
   uint_t	tick;
   list_t        seqev_list;
+  bool_t        todel;
 }		tickev_t;
 
 typedef struct
 {
   /* + d'info */
+  uint_t        len;
   char          *name;
   list_t        tickev_list;
 }	        track_t;

@@ -53,7 +53,7 @@ void		output(char *fmt, ...)
   va_end(ap);
 }
 
-void		debug(char *fmt, ...)
+void		_debug(char *fmt, ...)
 {
 #ifdef DEBUG_MODE
   va_list	ap;
@@ -64,7 +64,7 @@ void		debug(char *fmt, ...)
 #endif
 }
 
-void		debug_midi(char *fmt, ...)
+void		_debug_midi(char *fmt, ...)
 {
 #ifdef DEBUG_MIDI_MODE
   va_list	ap;
@@ -75,7 +75,7 @@ void		debug_midi(char *fmt, ...)
 #endif
 }
 
-void		output_warning(char *fmt, ...)
+void		_output_warning(char *fmt, ...)
 {
   va_list	ap;
 
@@ -86,7 +86,7 @@ void		output_warning(char *fmt, ...)
   va_end(ap);
 }
 
-void		output_error(char *fmt, ...)
+void		_output_error(char *fmt, ...)
 {
   va_list	ap;
 

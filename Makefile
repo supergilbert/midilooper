@@ -1,9 +1,9 @@
-all : CAPI PYTHONAPI
+all : PYTHONAPI
 
 CAPI :
 	@make -C C
 
-PYTHONAPI :
+PYTHONAPI : CAPI
 	@make -C midilooper
 
 clean :

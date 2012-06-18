@@ -37,18 +37,38 @@ class MidiLooper(gtk.Window):
         return True
 
     def show_tracklist(self, menuitem):
-        self.tracklist_win.show_all()
+        if self.tracklist_win.get_mapped():
+            self.tracklist_win.unmap()
+        else:
+            self.tracklist_win.show_all()
+            self.tracklist_win.map()
 
     def show_portlist(self, menuitem):
-        self.portlist_win.show_all()
+        if self.portlist_win.get_mapped():
+            self.portlist_win.unmap()
+        else:
+            self.portlist_win.show_all()
+            self.portlist_win.map()
 
-    def __init__(self):
+    def file_save(self, menuitem):
+        fchooser = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                         buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                                                  gtk.STOCK_SAVE, gtk.RESPONSE_OK))
+        if fchooser.run() == gtk.RESPONSE_OK:
+            filename = fchooser.get_filename()
+            self.msq.save(filename)
+        fchooser.destroy()
+
+    def __init__(self, msq=None):
         gtk.Window.__init__(self)
         self.set_resizable(False)
         hbox = gtk.HBox()
         button_start =  gtk.Button("Start")
         button_stop =  gtk.Button("Stop")
-        self.msq = midiseq.midiseq("MidiLooper")
+        if msq == None:
+            self.msq = midiseq.midiseq("MidiLooper")
+        else:
+            self.msq = msq
         self.msq.settickpos(0)
 
         self.portlist_win = PortList(self.msq)
@@ -56,9 +76,9 @@ class MidiLooper(gtk.Window):
 
         self.portlist_win.tracklist = self.tracklist_win.liststore
 
-        button_start =  gtk.Button("Start")
+        button_start =  gtk.Button(stock=gtk.STOCK_MEDIA_PLAY)
         button_start.connect("clicked", self.start_msq)
-        button_stop =  gtk.Button("Stop")
+        button_stop =  gtk.Button(stock=gtk.STOCK_MEDIA_STOP)
         button_stop.connect("clicked", self.stop_msq)
 
         def spincb(widget, msq):
@@ -81,10 +101,20 @@ class MidiLooper(gtk.Window):
         show_menu = gtk.Menu()
         show_menu.append(tl_mi)
         show_menu.append(pl_mi)
-        showmi = gtk.MenuItem("Show")
-        showmi.set_submenu(show_menu)
+        show_mi = gtk.MenuItem("Show")
+        show_mi.set_submenu(show_menu)
+
+        save_mi = gtk.MenuItem("Save")
+        save_mi.connect("activate", self.file_save)
+
+        file_menu = gtk.Menu()
+        file_menu.append(save_mi)
+        file_mi = gtk.MenuItem("File")
+        file_mi.set_submenu(file_menu)
+
         menubar = gtk.MenuBar()
-        menubar.append(showmi)
+        menubar.append(file_mi)
+        menubar.append(show_mi)
 
         vbox = gtk.VBox()
         vbox.pack_start(menubar)
@@ -93,6 +123,8 @@ class MidiLooper(gtk.Window):
         self.add(vbox)
         self.connect('delete_event', gtk.main_quit)
 
+        self.show_all()
+        self.tracklist_win.show_all()
 
 # gtk.rc_parse_string("""
 # style "midiseq_default_style"
@@ -106,7 +138,12 @@ class MidiLooper(gtk.Window):
 # """)
 # gtk.rc_parse("/tmp/Clearlooks-DarkOrange/gtk-2.0/gtkrc")
 
-mlooper = MidiLooper()
-mlooper.show_all()
+if __name__ == "__main__":
+    import sys
 
-gtk.main()
+    msq = midiseq.midiseq("MidiLooper")
+    if len(sys.argv) == 2:
+        mfile = midiseq.midifile(sys.argv[1])
+        msq.copy_midifile(mfile)
+    mlooper = MidiLooper(msq)
+    gtk.main()

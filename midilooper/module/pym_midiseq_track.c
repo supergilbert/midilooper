@@ -66,7 +66,7 @@ static PyObject *midiseq_track_get_len(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  return Py_BuildValue("i", self->trackctx->len);
+  return Py_BuildValue("i", self->trackctx->track->len);
 }
 
 static PyObject *midiseq_track_set_len(PyObject *obj, PyObject *args)
@@ -79,7 +79,7 @@ static PyObject *midiseq_track_set_len(PyObject *obj, PyObject *args)
       output_error("track_add_note_event: Problem with argument");
       return NULL;
     }
-  self->trackctx->len = len;
+  self->trackctx->track->len = len;
   Py_RETURN_NONE;
 }
 

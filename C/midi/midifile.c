@@ -22,7 +22,7 @@ size_t		get_midifile_track_size(byte_t *buffer)
     return 0;
   buffer += 4;
 
-  track_size = (track_size << 8) + buffer[0];
+  track_size = buffer[0];
   track_size = (track_size << 8) + buffer[1];
   track_size = (track_size << 8) + buffer[2];
   track_size = (track_size << 8) + buffer[3];
@@ -30,6 +30,27 @@ size_t		get_midifile_track_size(byte_t *buffer)
   //  eventlist = get_midi_events(buffer);
   return track_size;
 }
+
+void get_msq_sysex(track_t *track, byte_t *buffer, uint_t size)
+{
+  if (size < 10)
+    return;
+
+  if (buffer[0] == 0
+      && buffer[1] == 'M'
+      && buffer[2] == 'S'
+      && buffer[3] == 'Q')
+    {
+      if (buffer[4] == MSQ_TRACK_LEN_SYSEX)
+        {
+          track->len = buffer[5];
+          track->len = (track->len << 8) + buffer[6];
+          track->len = (track->len << 8) + buffer[7];
+          track->len = (track->len << 8) + buffer[8];
+        }
+    }
+}
+
 
 /* Get midifile track information, and add
    midi channel event to track to the track structure */
@@ -77,6 +98,7 @@ bool_t          get_midifile_track(midifile_info_t *info,
         switch (*buffer)
           {
           case 0xFF:
+            buffer++;
             offset = get_midi_meta_event(&meta_ev, buffer); /* retour donne le type et loffset */
             if (0 == offset)
               return FALSE;
@@ -104,6 +126,10 @@ bool_t          get_midifile_track(midifile_info_t *info,
             break;
 
           case 0xF0:
+            buffer++;
+            offset = get_varlen_from_ptr(&buffer); /* /!\ */
+            get_msq_sysex(track, buffer, offset);
+            break;
           case 0xF7:
             debug_midi("SysEx event detected\n");
             output_error("\nUnsuported System Exclusive Event type: 0x%02X\n", *buffer);
@@ -166,8 +192,7 @@ midifile_t *get_midifile_tracks(int fd,
   midifile_t            *midifile = NULL;
   list_t                track_list;
   track_t               *track = NULL;
-  midifile_info_t       info;
-
+  midifile_info_t       info = {MULTITRACK_MIDIFILE_USYNC, 500000, 120};
 
   bzero(&track_list, sizeof (list_t));
   info.type = midifile_hdr->format_type;
@@ -202,7 +227,7 @@ midifile_t *get_midifile_tracks(int fd,
         }
       if (size == 0)
         {
-          output_error("track_%i Error while getting track size\n", idx);
+          output_error("track_%i Error while getting track size (size == 0)\n", idx);
           free(buffer);
           return NULL;
         }

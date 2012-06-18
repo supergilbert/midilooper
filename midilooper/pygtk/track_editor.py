@@ -67,14 +67,14 @@ class TrackSettingTable(gtk.Table):
 
     def __init__(self, tedit, ppq, portlist):
         gtk.Table.__init__(self, 3, 3)
-        track = tedit.track
+        self.track = tedit.track
         self.tedit = tedit
         self.ppq = ppq
+
         label = gtk.Label("Track length")
-        spinadj = gtk.Adjustment(track.get_len() / self.ppq, 1, 240, 1)
+        spinadj = gtk.Adjustment(self.track.get_len() / self.ppq, 1, 240, 1)
         spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
         spinadj.connect("value-changed", self.set_track_len)
-
         self.attach(label, 0, 2, 0, 1)
         self.attach(spinbut, 2, 3, 0, 1)
 
@@ -84,7 +84,6 @@ class TrackSettingTable(gtk.Table):
         combobox.pack_start(cell, True)
         combobox.add_attribute(cell, 'text', 1)
         combobox.connect("changed", self.port_changed)
-
         self.attach(label, 0, 2, 1, 2)
         self.attach(combobox, 2, 3, 1, 2)
 

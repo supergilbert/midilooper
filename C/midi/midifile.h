@@ -52,7 +52,7 @@ typedef struct
   seqtype_t type;
   uint_t    tempo; /* microseconds */
   uint_t    ppq;
-  char      *name;
+  /* char      *name; */
 }           midifile_info_t;
 
 typedef struct
@@ -64,6 +64,13 @@ typedef struct
   list_t                track_list;
 }                       midifile_t;
 
+#define MSQ_TRACK_LEN_SYSEX 1
+
+#define GETVLVSIZE(_tick) (_tick < 128) ? 0 :            \
+  (((_tick >> 7) < 128) ? 1 :                            \
+   (((_tick >> 14) < 128) ? 2 :                          \
+    3)) 
+
 #include <unistd.h>
 /* #include "seqtool/seqtool.h" */
 
@@ -74,7 +81,11 @@ size_t get_midifile_track_size(byte_t *buffer);
 bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr);
 midifile_t *read_midifile_fd(int fd);
 void free_midifile(midifile_t *sequence);
+size_t midifile_trackev_size(track_t *track);
 
 track_t  *midifile_to_onetrack(char *filename);
+
+void write_midifile_header(int fd, uint_t track_list_len, uint_t ppq);
+void write_midifile_track(int fd, track_t *track);
 
 #endif

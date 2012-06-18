@@ -4,16 +4,8 @@
 #include <fcntl.h>
 
 #include "debug_tool/debug_tool.h"
-#include "midi/midifile.h"
-
 #include "./pym_midiseq_track.h"
-
-/* file header */
-typedef struct {
-    PyObject_HEAD
-    /* Type-specific fields go here. */
-    midifile_t *midifile;
-} midiseq_fileObject;
+#include "./pym_midiseq_file.h"
 
 static PyObject *midiseq_file_gettempo(PyObject *self, PyObject *args)
 {
@@ -29,13 +21,13 @@ static PyObject *midiseq_file_getppq(PyObject *self, PyObject *args)
   return Py_BuildValue("i", pobj->midifile->info.ppq);
 }
 
-static PyObject *midiseq_file_getname(PyObject *self, PyObject *args)
-{
-  midiseq_fileObject *pobj = (midiseq_fileObject *) self;
+/* static PyObject *midiseq_file_getname(PyObject *self, PyObject *args) */
+/* { */
+/*   midiseq_fileObject *pobj = (midiseq_fileObject *) self; */
 
-  return Py_BuildValue("s", pobj->midifile->info.name);
+/*   return Py_BuildValue("s", pobj->midifile->info.name); */
 
-}
+/* } */
 
 static PyObject *midiseq_file_getnumber_of_track(PyObject *self,
                                                   PyObject *args)
@@ -45,21 +37,21 @@ static PyObject *midiseq_file_getnumber_of_track(PyObject *self,
   return Py_BuildValue("i", pobj->midifile->number_of_track);
 }
 
-static PyObject *midiseq_file_getmergedtrack(PyObject *self, PyObject *args)
-{
-  midiseq_fileObject *pobj = (midiseq_fileObject *) self;
-  track_t     *track = merge_all_track("blabla", &(pobj->midifile->track_list));
+/* static PyObject *midiseq_file_getmergedtrack(PyObject *self, PyObject *args) */
+/* { */
+/*   midiseq_fileObject *pobj = (midiseq_fileObject *) self; */
+/*   track_t     *track = merge_all_track("blabla", &(pobj->midifile->track_list)); */
 
-  return create_midiseq_track(track);
-}
+/*   return create_midiseq_track(track); */
+/* } */
 
 static PyMethodDef midiseq_file_methods[] = {
   {"gettempo", midiseq_file_gettempo, METH_NOARGS, ""},
   {"getms", midiseq_file_gettempo, METH_NOARGS, ""},
   {"getppq", midiseq_file_getppq, METH_NOARGS, ""},
-  {"getname", midiseq_file_getname, METH_NOARGS, ""},
+  /* {"getname", midiseq_file_getname, METH_NOARGS, ""}, */
   {"get_number_of_track", midiseq_file_getnumber_of_track, METH_NOARGS, ""},
-  {"getmergedtrack", midiseq_file_getmergedtrack, METH_NOARGS, ""},
+  /* {"getmergedtrack", midiseq_file_getmergedtrack, METH_NOARGS, ""}, */
   {NULL, NULL, 0, NULL}
 };
 

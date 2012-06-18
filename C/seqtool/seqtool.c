@@ -69,6 +69,7 @@ tickev_t *_create_new_tick_ev(uint_t tick)
 
   bzero(tickev, sizeof (tickev_t));
   tickev->tick = tick;
+  tickev->todel = TRUE;
   return tickev;
 }
 

@@ -24,13 +24,13 @@ typedef struct
 {
   aseqport_ctx_t   *aseqport_ctx;
   track_t          *track;
-  uint_t           len;
   uint_t           loop_start;
   list_iterator_t  current_tickev;
   pthread_rwlock_t lock;
   list_t           trash;
   bool_t           is_handled;
   bool_t           to_del;
+  bool_t           ev_todel;
 } track_ctx_t;
 
 typedef struct
@@ -61,9 +61,12 @@ aseqport_ctx_t  *engine_create_aport(engine_ctx_t *ctx, char *name);
 bool_t          engine_del_port(engine_ctx_t *ctx,
                                 aseqport_ctx_t *aseqportctx);
 bool_t          engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx);
-track_ctx_t     *engine_create_track(engine_ctx_t *ctx, char *name);
+track_ctx_t     *engine_new_track(engine_ctx_t *ctx, char *name);
+void            engine_copy_tracklist(engine_ctx_t *ctx, list_t *tracklist);
 void            trackctx_event2trash(track_ctx_t *traxkctx,
                                      list_iterator_t *tickit,
                                      list_iterator_t *evit);
+
+void engine_save_project(engine_ctx_t *ctx, char *file_path);
 
 #endif

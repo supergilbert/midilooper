@@ -2,6 +2,7 @@
 #include "debug_tool/debug_tool.h"
 #include "./engine.h"
 #include "./pym_midiseq_track.h"
+#include "./pym_midiseq_file.h"
 
 
 typedef struct {
@@ -26,8 +27,8 @@ static void midiseq_dealloc(PyObject *obj)
 
 
 static int midiseq_init(midiseq_Object *self,
-                              PyObject *args,
-                              PyObject *kwds)
+                        PyObject *args,
+                        PyObject *kwds)
 {
   trace_func;
   char *aport_name = "midiseq_output";
@@ -60,6 +61,20 @@ static PyObject *midiseq_settickpos(PyObject *obj,
   Py_RETURN_NONE;
 }
 
+
+static PyObject *midiseq_save(PyObject *obj,
+                              PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+  char           *filename = NULL;
+
+  if (args == NULL)
+    return NULL;
+  if (!PyArg_ParseTuple(args , "s", &filename))
+    return NULL;
+  engine_save_project(self->engine_ctx, filename);
+  Py_RETURN_NONE;
+}
 
 static PyObject *midiseq_gettickpos(PyObject *obj,
                                     PyObject *args)
@@ -205,7 +220,7 @@ static PyObject *midiseq_newtrack(PyObject *obj,
 
   if (!PyArg_ParseTuple(args , "s", &name))
     return NULL;
-  trackctx = engine_create_track(self->engine_ctx, name);
+  trackctx = engine_new_track(self->engine_ctx, name);
   return create_midiseq_track(trackctx);
 }
 
@@ -276,7 +291,27 @@ static PyObject *midiseq_getports(PyObject *obj,
   return portlist;
 }
 
+static PyObject *midiseq_cp_midifile_tracks(PyObject *obj,
+                                            PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_fileObject  *mfile = NULL;
+  /* aseqport_ctx_t      *aport = NULL; */
+
+  if (!PyArg_ParseTuple(args , "O", &mfile))
+    return NULL;
+  engine_copy_tracklist(self->engine_ctx, &(mfile->midifile->track_list));
+
+  /* if (engine_del_port(self->engine_ctx, port->aport) == FALSE) */
+  /*   return NULL; */
+  Py_RETURN_NONE;
+}
+
 static PyMethodDef midiseq_methods[] = {
+  {"copy_midifile", midiseq_cp_midifile_tracks, METH_VARARGS,
+   "Copy the track of a midifile"},
+  {"save", midiseq_save, METH_VARARGS,
+   "Save the sequence information as a midifile"},
   {"setppq", midiseq_setppq, METH_VARARGS,
    "Set sequencer pulsation per quater note"},
   {"getppq", midiseq_getppq, METH_NOARGS,

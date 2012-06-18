@@ -27,6 +27,7 @@ from tool import prompt_gettext, MsqListMenu
 # pxb_button_add = gtk.gdk.pixbuf_new_from_xpm_data(xpm_button_add)
 # img_button_add = gtk.image_new_from_pixbuf(pxb_button_add)
 
+
 class TrackListMenu(MsqListMenu):
     def show_track(self, menuitem):
         if self.path:
@@ -50,9 +51,10 @@ class TrackListMenu(MsqListMenu):
         if self.path:
             new_trackname = prompt_gettext("Rename track")
             if new_trackname:
-                tedit = self.tracklist.liststore.get_value(self.tv_iter, 0)
+                tv_iter = self.tracklist.liststore.get_iter(self.path[0])
+                tedit = self.tracklist.liststore.get_value(tv_iter, 0)
                 tedit.set_name(new_trackname)
-                self.tracklist.liststore.set_value(self.tv_iter, 1, repr(tedit.track))
+                self.tracklist.liststore.set_value(tv_iter, 1, repr(tedit.track))
             self.path = None
 
     def __init__(self, tracklist):
@@ -65,6 +67,7 @@ class TrackListMenu(MsqListMenu):
         separator.show()
         self.append(separator)
         self.mlm_add_item("Delete track", self.del_track)
+
 
 class TrackList(gtk.Window):
     def update_pos(self, tickpos):
@@ -105,8 +108,8 @@ class TrackList(gtk.Window):
         if track_name:
             track = self.seq.newtrack(track_name);
             tedit = TrackEditor(track, self.seq, self.portlist)
-            tedit.unmap()
             self.liststore.append([tedit, repr(track), 0])
+            tedit.show_all()
 
     def button_add_track(self, button):
         self.add_track()

@@ -16,15 +16,6 @@ uint_t		get_midi_meta_event(midimev_t *metaev, byte_t *buffer)
   uint_t offset = 0;
   //byte_t type;
 
-  if (buffer[offset] != 0xFF)
-    {
-      output_error("Error: expecting meta-event\n");
-      return FALSE;
-    }
-
-  /* debug_midifile("*** META-EVENT ***\n"); */
-
-  offset++;
   switch (buffer[offset])
     {
     case ME_SEQUENCENUMBER:
