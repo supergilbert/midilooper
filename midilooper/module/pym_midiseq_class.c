@@ -7,7 +7,7 @@
 
 typedef struct {
   PyObject_HEAD
-  midiseq_trackObject *pytrack;
+  /* midiseq_trackObject *pytrack; */
   engine_ctx_t *engine_ctx;
 } midiseq_Object;
 
@@ -19,8 +19,8 @@ static void midiseq_dealloc(PyObject *obj)
 
   if (self->engine_ctx != NULL)
     free_engine_ctx(self->engine_ctx);
-  if (self->pytrack != NULL)
-    Py_DECREF(self->pytrack);
+  /* if (self->pytrack != NULL) */
+  /*   Py_DECREF(self->pytrack); */
   self->ob_type->tp_free((PyObject*)self);
   trace_func;
 }
@@ -300,7 +300,7 @@ static PyObject *midiseq_cp_midifile_tracks(PyObject *obj,
 
   if (!PyArg_ParseTuple(args , "O", &mfile))
     return NULL;
-  engine_copy_tracklist(self->engine_ctx, &(mfile->midifile->track_list));
+  engine_read_midifile(self->engine_ctx, mfile->midifile);
 
   /* if (engine_del_port(self->engine_ctx, port->aport) == FALSE) */
   /*   return NULL; */

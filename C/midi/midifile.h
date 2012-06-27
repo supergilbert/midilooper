@@ -57,6 +57,12 @@ typedef struct
 
 typedef struct
 {
+  uint_t sysex_len;
+  track_t track;
+} midifile_track_t;
+
+typedef struct
+{
   /* midifile_hdr_chunk_t  *hdr_info; */
   midifile_info_t       info;
   /* integrer les fonctions de clock au prochaine sequence, compatible au track node*/

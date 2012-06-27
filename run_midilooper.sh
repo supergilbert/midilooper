@@ -13,7 +13,8 @@ else
 		;;
 	"gdb")
 		echo "\033[31mLanching midilooper with gdb.\033[0m"
-		gdb --args python $MIDILOOPER_PATH/pygtk/midilooper.py
+		shift 1
+		gdb --args python $MIDILOOPER_PATH/pygtk/midilooper.py $@
 		;;
 	"valgrind")
 		echo "\033[31mLanching midilooper with valgrind.\033[0m"
@@ -23,7 +24,7 @@ else
 		;;
 	*)
 		ulimit -c unlimited
-		$MIDILOOPER_PATH/pygtk/midilooper.py $1
+		$MIDILOOPER_PATH/pygtk/midilooper.py $@
 		;;
 	esac
 fi

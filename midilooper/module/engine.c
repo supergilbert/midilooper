@@ -394,23 +394,23 @@ track_ctx_t  *engine_add_track(engine_ctx_t *ctx, track_t *track)
   return trackctx;
 }
 
-void engine_copy_tracklist(engine_ctx_t *ctx, list_t *tracklist)
+void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
 {
   list_iterator_t trackit;
-  track_t         *track;
+  midifile_track_t         *mf_track;
   track_t         *cp_track;
 
-  for (iter_init(&trackit, tracklist);
+  for (iter_init(&trackit, &(midifile->track_list));
        iter_node(&trackit) != NULL;
        iter_next(&trackit))
     {
-      track = iter_node_ptr(&trackit);
+      mf_track = iter_node_ptr(&trackit);
       cp_track = myalloc(sizeof (track_t));
-      if (track->name)
-        cp_track->name = strdup(track->name);
-      cp_track->len = track->len;
-      copy_track(track, cp_track);
-      engine_add_track(ctx, track);
+      if (mf_track->track.name)
+        cp_track->name = strdup(mf_track->track.name);
+      cp_track->len = mf_track->track.len;
+      copy_track(&(mf_track->track), cp_track);
+      engine_add_track(ctx, cp_track);
     }
 }
 

@@ -145,5 +145,6 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         mfile = midiseq.midifile(sys.argv[1])
         msq.copy_midifile(mfile)
+        mfile = None
     mlooper = MidiLooper(msq)
     gtk.main()

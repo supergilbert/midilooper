@@ -5,11 +5,24 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+void free_midifile_track(void *addr)
+{
+  midifile_track_t *mtrack = (midifile_track_t *) addr;
+
+  if (mtrack)
+    {
+      free_list_node(&(mtrack->track.tickev_list), free_tickev);
+      if (mtrack->track.name != NULL)
+        free(mtrack->track.name);
+      free(mtrack);
+    }
+}
+
 void free_midifile(midifile_t *midifile)
 {
   if (midifile)
     {
-      free_list_node(&(midifile->track_list), free_track);
+      free_list_node(&(midifile->track_list), free_midifile_track);
       free(midifile);
     }
 }
@@ -31,7 +44,7 @@ size_t		get_midifile_track_size(byte_t *buffer)
   return track_size;
 }
 
-void get_msq_sysex(track_t *track, byte_t *buffer, uint_t size)
+void get_msq_sysex(midifile_track_t *track, byte_t *buffer, uint_t size)
 {
   if (size < 10)
     return;
@@ -43,10 +56,10 @@ void get_msq_sysex(track_t *track, byte_t *buffer, uint_t size)
     {
       if (buffer[4] == MSQ_TRACK_LEN_SYSEX)
         {
-          track->len = buffer[5];
-          track->len = (track->len << 8) + buffer[6];
-          track->len = (track->len << 8) + buffer[7];
-          track->len = (track->len << 8) + buffer[8];
+          track->sysex_len = buffer[5];
+          track->sysex_len = (track->sysex_len << 8) + buffer[6];
+          track->sysex_len = (track->sysex_len << 8) + buffer[7];
+          track->sysex_len = (track->sysex_len << 8) + buffer[8];
         }
     }
 }
@@ -55,20 +68,17 @@ void get_msq_sysex(track_t *track, byte_t *buffer, uint_t size)
 /* Get midifile track information, and add
    midi channel event to track to the track structure */
 bool_t          get_midifile_track(midifile_info_t *info,
-                                   track_t **addr,
+                                   midifile_track_t **addr,
                                    byte_t *buffer,
                                    size_t size)
 {
-  track_t *track = myalloc(sizeof (track_t));
+  midifile_track_t *midifile_track = myalloc(sizeof (midifile_track_t));
   byte_t        *end;
-  /* byte_t        cmd; */
   uint_t        tick;//, smallest = (uint_t) -1, biggest = 0;
   uint_t        offset;
-  /* miditickev_node_t     *cur_miditickev = NULL; */
   midicev_t             chan_ev;
   midimev_t             meta_ev;
 
-  bzero(track, sizeof (track_t));
   debug_midi("!!! start=%p end=%p\n", buffer, &(buffer[size]));
 
   debug_midi("---------------------------\n");
@@ -90,11 +100,6 @@ bool_t          get_midifile_track(midifile_info_t *info,
 	print_bin(stdout, buffer, 16);
 #endif
         debug_midi("\033[32m> buffer addr: %1$p=%1$u\033[0m\n", buffer);
-        /* debug_midi("> deltatime: %d\n", tick); */
-	/* if (tick < smallest) */
-	/*   smallest = tick; */
-	/* if (tick > biggest) */
-	/*   biggest = tick; */
         switch (*buffer)
           {
           case 0xFF:
@@ -106,11 +111,11 @@ bool_t          get_midifile_track(midifile_info_t *info,
             switch (meta_ev.type)
               {
               case ME_NAME:
-                if (track->name)
+                if (midifile_track->track.name)
                   output_warning("Found two meta event name for this track (keeping the first one \"%s\")\n",
-                                track->name);
+                                midifile_track->track.name);
                 else
-                  track->name = strdup((const char *) meta_ev.data);
+                  midifile_track->track.name = strdup((const char *) meta_ev.data);
 		debug_midi("Found name: >%s<\n", meta_ev.data);
                 break;
 	      case ME_COPYRIGHTNOTICE:
@@ -128,14 +133,13 @@ bool_t          get_midifile_track(midifile_info_t *info,
           case 0xF0:
             buffer++;
             offset = get_varlen_from_ptr(&buffer); /* /!\ */
-            get_msq_sysex(track, buffer, offset);
+            get_msq_sysex(midifile_track, buffer, offset);
             break;
           case 0xF7:
             debug_midi("SysEx event detected\n");
             output_error("\nUnsuported System Exclusive Event type: 0x%02X\n", *buffer);
             buffer++;
             offset = get_varlen_from_ptr(&buffer); /* /!\ */
-            //return FALSE;
             break;
 
           default:
@@ -144,18 +148,13 @@ bool_t          get_midifile_track(midifile_info_t *info,
             if (0 == offset)
               {
                 output_error("\nProblem with event type: 0x%02X\n", *buffer);
-                free_track(track);
+                free_track(midifile_track);
                 return FALSE;
               }
-            /* debug_midi("got midi channel event cmd %s number %i, on channel \"%s\" and tick %i\n", */
-            /*       midicmd_to_str(chan_ev.type), */
-            /*       track->number_of_ev, */
-            /*       track->name, */
-            /*       tick); */
             if (chan_ev.type >= 0x8 && chan_ev.type <= 0xE)
               {
                 debug_midi("Inserting midi channel event\n");
-                copy_midicev_to_track(track, tick, &chan_ev);
+                copy_midicev_to_track(&(midifile_track->track), tick, &chan_ev);
               }
           }
         buffer += offset;
@@ -164,18 +163,15 @@ bool_t          get_midifile_track(midifile_info_t *info,
 
   if (buffer != end)
     output_error("Unexpected size of track buffer=%p end=%p\n", buffer, end);
-  if (LIST_HEAD(&(track->tickev_list)) != NULL)
+  if (LIST_HEAD(&(midifile_track->track.tickev_list)) != NULL)
     {
-      debug_midi(">> channel name \"%s\" number of event = %i\n", track->name, track->tickev_list.len);
-      /* debug_midi(">> first tick event at %d, and last tick event at %d\n", smallest, biggest); */
-      /* track->dbg_first_ev = smallest; */
-      /* track->dbg_last_ev = biggest; */
-      *addr = track;
+      debug_midi(">> channel name \"%s\" number of event = %i\n", midifile_track->track.name, midifile_track->track.tickev_list.len);
+      *addr = midifile_track;
     }
   else
     {
       debug_midi("No tick event found\n");
-      free_track(track);
+      free_track(midifile_track);
     }
   return TRUE;
 }
@@ -191,7 +187,7 @@ midifile_t *get_midifile_tracks(int fd,
   unsigned int          idx;
   midifile_t            *midifile = NULL;
   list_t                track_list;
-  track_t               *track = NULL;
+  midifile_track_t      *midifile_track = NULL;
   midifile_info_t       info = {MULTITRACK_MIDIFILE_USYNC, 500000, 120};
 
   bzero(&track_list, sizeof (list_t));
@@ -243,7 +239,7 @@ midifile_t *get_midifile_tracks(int fd,
       bzero(buffer, bsize);
       size = read(fd, buffer, size);
       debug_midi("size read = %d\n", size);
-      if (FALSE == get_midifile_track(&info, &(track), buffer, size))
+      if (FALSE == get_midifile_track(&info, &(midifile_track), buffer, size))
         {
           output_error(ERROR_FMT"Problem with track %i\n", ERROR_ARG, idx);
           free(buffer);
@@ -252,10 +248,10 @@ midifile_t *get_midifile_tracks(int fd,
       else
         debug_midi("track_%i ok\n", idx);
 
-      if (track != NULL)
+      if (midifile_track != NULL)
         {
-          push_to_list(&track_list, (void *) track);
-          track = NULL;
+          push_to_list(&track_list, (void *) midifile_track);
+          midifile_track = NULL;
         }
     }
   free(buffer);

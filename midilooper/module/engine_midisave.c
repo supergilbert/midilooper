@@ -2,6 +2,11 @@
 #include "debug_tool/debug_tool.h"
 #include "midi/midifile.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+
 void engine_save_project(engine_ctx_t *ctx, char *file_path)
 {
   int             fd;

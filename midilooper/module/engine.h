@@ -25,6 +25,7 @@ typedef struct
   aseqport_ctx_t   *aseqport_ctx;
   track_t          *track;
   uint_t           loop_start;
+  uint_t           len;
   list_iterator_t  current_tickev;
   pthread_rwlock_t lock;
   list_t           trash;
@@ -62,11 +63,12 @@ bool_t          engine_del_port(engine_ctx_t *ctx,
                                 aseqport_ctx_t *aseqportctx);
 bool_t          engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx);
 track_ctx_t     *engine_new_track(engine_ctx_t *ctx, char *name);
-void            engine_copy_tracklist(engine_ctx_t *ctx, list_t *tracklist);
+void            engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile);
+/* void            engine_copy_tracklist(engine_ctx_t *ctx, list_t *tracklist); */
 void            trackctx_event2trash(track_ctx_t *traxkctx,
                                      list_iterator_t *tickit,
                                      list_iterator_t *evit);
 
-void engine_save_project(engine_ctx_t *ctx, char *file_path);
+void            engine_save_project(engine_ctx_t *ctx, char *file_path);
 
 #endif
