@@ -5,10 +5,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-void free_midifile_track(void *addr)
+void free_midifile_track(midifile_track_t *mtrack)
 {
-  midifile_track_t *mtrack = (midifile_track_t *) addr;
-
   if (mtrack)
     {
       free_list_node(&(mtrack->track.tickev_list), free_tickev);
@@ -18,11 +16,16 @@ void free_midifile_track(void *addr)
     }
 }
 
+void _free_midifile_track(void *addr)
+{
+  free_midifile_track((midifile_track_t *) addr);
+}
+
 void free_midifile(midifile_t *midifile)
 {
   if (midifile)
     {
-      free_list_node(&(midifile->track_list), free_midifile_track);
+      free_list_node(&(midifile->track_list), _free_midifile_track);
       free(midifile);
     }
 }
@@ -148,7 +151,7 @@ bool_t          get_midifile_track(midifile_info_t *info,
             if (0 == offset)
               {
                 output_error("\nProblem with event type: 0x%02X\n", *buffer);
-                free_track(midifile_track);
+                free_midifile_track(midifile_track);
                 return FALSE;
               }
             if (chan_ev.type >= 0x8 && chan_ev.type <= 0xE)
@@ -171,7 +174,7 @@ bool_t          get_midifile_track(midifile_info_t *info,
   else
     {
       debug_midi("No tick event found\n");
-      free_track(midifile_track);
+      free_midifile_track(midifile_track);
     }
   return TRUE;
 }

@@ -86,12 +86,13 @@ size_t get_midifile_track_size(byte_t *buffer);
 
 bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr);
 midifile_t *read_midifile_fd(int fd);
+void free_midifile_track(midifile_track_t *mtrack);
 void free_midifile(midifile_t *sequence);
 size_t midifile_trackev_size(track_t *track);
 
 track_t  *midifile_to_onetrack(char *filename);
 
 void write_midifile_header(int fd, uint_t track_list_len, uint_t ppq);
-void write_midifile_track(int fd, track_t *track);
+void write_midifile_track(int fd, midifile_track_t *mtrack);
 
 #endif

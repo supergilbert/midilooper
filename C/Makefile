@@ -5,6 +5,8 @@ SRC=asound/aseq.c\
 	midi/midifile.c\
 	midi/midifile_get_varlen.c\
 	midi/midifile_tool.c\
+	loop_engine/engine.c\
+	loop_engine/engine_midisave.c\
 	seqtool/seqtool.c\
 	clock/clock.c\
 	tool/tool.c\

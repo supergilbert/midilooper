@@ -26,7 +26,6 @@ typedef struct
 typedef struct
 {
   /* + d'info */
-  uint_t        len;
   char          *name;
   list_t        tickev_list;
 }	        track_t;

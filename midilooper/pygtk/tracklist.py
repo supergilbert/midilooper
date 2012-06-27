@@ -28,14 +28,32 @@ from tool import prompt_gettext, MsqListMenu
 # img_button_add = gtk.image_new_from_pixbuf(pxb_button_add)
 
 
+# xpm_mute = ["8 8 2 1",
+#             "  c None",
+#             "x c #000000",
+#             "        ",
+#             " xx  xx ",
+#             " xxxxxx ",
+#             " x xx x ",
+#             " x    x ",
+#             " x    x ",
+#             " x    x ",
+#             "        "]
+
+# pxb_mute = gtk.gdk.pixbuf_new_from_xpm_data(xpm_mute)
+# img_mute = gtk.image_new_from_pixbuf(pxb_mute)
+
+
 class TrackListMenu(MsqListMenu):
     def show_track(self, menuitem):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
-            tedit.show_all()
-            tedit.map()
-            self.path = None
+            if tedit.get_mapped():
+                tedit.unmap()
+            else:
+                tedit.show_all()
+                tedit.map()
 
     def del_track(self, menuitem):
         if self.path:
@@ -94,36 +112,46 @@ class TrackList(gtk.Window):
             if event.button == 3:
                 self.menu.path = path
                 self.menu.popup(None, None, None, event.button, event.time)
-            else:
-                tv_iter = self.liststore.get_iter(path[0])
-                tedit = self.liststore.get_value(tv_iter, 0)
-                if tedit.get_mapped():
-                    tedit.unmap()
-                else:
-                    tedit.show_all()
-                    tedit.map()
+            # else:
+            #     tv_iter = self.liststore.get_iter(path[0])
+            #     tedit = self.liststore.get_value(tv_iter, 0)
+            #     if tedit.get_mapped():
+            #         tedit.unmap()
+            #     else:
+            #         tedit.show_all()
+            #         tedit.map()
 
     def add_track(self):
         track_name = prompt_gettext("Enter new track name")
         if track_name:
             track = self.seq.newtrack(track_name);
             tedit = TrackEditor(track, self.seq, self.portlist)
-            self.liststore.append([tedit, repr(track), 0])
+            self.liststore.append([tedit, repr(track), 0, 0])
             tedit.show_all()
 
     def button_add_track(self, button):
         self.add_track()
+
+    def toggle_mute(self, cell, path, model):
+        print "Change model state from %s to %s" % (model[path][3], not model[path][3])
+        print "Change track state from %s to %s" % (model[path][0].track.get_mute_state(),
+                                                    not model[path][0].track.get_mute_state())
+        # print "object", model[path][0]
+        model[path][0].track.toggle_mute()
+        # import pdb; pdb.set_trace()
+        model[path][3] = not model[path][3]
 
     def __init__(self, seq, portlist):
         gtk.Window.__init__(self)
         self.set_resizable(False)
         self.seq = seq
         self.portlist = portlist
-        self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str, int)
+        self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str, int, bool)
+        # self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str, int, gobject.TYPE_PYOBJECT)
         for track in seq.gettracks():
             tedit = TrackEditor(track, self.seq, self.portlist)
             tedit.unmap()
-            self.liststore.append([tedit, repr(track), 0])
+            self.liststore.append([tedit, repr(track), 0, track.get_mute_state()])
         self.treev = gtk.TreeView(self.liststore)
         self.treev.set_enable_search(False)
         self.menu = TrackListMenu(self)
@@ -135,6 +163,14 @@ class TrackList(gtk.Window):
         tvcolumn.add_attribute(cell, 'value', 2)
         self.treev.append_column(tvcolumn)
         self.treev.connect('button-press-event', self.tvbutton_press_event)
+
+        tvcolumn = gtk.TreeViewColumn('Mute')
+        cell = gtk.CellRendererToggle()
+        cell.set_property('activatable', True)
+        cell.connect('toggled', self.toggle_mute, self.liststore)
+        tvcolumn.pack_start(cell, True)
+        tvcolumn.add_attribute(cell, "active", 3)
+        self.treev.append_column(tvcolumn)
 
         button_add = gtk.Button(stock=gtk.STOCK_ADD)
         # button_add.add(img_button_add)

@@ -12,8 +12,6 @@ module1 = Extension('midiseq',
                                './pym_midiseq_aport.c',
                                './pym_midiseq_file.c',
                                './pym_midiseq_evwr.c',
-                               './engine.c',
-                               './engine_midisave.c',
                                './pym_midiseq.c'])
 
 setup (name = 'midiseq',

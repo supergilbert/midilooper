@@ -26,6 +26,7 @@ typedef struct
   track_t          *track;
   uint_t           loop_start;
   uint_t           len;
+  bool_t           mute;
   list_iterator_t  current_tickev;
   pthread_rwlock_t lock;
   list_t           trash;

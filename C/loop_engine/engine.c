@@ -110,19 +110,22 @@ void engine_free_trash(engine_ctx_t *ctx)
         {
           free_list_node(&(track_ctx->trash), _free_trash_ctn);
           pthread_rwlock_unlock(&(track_ctx->lock));
-          tick = ctx->looph.clocktick.number % track_ctx->track->len;
+          tick = ctx->looph.clocktick.number % track_ctx->len;
           goto_tick(&track_ctx->current_tickev, tick);
         }
     }
 }
 
-void	play_midiev(list_t *seqevlist, aseqport_ctx_t *aseq_ctx)
+void	play_midiev(list_t *seqevlist, track_ctx_t *track_ctx)
 {
+  aseqport_ctx_t *aseq_ctx = track_ctx->aseqport_ctx;
   snd_seq_event_t aseqev;
   list_iterator_t iter;
   bool_t          ev_to_drain = FALSE;
   seqev_t         *seqev = NULL;
 
+  if (track_ctx->aseqport_ctx == NULL || track_ctx->mute == TRUE)
+    return;
   for (iter_init(&iter, seqevlist);
        iter_node(&iter);
        iter_next(&iter))
@@ -141,39 +144,11 @@ void	play_midiev(list_t *seqevlist, aseqport_ctx_t *aseq_ctx)
     snd_seq_drain_output(aseq_ctx->handle);
 }
 
-/* tickev_t *get_current_tickev(track_ctx_t *track_ctx, uint_t tick) */
-/* { */
-/*   tickev_t *tickev = NULL; */
-
-/*   if (track_ctx->ev_todel == TRUE) */
-/*     { */
-/*       goto_tick(&(track_ctx->current_tickev), tick); */
-/*       track_ctx->ev_todel = FALSE; */
-/*     } */
-
-/*   if (iter_node(&(track_ctx->current_tickev)) == NULL) */
-/*     { */
-/*       if (track_ctx->current_tickev.list != NULL) */
-/*         iter_head(&(track_ctx->current_tickev)); */
-/*       /\* goto_tick(&(track_ctx->current_tickev), track_ctx->loop_start); *\/ */
-/*       else */
-/*         output_error("Current tick event list = NULL"); */
-/*       /\* iter_head(&(track_ctx->current_tickev)); *\/ */
-/*       return; */
-/*     } */
-/*   tickev = (tickev_t *) iter_node_ptr(&(track_ctx->current_tickev)); */
-
-/*   iter_next(tickit); */
-/*   iter_node(tickit); */
-
-/*   while () */
-/* } */
-
 void play_trackev(uint_t tick, track_ctx_t *track_ctx)
 {
   tickev_t        *tickev    = NULL;
 
-  tick = tick % track_ctx->track->len;
+  tick = tick % track_ctx->len;
 
   if (track_ctx->ev_todel == TRUE)
     {
@@ -193,14 +168,13 @@ void play_trackev(uint_t tick, track_ctx_t *track_ctx)
     }
   tickev = (tickev_t *) iter_node_ptr(&(track_ctx->current_tickev));
 
-  if (tickev && (tickev->tick % track_ctx->track->len) == tick)
+  if (tickev && (tickev->tick % track_ctx->len) == tick)
     {
-      if (track_ctx->aseqport_ctx)
-        play_midiev(&(tickev->seqev_list), track_ctx->aseqport_ctx);
+      play_midiev(&(tickev->seqev_list), track_ctx);
 
       iter_next(&(track_ctx->current_tickev));
 
-      if (tickev->tick == track_ctx->track->len)
+      if (tickev->tick == track_ctx->len)
         {
           iter_head(&(track_ctx->current_tickev));
           if (iter_node(&(track_ctx->current_tickev)))
@@ -208,8 +182,7 @@ void play_trackev(uint_t tick, track_ctx_t *track_ctx)
               tickev = iter_node_ptr(&(track_ctx->current_tickev));
               if (tickev->tick == 0)
                 {
-                  if (track_ctx->aseqport_ctx)
-                    play_midiev(&(tickev->seqev_list), track_ctx->aseqport_ctx);
+                  play_midiev(&(tickev->seqev_list), track_ctx);
                   iter_next(&(track_ctx->current_tickev));
                 }
             }
@@ -224,7 +197,7 @@ void play_trackev(uint_t tick, track_ctx_t *track_ctx)
 
       /* temp may not occur event musnt be greater than len */
       tickev = iter_node_ptr(&(track_ctx->current_tickev));
-      if (tickev->tick > track_ctx->track->len)
+      if (tickev->tick > track_ctx->len)
         iter_head(&(track_ctx->current_tickev));
     }
   return;
@@ -378,13 +351,54 @@ bool_t engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx)
   return FALSE;
 }
 
-track_ctx_t  *engine_add_track(engine_ctx_t *ctx, track_t *track)
+track_ctx_t  *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrack)
 {
   track_ctx_t       *trackctx = myalloc(sizeof (track_ctx_t));
 
-  if (track->len == 0)
-    track->len = ctx->ppq * 4;
+  trackctx->track = myalloc(sizeof (track_t));
+  copy_track(&(mtrack->track), trackctx->track);
+  if (mtrack->track.name)
+    trackctx->track->name = strdup(mtrack->track.name);
+
+  if (mtrack->sysex_len == 0)
+    trackctx->len = ctx->ppq * 4;
+  else
+    trackctx->len = mtrack->sysex_len;
+  trackctx->mute = FALSE;
+  trackctx->loop_start = 0;
+  trackctx->is_handled = FALSE;
+  trackctx->to_del = FALSE;
+
+  pthread_rwlock_init(&(trackctx->lock), NULL);
+  iter_init(&(trackctx->current_tickev), &(trackctx->track->tickev_list));
+  push_to_list_tail(&(ctx->track_list), trackctx);
+
+  return trackctx;
+}
+
+void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
+{
+  list_iterator_t  trackit;
+  midifile_track_t *mf_track;
+
+  for (iter_init(&trackit, &(midifile->track_list));
+       iter_node(&trackit) != NULL;
+       iter_next(&trackit))
+    {
+      mf_track = iter_node_ptr(&trackit);
+      engine_copyadd_miditrack(ctx, mf_track);
+    }
+}
+
+track_ctx_t  *engine_new_track(engine_ctx_t *ctx, char *name)
+{
+  track_ctx_t *trackctx = myalloc(sizeof (track_ctx_t));
+  track_t     *track = myalloc(sizeof (track_t));
+
+  track->name = strdup(name);
   trackctx->track = track;
+  trackctx->len = ctx->ppq * 4;
+  trackctx->mute = FALSE;
   trackctx->loop_start = 0;
   trackctx->is_handled = FALSE;
   trackctx->to_del = FALSE;
@@ -392,34 +406,6 @@ track_ctx_t  *engine_add_track(engine_ctx_t *ctx, track_t *track)
   iter_init(&(trackctx->current_tickev), &(trackctx->track->tickev_list));
   push_to_list_tail(&(ctx->track_list), trackctx);
   return trackctx;
-}
-
-void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
-{
-  list_iterator_t trackit;
-  midifile_track_t         *mf_track;
-  track_t         *cp_track;
-
-  for (iter_init(&trackit, &(midifile->track_list));
-       iter_node(&trackit) != NULL;
-       iter_next(&trackit))
-    {
-      mf_track = iter_node_ptr(&trackit);
-      cp_track = myalloc(sizeof (track_t));
-      if (mf_track->track.name)
-        cp_track->name = strdup(mf_track->track.name);
-      cp_track->len = mf_track->track.len;
-      copy_track(&(mf_track->track), cp_track);
-      engine_add_track(ctx, cp_track);
-    }
-}
-
-track_ctx_t  *engine_new_track(engine_ctx_t *ctx, char *name)
-{
-  track_t       *track = myalloc(sizeof (track_t));
-
-  track->name = strdup(name);
-  return engine_add_track(ctx, track);
 }
 
 void free_engine_ctx(engine_ctx_t *ctx)

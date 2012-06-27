@@ -66,7 +66,7 @@ static PyObject *midiseq_track_get_len(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  return Py_BuildValue("i", self->trackctx->track->len);
+  return Py_BuildValue("i", self->trackctx->len);
 }
 
 static PyObject *midiseq_track_set_len(PyObject *obj, PyObject *args)
@@ -79,8 +79,25 @@ static PyObject *midiseq_track_set_len(PyObject *obj, PyObject *args)
       output_error("track_add_note_event: Problem with argument");
       return NULL;
     }
-  self->trackctx->track->len = len;
+  self->trackctx->len = len;
   Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_toggle_mute(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  self->trackctx->mute = self->trackctx->mute ? FALSE : TRUE;
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_track_get_mute_state(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  if (self->trackctx->mute = self->trackctx->mute == TRUE)
+    Py_RETURN_TRUE;
+  Py_RETURN_FALSE;
 }
 
 #include "midi/midiev_inc.h"
@@ -198,8 +215,10 @@ static PyMethodDef midiseq_track_methods[] = {
   {"get_name", midiseq_track_get_name, METH_NOARGS, "Get track name"},
   {"set_name", midiseq_track_set_name, METH_VARARGS, "Set track name"},
   {"get_len", midiseq_track_get_len, METH_NOARGS, "Get track len"},
+  {"get_mute_state", midiseq_track_get_mute_state, METH_NOARGS, "Get mute state"},
   {"set_len", midiseq_track_set_len, METH_VARARGS, "Set track len"},
   {"set_port", midiseq_track_set_port, METH_VARARGS, "Set track port"},
+  {"toggle_mute", midiseq_toggle_mute, METH_NOARGS, "Toggle mute state"},
   {"has_port", midiseq_track_has_port, METH_VARARGS, "Check if track has port"},
   {"add_note_event", midiseq_track_add_note_event, METH_VARARGS, "Add a note event"},
   {"lock", midiseq_track_lock, METH_NOARGS, "Lock track"},

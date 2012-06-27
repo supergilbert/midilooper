@@ -212,9 +212,9 @@ size_t write_sysex_tracklen(byte_t *buf, uint_t len)
   return 13;
 }
 
-void write_midifile_track(int fd, track_t *track)
+void write_midifile_track(int fd, midifile_track_t *mtrack)
 {
-  size_t    trackev_size = midifile_trackev_size(track) + 4 + 13; /* Add end of
+  size_t    trackev_size = midifile_trackev_size(&(mtrack->track)) + 4 + 13; /* Add end of
                                                                      track event
                                                                      + track len */
   buf_hdl_t buf_hdl = {NULL, 0, 0};
@@ -223,10 +223,10 @@ void write_midifile_track(int fd, track_t *track)
   debug(" XXX midiev size = %d", trackev_size - 4);
 
   /* Allocate buffer with track information */
-  if (track->name)
+  if (mtrack->track.name)
     {
       debug("buf_hdl.idx %d", buf_hdl.idx);
-      name_len = strlen(track->name);
+      name_len = strlen(mtrack->track.name);
 
       debug("name_len %d", name_len);
 
@@ -241,7 +241,7 @@ void write_midifile_track(int fd, track_t *track)
       fill_midifile_buffer_trackhdr(&buf_hdl, trackev_size);
       debug("buf_hdl.idx %d", buf_hdl.idx);
 
-      fill_metaev_track_name(&buf_hdl, track->name, name_len);
+      fill_metaev_track_name(&buf_hdl, mtrack->track.name, name_len);
       debug("buf_hdl.idx %d", buf_hdl.idx);
 
       debug(" XXX expected final idx = %d", 8 + trackev_size);
@@ -253,10 +253,11 @@ void write_midifile_track(int fd, track_t *track)
       buf_hdl.idx += 8;
     }
 
-  buf_hdl.idx += write_sysex_tracklen(&(buf_hdl.buffer[buf_hdl.idx]), track->len);
+  buf_hdl.idx += write_sysex_tracklen(&(buf_hdl.buffer[buf_hdl.idx]),
+                                      mtrack->sysex_len);
 
   /* midi channel events */
-  foreach_list_node(&(track->tickev_list), hdl_tickev_buf, &buf_hdl);
+  foreach_list_node(&(mtrack->track.tickev_list), hdl_tickev_buf, &buf_hdl);
 
 
   debug("buf_hdl.idx %d", buf_hdl.idx);
