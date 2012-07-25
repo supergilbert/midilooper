@@ -49,15 +49,23 @@ typedef struct midifile_hdr_chunk_s
 
 typedef struct
 {
+  int    id;
+  char   *name;
+}           midifile_portinfo_t;
+
+typedef struct
+{
   seqtype_t type;
   uint_t    tempo; /* microseconds */
   uint_t    ppq;
+  list_t    portinfo_list;
   /* char      *name; */
 }           midifile_info_t;
 
 typedef struct
 {
   uint_t sysex_len;
+  int    sysex_portid;
   track_t track;
 } midifile_track_t;
 
@@ -70,12 +78,34 @@ typedef struct
   list_t                track_list;
 }                       midifile_t;
 
-#define MSQ_TRACK_LEN_SYSEX 1
+typedef struct buf_node_s
+{
+  byte_t *buffer;
+  size_t len;
+  struct buf_node_s *next;
+} buf_node_t;
 
-#define GETVLVSIZE(_tick) (_tick < 128) ? 0 :            \
-  (((_tick >> 7) < 128) ? 1 :                            \
-   (((_tick >> 14) < 128) ? 2 :                          \
-    3)) 
+void set_be16b_uint(byte_t *buf, uint_t val);
+void set_be32b_uint(byte_t *buf, uint_t val);
+buf_node_t *sysex_buf_node_end(byte_t *buffer, size_t len);
+buf_node_t *init_buf_node(byte_t *buffer, size_t len);
+size_t get_buf_list_size(buf_node_t *buff);
+buf_node_t *get_var_len_buf(uint_t tick);
+buf_node_t *_append_sysex_header(buf_node_t *tail, size_t len, byte_t type);
+void free_buf_list(buf_node_t *buff);
+void write_buf_list(int fd, buf_node_t *buff);
+buf_node_t *get_midifile_trackhdr(size_t track_size);
+
+#define MSQ_TRACK_LEN_SYSEX 1   /* 4 byte track sequence length */
+#define MSQ_PORTNAME_SYSEX 2    /* 4 byte portid
+                                   2 byte namelen
+                                   etc. name data */
+#define MSQ_TRACK_PORTID 3      /* followed by 4 byte */
+
+#define GETVLVSIZE(_tick) (_tick < 128) ? 1 :            \
+  (((_tick >> 7) < 128) ? 2 :                            \
+   (((_tick >> 14) < 128) ? 3 :                          \
+    4))
 
 #include <unistd.h>
 /* #include "seqtool/seqtool.h" */
@@ -92,6 +122,9 @@ size_t midifile_trackev_size(track_t *track);
 
 track_t  *midifile_to_onetrack(char *filename);
 
+buf_node_t *_append_metaev_eot(buf_node_t *tail);
+
+void write_midifile_trackhdr(int fd, size_t track_size);
 void write_midifile_header(int fd, uint_t track_list_len, uint_t ppq);
 void write_midifile_track(int fd, midifile_track_t *mtrack);
 

@@ -376,18 +376,58 @@ track_ctx_t  *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtra
   return trackctx;
 }
 
+typedef struct
+{
+  int            id;
+  aseqport_ctx_t *aseq;
+} tmpport_cache_t;
+
+
+
 void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
 {
-  list_iterator_t  trackit;
-  midifile_track_t *mf_track;
+  list_iterator_t     trackit;
+  list_iterator_t     portit;
+  list_t              tmpport = {NULL, NULL, 0};
+  midifile_track_t    *mf_track = NULL;
+  midifile_portinfo_t *portinfo = NULL;
+  tmpport_cache_t     *portcache = NULL;
+  track_ctx_t         *trackctx = NULL;
+
+  for (iter_init(&portit, &(midifile->info.portinfo_list));
+       iter_node(&portit) != NULL;
+       iter_next(&portit))
+    {
+      portinfo = iter_node_ptr(&portit);
+      portcache = myalloc(sizeof (tmpport_cache_t));
+      portcache->aseq = engine_create_aport(ctx, portinfo->name);
+      portcache->id = portinfo->id;
+      push_to_list_tail(&tmpport, portcache);
+    }
 
   for (iter_init(&trackit, &(midifile->track_list));
        iter_node(&trackit) != NULL;
        iter_next(&trackit))
     {
       mf_track = iter_node_ptr(&trackit);
-      engine_copyadd_miditrack(ctx, mf_track);
+      trackctx = engine_copyadd_miditrack(ctx, mf_track);
+      if (mf_track->sysex_portid != -1)
+        {
+          for (iter_init(&portit, &tmpport);
+               iter_node(&portit) != NULL;
+               iter_next(&portit))
+            {
+              portcache = iter_node_ptr(&portit);
+              if (portcache->id == mf_track->sysex_portid)
+                {
+                  trackctx->aseqport_ctx = portcache->aseq;
+                  break;
+                }
+            }
+        }
     }
+  free_list_node(&tmpport, free);
+
 }
 
 track_ctx_t  *engine_new_track(engine_ctx_t *ctx, char *name)

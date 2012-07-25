@@ -95,7 +95,7 @@ static PyObject *midiseq_track_get_mute_state(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  if (self->trackctx->mute = self->trackctx->mute == TRUE)
+  if (self->trackctx->mute == TRUE)
     Py_RETURN_TRUE;
   Py_RETURN_FALSE;
 }

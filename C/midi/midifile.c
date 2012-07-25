@@ -21,11 +21,19 @@ void _free_midifile_track(void *addr)
   free_midifile_track((midifile_track_t *) addr);
 }
 
+void free_mfinfo_port(void *addr)
+{
+  midifile_portinfo_t *portinfo = (midifile_portinfo_t *) addr;
+  free(portinfo->name);
+  free(portinfo);
+}
+
 void free_midifile(midifile_t *midifile)
 {
   if (midifile)
     {
       free_list_node(&(midifile->track_list), _free_midifile_track);
+      free_list_node(&(midifile->info.portinfo_list), free_mfinfo_port);
       free(midifile);
     }
 }
@@ -47,22 +55,49 @@ size_t		get_midifile_track_size(byte_t *buffer)
   return track_size;
 }
 
-void get_msq_sysex(midifile_track_t *track, byte_t *buffer, uint_t size)
+void get_sysex_portname(list_t *port_list, byte_t *buf)
 {
-  if (size < 10)
-    return;
+  size_t len;
+  midifile_portinfo_t *portinfo = myalloc(sizeof (midifile_portinfo_t));
 
+  portinfo->id = ((buf[0] << 24 & 0xFF)
+                  + (buf[1] << 16 & 0xFF)
+                  + (buf[2] << 8 & 0xFF)
+                  + (buf[3] & 0xFF));
+  len = (buf[4] << 8) + buf[5];
+  portinfo->name = myalloc(len + 1);
+
+  strncpy(portinfo->name, (char *) &(buf[6]), len);
+  portinfo->name[len] = '\0';
+  push_to_list_tail(port_list, portinfo);
+}
+
+void get_msq_sysex(midifile_info_t *info, midifile_track_t *track, byte_t *buffer, uint_t size)
+{
   if (buffer[0] == 0
       && buffer[1] == 'M'
       && buffer[2] == 'S'
       && buffer[3] == 'Q')
     {
-      if (buffer[4] == MSQ_TRACK_LEN_SYSEX)
+      switch (buffer[4])
         {
+        case MSQ_TRACK_LEN_SYSEX:
           track->sysex_len = buffer[5];
           track->sysex_len = (track->sysex_len << 8) + buffer[6];
           track->sysex_len = (track->sysex_len << 8) + buffer[7];
           track->sysex_len = (track->sysex_len << 8) + buffer[8];
+          break;
+        case MSQ_PORTNAME_SYSEX:
+          get_sysex_portname(&(info->portinfo_list), &(buffer[5]));
+          break;
+        case MSQ_TRACK_PORTID:
+          track->sysex_portid = buffer[5];
+          track->sysex_portid = (track->sysex_portid << 8) + buffer[6];
+          track->sysex_portid = (track->sysex_portid << 8) + buffer[7];
+          track->sysex_portid = (track->sysex_portid << 8) + buffer[8];
+          break;
+        default:
+          output_error("Unexpected SYSEX");
         }
     }
 }
@@ -82,6 +117,7 @@ bool_t          get_midifile_track(midifile_info_t *info,
   midicev_t             chan_ev;
   midimev_t             meta_ev;
 
+  midifile_track->sysex_portid = -1;
   debug_midi("!!! start=%p end=%p\n", buffer, &(buffer[size]));
 
   debug_midi("---------------------------\n");
@@ -136,7 +172,7 @@ bool_t          get_midifile_track(midifile_info_t *info,
           case 0xF0:
             buffer++;
             offset = get_varlen_from_ptr(&buffer); /* /!\ */
-            get_msq_sysex(midifile_track, buffer, offset);
+            get_msq_sysex(info, midifile_track, buffer, offset);
             break;
           case 0xF7:
             debug_midi("SysEx event detected\n");

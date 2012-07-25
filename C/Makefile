@@ -1,7 +1,6 @@
 SRC=asound/aseq.c\
 	midi/midi_meta_ev.c\
 	midi/midi_channel_ev.c\
-	midi/midi_tool.c\
 	midi/midifile.c\
 	midi/midifile_get_varlen.c\
 	midi/midifile_tool.c\

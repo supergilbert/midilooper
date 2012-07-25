@@ -84,6 +84,10 @@ class TrackSettingTable(gtk.Table):
         combobox.pack_start(cell, True)
         combobox.add_attribute(cell, 'text', 1)
         combobox.connect("changed", self.port_changed)
+        for idx, model in enumerate(portlist):
+            if self.track.has_port(model[0]):
+                combobox.set_active(idx)
+
         self.attach(label, 0, 2, 1, 2)
         self.attach(combobox, 2, 3, 1, 2)
 

@@ -87,7 +87,7 @@ class TrackListMenu(MsqListMenu):
         self.mlm_add_item("Delete track", self.del_track)
 
 
-class TrackList(gtk.Window):
+class TrackList(gtk.Frame):
     def update_pos(self, tickpos):
         def update_tedit(tvmodel, path, tv_iter, tickpos):
             tedit = tvmodel.get_value(tv_iter, 0)
@@ -133,17 +133,12 @@ class TrackList(gtk.Window):
         self.add_track()
 
     def toggle_mute(self, cell, path, model):
-        print "Change model state from %s to %s" % (model[path][3], not model[path][3])
-        print "Change track state from %s to %s" % (model[path][0].track.get_mute_state(),
-                                                    not model[path][0].track.get_mute_state())
-        # print "object", model[path][0]
         model[path][0].track.toggle_mute()
-        # import pdb; pdb.set_trace()
         model[path][3] = not model[path][3]
 
     def __init__(self, seq, portlist):
-        gtk.Window.__init__(self)
-        self.set_resizable(False)
+        gtk.Frame.__init__(self, "Track list")
+        # self.set_resizable(False)
         self.seq = seq
         self.portlist = portlist
         self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str, int, bool)
@@ -158,7 +153,7 @@ class TrackList(gtk.Window):
 
         tvcolumn = gtk.TreeViewColumn('Track')
         cell = gtk.CellRendererProgress()
-        tvcolumn.pack_start(cell, True)
+        tvcolumn.pack_start(cell, expand=True)
         tvcolumn.add_attribute(cell, 'text', 1)
         tvcolumn.add_attribute(cell, 'value', 2)
         self.treev.append_column(tvcolumn)
@@ -168,7 +163,7 @@ class TrackList(gtk.Window):
         cell = gtk.CellRendererToggle()
         cell.set_property('activatable', True)
         cell.connect('toggled', self.toggle_mute, self.liststore)
-        tvcolumn.pack_start(cell, True)
+        tvcolumn.pack_start(cell, expand=False)
         tvcolumn.add_attribute(cell, "active", 3)
         self.treev.append_column(tvcolumn)
 

@@ -19,8 +19,7 @@ else
 	"valgrind")
 		echo "\033[31mLanching midilooper with valgrind.\033[0m"
 		shift 1
-		#valgrind $@ --leak-check=full --show-reachable=yes python $MIDILOOPER_PATH/pygtk/midilooper.py
-		valgrind $@ python $MIDILOOPER_PATH/pygtk/midilooper.py
+		valgrind -v --track-origins=yes --log-file=/tmp/midilooper_valgrind.log --leak-check=full --show-reachable=yes python $MIDILOOPER_PATH/pygtk/midilooper.py $@
 		;;
 	*)
 		ulimit -c unlimited
