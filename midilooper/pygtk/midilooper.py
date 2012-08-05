@@ -108,7 +108,9 @@ class MidiLooper(gtk.Window):
 
         self.show_all()
 
-# gtk.rc_parse_string("""
+if __name__ == "__main__":
+
+#     gtk.rc_parse_string("""
 # style "midiseq_default_style"
 # {
 #         bg[NORMAL] = "black"
@@ -118,9 +120,7 @@ class MidiLooper(gtk.Window):
 # }
 # widget "*" style "midiseq_default_style"
 # """)
-# gtk.rc_parse("/tmp/Clearlooks-DarkOrange/gtk-2.0/gtkrc")
-
-if __name__ == "__main__":
+#     gtk.rc_parse("/tmp/Clearlooks-DarkOrange/gtk-2.0/gtkrc")
 
     msq = midiseq.midiseq("MidiLooper")
     if len(sys.argv) == 2:
