@@ -314,13 +314,13 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         note = self.ypos2noteval(int(ypos))
 
         self.track.add_note_event(tick,
-                                  MIDI_NOTEON_EVENT,
                                   self.note_param["channel"],
+                                  MIDI_NOTEON_EVENT,
                                   note,
                                   self.note_param["val_on"])
         self.track.add_note_event(tick + self.note_param["len"],
-                                  MIDI_NOTEOFF_EVENT,
                                   self.note_param["channel"],
+                                  MIDI_NOTEOFF_EVENT,
                                   note,
                                   self.note_param["val_off"])
 
@@ -415,10 +415,10 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         for evwr in self.track:
             event = evwr.get_event()
             ev_tick = event[0]
-            ev_type = event[1]
+            ev_type = event[2]
             if ev_type != MIDI_NOTEON_EVENT and ev_type != MIDI_NOTEOFF_EVENT:
                 continue
-            ev_channel = event[2]
+            ev_channel = event[1]
             if ev_channel != self.chan_num:
                 continue
             ev_note = event[3]
@@ -654,8 +654,8 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         noteon_bkp = []
         for evwr in self.track:
             event = evwr.get_event()
-            ev_type = event[1]
-            ev_chan = event[2]
+            ev_chan = event[1]
+            ev_type = event[2]
             if ev_chan != self.chan_num or not ev_type in (MIDI_NOTEOFF_EVENT, MIDI_NOTEON_EVENT):
                 continue
             tick = event[0]
@@ -719,7 +719,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             ymax = self.max_height
         for evwr in self.track:
             event = evwr.get_event()
-            ev_channel = event[2]
+            ev_channel = event[1]
             if ev_channel != self.chan_num:
                 continue
             ev_tick = event[0]
@@ -728,7 +728,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
                 continue
             if xpos > xmax:
                 continue
-            ev_type = event[1]
+            ev_type = event[2]
             # Handling note on area position
             if not (ev_type == MIDI_NOTEOFF_EVENT or ev_type == MIDI_NOTEON_EVENT):
                 continue

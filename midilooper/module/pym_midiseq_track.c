@@ -108,14 +108,17 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
   uint_t channel = 0, tick = 0, type = 0, num = 0, val = 0;
   midicev_t *mcev;
 
-  if (!PyArg_ParseTuple(args, "iiiii", &tick, &type, &channel, &num, &val))
+  if (!PyArg_ParseTuple(args, "iiiii", &tick, &channel, &type, &num, &val))
     {
       output_error("track_add_note_event: Problem with argument");
       return NULL;
     }
 
   if (type != NOTEOFF && type != NOTEON)
-    return NULL;
+    {
+      output_error("track_add_note_event: unknown type");
+      return NULL;
+    }
 
   mcev = myalloc(sizeof (midicev_t));
   mcev->chan = channel;

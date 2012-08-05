@@ -21,16 +21,21 @@ static PyObject *build_event_repr(uint_t tick, seqev_t *ev)
       if (midicev->type == NOTEOFF || midicev->type == NOTEON)
         return Py_BuildValue("(iiiii)",
                              tick,
-                             midicev->type,
                              midicev->chan,
+                             midicev->type,
                              midicev->event.note.num,
                              midicev->event.note.val);
       else
-        printf("midi channel event type: %i ???\n", midicev->type);
+        {
+          return Py_BuildValue("(iii)",
+                               tick,
+                               midicev->chan,
+                               midicev->type);
+          printf("Unsupported midi channel event type: %i\n", midicev->type);
+        }
     }
   else
-    printf("Unsupported ev type: %i\n", ev->type);
-  return Py_BuildValue("s", "Unsupported");
+    Py_RETURN_NONE;
 }
 
 static PyObject *midiseq_evwr_getevent(PyObject *obj, PyObject *args)

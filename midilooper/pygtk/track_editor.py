@@ -283,8 +283,8 @@ def get_track_info(track):
             track_min = event[0]
         if event[0] < track_max:
             track_max = event[0]
-        if not event[2] in channel_list:
-            channel_list.append(event[2])
+        if not (event[1] in channel_list):
+            channel_list.append(event[1])
     channel_list.sort()
     return (track_min, track_max, channel_list)
 
