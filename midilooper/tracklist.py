@@ -136,6 +136,12 @@ class TrackList(gtk.Frame):
         model[path][0].track.toggle_mute()
         model[path][3] = not model[path][3]
 
+    def toggle_mute_all(self, tv):
+        def _toggle_mute(tvmodel, path, tv_iter):
+            mute_val = not tvmodel.get_value(tv_iter, 3)
+            self.liststore.set_value(tv_iter, 3, mute_val)
+        self.liststore.foreach(_toggle_mute)
+
     def __init__(self, seq, portlist):
         gtk.Frame.__init__(self, "Track list")
         # self.set_resizable(False)
@@ -162,7 +168,10 @@ class TrackList(gtk.Frame):
         cell.connect('toggled', self.toggle_mute, self.liststore)
         tvcolumn = gtk.TreeViewColumn('M', cell, active=3)
         tvcolumn.set_expand(False)
+        tvcolumn.set_clickable(True)
+        tvcolumn.connect('clicked', self.toggle_mute_all)
         self.treev.append_column(tvcolumn)
+        # self.treev.set_reorderable(True)
 
         button_add = gtk.Button(stock=gtk.STOCK_ADD)
         # button_add.add(img_button_add)

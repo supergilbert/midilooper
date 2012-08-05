@@ -1,6 +1,6 @@
 from distutils.core import setup, Extension
 
-mdsq_libc_path = '../../C/'
+mdsq_libc_path = '../../c_api/'
 
 module1 = Extension('midiseq',
                     include_dirs = [mdsq_libc_path],
