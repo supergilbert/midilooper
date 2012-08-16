@@ -129,14 +129,6 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
   Py_RETURN_NONE;
 }
 
-static PyObject *midiseq_track_clear(PyObject *obj, PyObject *args)
-{
-  midiseq_trackObject *self = (midiseq_trackObject *) obj;
-
-  clear_tickev_list(&(self->trackctx->track->tickev_list));
-  Py_RETURN_NONE;
-}
-
 static PyObject *midiseq_track_set_port(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
@@ -228,7 +220,6 @@ static PyMethodDef midiseq_track_methods[] = {
   {"unlock", midiseq_track_unlock, METH_NOARGS, "Unlock track"},
   {"event2trash", midiseq_track_event2trash, METH_VARARGS, "Put event to the trash"},
   {"is_handled", midiseq_track_ishandled, METH_NOARGS, "Get if the track is handled"},
-  {"clear", midiseq_track_clear, METH_NOARGS, "free all track list to use with caution (/!\\ not while running for now)"},
   {NULL, NULL, 0, NULL}
 };
 

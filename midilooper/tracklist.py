@@ -112,25 +112,25 @@ class TrackList(gtk.Frame):
             if event.button == 3:
                 self.menu.path = path
                 self.menu.popup(None, None, None, event.button, event.time)
-            # else:
-            #     tv_iter = self.liststore.get_iter(path[0])
-            #     tedit = self.liststore.get_value(tv_iter, 0)
-            #     if tedit.get_mapped():
-            #         tedit.unmap()
-            #     else:
-            #         tedit.show_all()
-            #         tedit.map()
+            elif self.track_col == path[1]:
+                tv_iter = self.liststore.get_iter(path[0])
+                tedit = self.liststore.get_value(tv_iter, 0)
+                if tedit.get_mapped():
+                    tedit.unmap()
+                else:
+                    tedit.show_all()
+                    tedit.map()
 
-    def add_track(self):
-        track_name = prompt_gettext("Enter new track name")
-        if track_name:
-            track = self.seq.newtrack(track_name);
-            tedit = TrackEditor(track, self.seq, self.portlist)
-            self.liststore.append([tedit, repr(track), 0, 0])
-            tedit.show_all()
+    def add_track(self, track_name):
+        track = self.seq.newtrack(track_name);
+        tedit = TrackEditor(track, self.seq, self.portlist)
+        self.liststore.append([tedit, repr(track), 0, 0])
+        tedit.show_all()
 
     def button_add_track(self, button):
-        self.add_track()
+        track_name = prompt_gettext("Enter new track name)")
+        if track_name:
+            self.add_track(track_name)
 
     def toggle_mute(self, cell, path, model):
         model[path][0].track.toggle_mute()
@@ -160,6 +160,7 @@ class TrackList(gtk.Frame):
         cell = gtk.CellRendererProgress()
         tvcolumn = gtk.TreeViewColumn('Track', cell, text=1, value=2)
         tvcolumn.set_expand(True)
+        self.track_col = tvcolumn
         self.treev.append_column(tvcolumn)
         self.treev.connect('button-press-event', self.tvbutton_press_event)
 

@@ -15,7 +15,7 @@ def prompt_gettext(label):
     #                            None)
     def emit_resp(entry, dialog):
         dialog.response(gtk.RESPONSE_OK)
-    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT)
+    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
     dialog.set_decorated(False)
     label = gtk.Label(label)
     # dialog.set_markup(label)

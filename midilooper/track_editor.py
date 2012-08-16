@@ -100,7 +100,7 @@ class NoteSettingTable(gtk.Table):
         grid.note_param["quant"] = grid.ppq * numerator / denominator
 
     def set_note_value_cb(self, widget, grid):
-        grid.note_param["on"] = widget.get_value()
+        grid.note_param["val_on"] = int(widget.get_value())
 
     def __init__(self, grid):
         gtk.Table.__init__(self, 3, 3)
@@ -160,26 +160,6 @@ class ChannelEditor(gtk.VBox):
                                  int(vadj.get_page_size()))
         grid.draw_all(area)
 
-    def reset_track(self, button, grid_vp):
-        if self.tracked.sequencer:
-            if self.tracked.sequencer.isrunning():
-                print "Can't reset track while running"
-                return True
-        grid = grid_vp.get_child()
-        grid.track.clear()
-        for chaned in self.tracked.chaned_dict.values():
-            chaned.grid.track_events = []
-        self.redraw_grid_vp(grid_vp)
-
-    def grid_type_changed(self, combobox, grid_vp):
-        val = combobox.get_model()[combobox.get_active()][0]
-        grid = grid_vp.get_child()
-        if val == "Bar":
-            grid.set_draw_bars_mode()
-        else:
-            grid.set_draw_points_mode()
-        self.redraw_grid_vp(grid_vp)
-
     def debug_grid(self, button, grid_vp, track):
         print "redraw"
         self.redraw_grid_vp(grid_vp)
@@ -225,8 +205,8 @@ class ChannelEditor(gtk.VBox):
         hsb = gtk.HScrollbar(hadj)
         vsb = gtk.VScrollbar(vadj)
 
-        def_vertical_val = vadj.get_page_size() / 2
-        vadj.set_value(def_vertical_val)
+        # def_vertical_val = vadj.get_page_size() / 2
+        # vadj.set_value(def_vertical_val)
 
         table = gtk.Table(3, 3)
         table.attach(hbar_vp, 1, 2, 0, 1, gtk.FILL, 0)
@@ -235,36 +215,20 @@ class ChannelEditor(gtk.VBox):
         table.attach(vsb, 2, 3, 1, 2, 0, gtk.FILL)
         table.attach(hsb, 1, 2, 2, 3, gtk.FILL, 0)
 
-        # table.set_focus_child(grid_vp) # test
-
         note_setting_frame = gtk.Frame("Note setting")
         note_setting_frame.add(NoteSettingTable(self.grid))
 
-        #track_setting_frame = gtk.Frame("Track setting")
-        #track_setting_frame.add(TrackSettingTable(self.tracked.track, self.tracked.sequencer.getppq(), ))
-
         setting_hbox = gtk.HBox()
         setting_hbox.pack_start(note_setting_frame, expand=False)
-        # setting_hbox.pack_start(track_setting_frame, expand=False)
 
         self.pack_start(setting_hbox, expand=False)
         self.pack_start(table)
 
         debug_hbox = gtk.HBox()
-        button_clear = gtk.Button("Clear all")
-        button_clear.connect("clicked", self.reset_track, grid_vp)
-        debug_hbox.pack_start(button_clear)
 
         button_misc = gtk.Button("Refresh")
         button_misc.connect("clicked", self.debug_grid, grid_vp, self.tracked.track)
         debug_hbox.pack_start(button_misc)
-
-        grid_type_select = gtk.combo_box_new_text()
-        grid_type_select.append_text("Bar")
-        grid_type_select.append_text("Point")
-        grid_type_select.set_active(0)
-        grid_type_select.connect("changed", self.grid_type_changed, grid_vp)
-        debug_hbox.pack_end(grid_type_select)
 
         debug_frame = gtk.Frame("Note grid debug")
         debug_frame.add(debug_hbox)

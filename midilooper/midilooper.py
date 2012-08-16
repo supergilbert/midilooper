@@ -113,14 +113,31 @@ if __name__ == "__main__":
 #     gtk.rc_parse_string("""
 # style "midiseq_default_style"
 # {
-#         bg[NORMAL] = "black"
-#         fg[NORMAL] = "white"
-#         base[NORMAL] = "black"
-#         text[NORMAL] = "dark green"
+#         bg[NORMAL]        = "black"
+#         fg[NORMAL]        = "white"
+#         base[NORMAL]      = "black"
+#         text[NORMAL]      = "dark green"
+#         bg[PRELIGHT]      = "black"
+#         fg[PRELIGHT]      = "white"
+#         base[PRELIGHT]    = "black"
+#         text[PRELIGHT]    = "dark green"
+#         bg[ACTIVE]        = "black"
+#         fg[ACTIVE]        = "white"
+#         base[ACTIVE]      = "black"
+#         text[ACTIVE]      = "dark green"
+#         bg[INSENSITIVE]   = "black"
+#         fg[INSENSITIVE]   = "white"
+#         base[INSENSITIVE] = "black"
+#         text[INSENSITIVE] = "dark green"
+#         bg[SELECTED]      = "black"
+#         fg[SELECTED]      = "white"
+#         base[SELECTED]    = "black"
+#         text[SELECTED]    = "dark green"
 # }
 # widget "*" style "midiseq_default_style"
 # """)
-#     gtk.rc_parse("/tmp/Clearlooks-DarkOrange/gtk-2.0/gtkrc")
+
+#    gtk.rc_parse("")
 
     msq = midiseq.midiseq("MidiLooper")
     if len(sys.argv) == 2:
