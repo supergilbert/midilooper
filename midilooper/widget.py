@@ -550,8 +550,8 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         if event.state & gtk.gdk.CONTROL_MASK:
             if keyname == "v":
                 self.paste_motion = True
-                pass            # todo
             if keyname == "c":
+                self.to_paste = []
                 for note_on, note_off in self.selection:
                     self.to_paste.append((note_on.get_event(), note_off.get_event()))
         if event.keyval == gtk.keysyms.Delete or event.keyval == gtk.keysyms.BackSpace:
@@ -670,13 +670,13 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             if value > 255.0 or value < 0.0:
                 print "ERROR in get_note_color value is not between 0 255"
                 return
-            first_color = [130.0, 130.0, 130.0]
+            first_color  = [130.0, 130.0, 130.0]
             second_color = [0.0, 255.0, 0.0]
-            third_color = [255.0, 255.0, 0.0]
-            fouth_color = [255.0, 0.0, 0.0]
+            third_color  = [255.0, 255.0, 0.0]
+            fouth_color  = [255.0, 0.0, 0.0]
 
-            first_threshold = 64.0
-            second_threshold = 96.0
+            first_threshold  = 96.0
+            second_threshold = 112.0
 
             red_value   = 0.0
             green_value = 0.0
