@@ -16,12 +16,6 @@ typedef enum
 
 typedef struct
 {
-  /* pthread_rwlock_t      lock; */
-  bool_t isrunning;
-} engine_info_t;
-
-typedef struct
-{
   aseqport_ctx_t   *aseqport_ctx;
   track_t          *track;
   uint_t           loop_start;
@@ -37,15 +31,12 @@ typedef struct
 typedef struct
 {
   pthread_t             thread_id;
-  /* pthread_attr_t        thread_attr; */
   bool_t                thread_ret;
   pthread_rwlock_t      lock;
   engine_rq             rq;
-  engine_info_t         info;
+  bool_t                isrunning;
   list_t                track_list;
-  /* track_ctx_t           track_ctx; */
   list_t                aseqport_list;
-  /* aseqport_ctx_t        *aseqport_ctx; */
   snd_seq_t             *aseqh;
   clockloop_t           looph;
   uint_t                ppq;

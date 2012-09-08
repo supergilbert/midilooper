@@ -11,6 +11,11 @@ else
 	"ipython")
 		ipython
 		;;
+	"gdbcore")
+		echo "\033[31mLanching core file with gdb.\033[0m"
+		shift 1
+		gdb --core=$1 --args python
+		;;
 	"gdb")
 		echo "\033[31mLanching midilooper with gdb.\033[0m"
 		shift 1

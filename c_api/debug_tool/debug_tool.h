@@ -13,7 +13,7 @@ void _debug_midi(char *fmt, ...);
 void _output_warning(char *fmt, ...);
 //void debug_wait(char *fmt, ...);
 
-#define TRACE_FMT "(in %s at %s:%d) "
+#define TRACE_FMT "(%s %s:%d) "
 #define TRACE_ARG __FUNCTION__, __FILE__, __LINE__
 
 #define ERROR_FMT "ERROR "TRACE_FMT

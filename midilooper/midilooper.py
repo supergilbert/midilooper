@@ -29,7 +29,8 @@ class MidiLooper(gtk.Window):
             return True
         self.msq.settickpos(0)
         self.msq.start()
-        gobject.timeout_add(50, self.run_progression)
+        # gobject.timeout_add(50, self.run_progression)
+        gobject.timeout_add(25, self.run_progression)
 
     def stop_msq(self, button):
         self.msq.stop()
@@ -52,16 +53,24 @@ class MidiLooper(gtk.Window):
             self.msq.save(filename)
         fchooser.destroy()
 
-    def __init__(self, msq=None):
+    def __init__(self, seq_name="MidiLooper", msq=None, filename=None):
         gtk.Window.__init__(self)
         self.set_resizable(False)
         hbox = gtk.HBox()
         button_start =  gtk.Button("Start")
         button_stop =  gtk.Button("Stop")
         if msq == None:
-            self.msq = midiseq.midiseq("MidiLooper")
+            self.msq = midiseq.midiseq(seq_name)
         else:
             self.msq = msq
+
+        if filename:
+            self.filename = filename
+            mfile = midiseq.midifile(self.filename)
+            self.msq.import_msqfile(mfile)
+        else:
+            self.filename = None
+
         self.msq.settickpos(0)
 
         self.portlist_win = PortList(self.msq)
@@ -89,7 +98,7 @@ class MidiLooper(gtk.Window):
 
         pl_mi = gtk.MenuItem("Port list")
         pl_mi.connect("activate", self.show_portlist)
-        save_mi = gtk.MenuItem("Save")
+        save_mi = gtk.MenuItem("Save (Experimental)")
         save_mi.connect("activate", self.file_save)
         menu = gtk.Menu()
         menu.append(pl_mi)
@@ -136,13 +145,11 @@ if __name__ == "__main__":
 # }
 # widget "*" style "midiseq_default_style"
 # """)
-
 #    gtk.rc_parse("")
 
-    msq = midiseq.midiseq("MidiLooper")
+    mlooper = None
     if len(sys.argv) == 2:
-        mfile = midiseq.midifile(sys.argv[1])
-        msq.copy_midifile(mfile)
-        mfile = None
-    mlooper = MidiLooper(msq)
+        mlooper = MidiLooper(filename=sys.argv[1])
+    else:
+        mlooper = MidiLooper()
     gtk.main()

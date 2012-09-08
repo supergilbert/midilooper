@@ -110,13 +110,13 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "iiiii", &tick, &channel, &type, &num, &val))
     {
-      output_error("track_add_note_event: Problem with argument");
+      output_error("Problem with argument");
       return NULL;
     }
 
   if (type != NOTEOFF && type != NOTEON)
     {
-      output_error("track_add_note_event: unknown type");
+      output_error("unknown type");
       return NULL;
     }
 
@@ -127,6 +127,16 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
   mcev->event.note.val = val;
   add_new_seqev(self->trackctx->track, tick, mcev, MIDICEV);
   Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_track_get_port(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  if (self->trackctx->aseqport_ctx == NULL)
+    Py_RETURN_NONE;
+  else
+    return create_midiseq_aport(self->trackctx->aseqport_ctx);
 }
 
 static PyObject *midiseq_track_set_port(PyObject *obj, PyObject *args)
@@ -212,6 +222,7 @@ static PyMethodDef midiseq_track_methods[] = {
   {"get_len", midiseq_track_get_len, METH_NOARGS, "Get track len"},
   {"get_mute_state", midiseq_track_get_mute_state, METH_NOARGS, "Get mute state"},
   {"set_len", midiseq_track_set_len, METH_VARARGS, "Set track len"},
+  {"get_port", midiseq_track_get_port, METH_NOARGS, "Get track port"},
   {"set_port", midiseq_track_set_port, METH_VARARGS, "Set track port"},
   {"toggle_mute", midiseq_toggle_mute, METH_NOARGS, "Toggle mute state"},
   {"has_port", midiseq_track_has_port, METH_VARARGS, "Check if track has port"},

@@ -66,19 +66,19 @@ class TrackSettingTable(gtk.Table):
         self.tedit.set_len(int(widget.get_value()))
 
     def __init__(self, tedit, ppq, portlist):
-        gtk.Table.__init__(self, 3, 3)
+        gtk.Table.__init__(self, 4, 1)
         self.track = tedit.track
         self.tedit = tedit
         self.ppq = ppq
 
-        label = gtk.Label("Track length")
+        label = gtk.Label(" Track length: ")
         spinadj = gtk.Adjustment(self.track.get_len() / self.ppq, 1, 240, 1)
         spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
         spinadj.connect("value-changed", self.set_track_len)
-        self.attach(label, 0, 2, 0, 1)
-        self.attach(spinbut, 2, 3, 0, 1)
+        self.attach(label, 0, 1, 0, 1)
+        self.attach(spinbut, 1, 2, 0, 1)
 
-        label = gtk.Label("output Port")
+        label = gtk.Label("  Output Port: ")
         combobox = gtk.ComboBox(portlist)
         cell = gtk.CellRendererText()
         combobox.pack_start(cell, True)
@@ -88,8 +88,8 @@ class TrackSettingTable(gtk.Table):
             if self.track.has_port(model[0]):
                 combobox.set_active(idx)
 
-        self.attach(label, 0, 2, 1, 2)
-        self.attach(combobox, 2, 3, 1, 2)
+        self.attach(label, 2, 3, 0, 1)
+        self.attach(combobox, 3, 4, 0, 1)
 
 
 class NoteSettingTable(gtk.Table):
@@ -103,27 +103,28 @@ class NoteSettingTable(gtk.Table):
         grid.note_param["val_on"] = int(widget.get_value())
 
     def __init__(self, grid):
-        gtk.Table.__init__(self, 3, 3)
+        gtk.Table.__init__(self, 6, 1)
 
-        label = gtk.Label("Note lenght")
+        label = gtk.Label(" Note lenght: ")
         note_length_box = LengthSettingHBox(self.set_note_length, grid)
 
-        self.attach(label, 0, 2, 0, 1)
-        self.attach(note_length_box, 2, 3, 0, 1)
+        self.attach(label, 0, 1, 0, 1)
+        self.attach(note_length_box, 1, 2, 0, 1)
 
-        label = gtk.Label("Note position")
+        label = gtk.Label("   Note position: ")
         note_pos_box = LengthSettingHBox(self.set_note_quant, grid)
 
-        self.attach(label, 0, 2, 1, 2)
-        self.attach(note_pos_box, 2, 3, 1, 2)
+        self.attach(label, 2, 3, 0, 1)
+        self.attach(note_pos_box, 3, 4, 0, 1)
 
-        label = gtk.Label("Noteon value")
+        label = gtk.Label("   Noteon value: ")
         spinadj = gtk.Adjustment(grid.note_param["val_on"], 0, 127, 1)
         spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
         spinbut.set_numeric(True)
         spinadj.connect("value-changed", self.set_note_value_cb, grid)
-        self.attach(label, 0, 2, 2, 3)
-        self.attach(spinbut, 2, 3, 2, 3)
+
+        self.attach(label, 4, 5, 0, 1)
+        self.attach(spinbut, 5, 6, 0, 1)
 
 
 class ChannelEditor(gtk.VBox):
@@ -161,8 +162,16 @@ class ChannelEditor(gtk.VBox):
         grid.draw_all(area)
 
     def debug_grid(self, button, grid_vp, track):
-        print "redraw"
         self.redraw_grid_vp(grid_vp)
+
+    def handle_motion(self, widget, event, hbar, vbar):
+        # tick = self.grid.xpos2tick(event.x)
+        note = self.grid.ypos2noteval(int(event.y))
+        # hbar.show_tick(tick)
+        vbar.show_note(note)
+
+    def handle_leave_notify(self, widget, event, hbar, vbar):
+        vbar.clear_note()
 
     def __init__(self, tracked, chan_num):
         gtk.VBox.__init__(self)
@@ -178,7 +187,6 @@ class ChannelEditor(gtk.VBox):
         hbar_vp.set_shadow_type(gtk.SHADOW_NONE)
         hadj = hbar_vp.get_hadjustment()
         hbar_vp.connect("scroll_event", self.set_chaned_adj, hadj, hadj, xpadsz, xpadsz)
-        self.hadj = hadj
 
         vbar = MsqVBarNoteWidget(font_name=self.tracked.font_name)
         ypadsz = vbar.ypadsz
@@ -188,12 +196,17 @@ class ChannelEditor(gtk.VBox):
         vbar_vp.set_shadow_type(gtk.SHADOW_NONE)
         vadj = vbar_vp.get_vadjustment()
         vbar_vp.connect("scroll_event", self.set_chaned_adj, hadj, vadj, xpadsz, ypadsz)
+        vadj.set_upper(3.0)
+        vadj.set_value(1.0)
 
         self.grid = MsqNoteGridWidget(chan_num,
                                       self.tracked.track,
                                       ppq=self.tracked.sequencer.getppq(),
                                       xpadsz=xpadsz,
                                       ypadsz=ypadsz)
+
+        self.grid.connect("motion_notify_event", self.handle_motion, self.hbar, vbar)
+        self.grid.vadj = vadj
         grid_vp = gtk.Viewport()
         grid_vp.set_size_request(self.tracked.min_width, self.tracked.min_height)
         grid_vp.add(self.grid)
@@ -201,6 +214,13 @@ class ChannelEditor(gtk.VBox):
         grid_vp.set_shadow_type(gtk.SHADOW_NONE)
         grid_vp.set_hadjustment(hadj)
         grid_vp.set_vadjustment(vadj)
+        evbox_grid = gtk.EventBox()
+        evbox_grid.add(grid_vp)
+        evbox_grid.connect("leave-notify-event", self.handle_leave_notify, self.hbar, vbar)
+
+        vbar_vp.connect("button_press_event", vbar.handle_button_press, self.grid)
+        vbar_vp.connect("button_release_event", vbar.handle_button_release, self.grid)
+        vbar_vp.connect("motion_notify_event", vbar.handle_motion, self.grid)
 
         hsb = gtk.HScrollbar(hadj)
         vsb = gtk.VScrollbar(vadj)
@@ -211,7 +231,7 @@ class ChannelEditor(gtk.VBox):
         table = gtk.Table(3, 3)
         table.attach(hbar_vp, 1, 2, 0, 1, gtk.FILL, 0)
         table.attach(vbar_vp, 0, 1, 1, 2, 0, gtk.FILL)
-        table.attach(grid_vp, 1, 2, 1, 2, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
+        table.attach(evbox_grid, 1, 2, 1, 2, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
         table.attach(vsb, 2, 3, 1, 2, 0, gtk.FILL)
         table.attach(hsb, 1, 2, 2, 3, gtk.FILL, 0)
 
@@ -286,13 +306,13 @@ class TrackEditor(gtk.Window):
         self.font_name = font_name
 
         noteb = gtk.Notebook()
-        #noteb.set_tab_pos(gtk.POS_LEFT)
 
         self.chaned_dict = {}
         if len(channel_list) > 0:
             for channel_num in channel_list:
                 chaned = ChannelEditor(self, channel_num)
                 noteb.append_page(chaned, gtk.Label("Channel %i" % channel_num))
+                noteb.set_tab_reorderable(chaned, True)
                 self.chaned_dict[channel_num] = chaned
         else:
             channel_num = 0
@@ -310,6 +330,10 @@ class TrackEditor(gtk.Window):
         track_setting_frame = gtk.Frame("Track setting")
         track_setting_frame.add(TrackSettingTable(self, self.sequencer.getppq(), portlist))
 
-        vbox.pack_start(track_setting_frame, expand=False)
+        hbox = gtk.HBox()
+        hbox.pack_start(track_setting_frame, expand=False)
+
+        vbox.pack_start(hbox, expand=False)
         vbox.pack_end(noteb)
+        self.vbox = vbox
         self.add(vbox)

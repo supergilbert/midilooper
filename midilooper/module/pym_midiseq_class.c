@@ -189,7 +189,7 @@ static PyObject *midiseq_isrunning(PyObject *obj,
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
-  if (self->engine_ctx->info.isrunning)
+  if (self->engine_ctx->isrunning)
     Py_RETURN_TRUE;
   else
     Py_RETURN_FALSE;
@@ -291,8 +291,8 @@ static PyObject *midiseq_getports(PyObject *obj,
   return portlist;
 }
 
-static PyObject *midiseq_cp_midifile_tracks(PyObject *obj,
-                                            PyObject *args)
+static PyObject *midiseq_import_msqfile_tracks(PyObject *obj,
+                                               PyObject *args)
 {
   midiseq_Object      *self = (midiseq_Object *) obj;
   midiseq_fileObject  *mfile = NULL;
@@ -308,7 +308,7 @@ static PyObject *midiseq_cp_midifile_tracks(PyObject *obj,
 }
 
 static PyMethodDef midiseq_methods[] = {
-  {"copy_midifile", midiseq_cp_midifile_tracks, METH_VARARGS,
+  {"import_msqfile", midiseq_import_msqfile_tracks, METH_VARARGS,
    "Copy the track of a midifile"},
   {"save", midiseq_save, METH_VARARGS,
    "Save the sequence information as a midifile"},

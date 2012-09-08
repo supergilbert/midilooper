@@ -144,11 +144,9 @@ class TrackList(gtk.Frame):
 
     def __init__(self, seq, portlist):
         gtk.Frame.__init__(self, "Track list")
-        # self.set_resizable(False)
         self.seq = seq
         self.portlist = portlist
         self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str, int, bool)
-        # self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str, int, gobject.TYPE_PYOBJECT)
         for track in seq.gettracks():
             tedit = TrackEditor(track, self.seq, self.portlist)
             tedit.unmap()

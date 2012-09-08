@@ -65,36 +65,6 @@ void push_to_list(list_t *list, void *addr)
   (list->len)++;
 }
 
-void _del_list_node(list_t *list, node_t *node, free_list_func func)
-{
-  if (list->head == node)
-    {
-      if (list->tail == node)
-        {
-          list->head = NULL;
-          list->tail = NULL;
-        }
-      else
-        {
-          list->head = node->next;
-          node->next->prev = NULL;
-        }
-    }
-  else if (list->tail == node)
-    {
-      node->prev->next = NULL;
-      list->tail = node->prev;
-    }
-  else
-    {
-      node->prev->next = node->next;
-      node->next->prev = node->prev;
-    }
-  (list->len)--;
-  func(node->addr);
-  free(node);
-}
-
 void push_to_list_tail(list_t *list, void *addr)
 {
   node_t *new_node = myalloc(sizeof (node_t));
@@ -156,6 +126,39 @@ void iter_push_before(list_iterator_t *iterator, void *addr)
     }
   (iterator->list->len)++;
   return;
+}
+
+void _del_list_node(list_t *list, node_t *node, free_list_func func)
+{
+  if (list->head == node)
+    {
+      if (list->tail == node)
+        {
+          list->head = NULL;
+          list->tail = NULL;
+        }
+      else
+        {
+          node->next->prev = NULL;
+          list->head = node->next;
+        }
+    }
+  else
+    {
+      if (list->tail == node)
+        {
+          node->prev->next = NULL;
+          list->tail = node->prev;
+        }
+      else
+        {
+          node->prev->next = node->next;
+          node->next->prev = node->prev;
+        }
+    }
+  (list->len)--;
+  func(node->addr);
+  free(node);
 }
 
 void iter_node_del(list_iterator_t *iterator, free_list_func func)

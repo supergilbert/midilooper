@@ -26,37 +26,39 @@ DEFAULT_NOTEON_VAL = 100
 DEFAULT_YPADSZ = gdk.Font(DEFAULT_FONT_NAME).string_height("C -10X") + 4
 
 class ProgressLineWidget(object):
-    def draw_progressline(self, area):
-        if self.line_xpos >= area.x and self.line_xpos <= (area.x, + area.width):
-            ymin = area.y
-            ymax = area.y + area.height
-            self.window.draw_line(self.style.fg_gc[gtk.STATE_NORMAL],
-                                  self.line_xpos, ymin, self.line_xpos, ymax)
-
     def clear_progressline(self):
         if not self.line_cache:
             return
         lwidth, lheight = self.line_cache.get_size()
         self.window.draw_drawable(self.style.fg_gc[gtk.STATE_NORMAL],
-                                  self.line_cache, 0, 0, self.line_xpos, 0, 1, lheight)
+                                  self.line_cache, 0, 0, self.line_xpos, self.line_ypos, 1, lheight)
 
     def _update_pos(self, pos):
         if not self.window:
             return
-        width, height = self.window.get_size()
+        height = None
+        line_ypos = None
+        if self.vadj:
+            line_ypos = int(self.vadj.get_value())
+            height = int(self.vadj.get_page_size())
+        else:
+            width, height = self.window.get_size()
+            line_ypos = 0
         if self.line_cache == None:
             self.line_cache = gtk.gdk.Pixmap(self.window, 1, height)
         else:
             lwidth, lheight = self.line_cache.get_size()
             self.window.draw_drawable(self.style.fg_gc[gtk.STATE_NORMAL],
-                                      self.line_cache, 0, 0, self.line_xpos, 0, 1, lheight)
+                                      self.line_cache, 0, 0, self.line_xpos, self.line_ypos, 1, lheight)
             if lheight != height:
                 self.line_cache = gtk.gdk.Pixmap(self.window, 1, height)
+        if self.line_ypos != line_ypos:
+            self.line_ypos = line_ypos
 
         self.line_cache.draw_drawable(self.style.fg_gc[gtk.STATE_NORMAL],
-                                      self.window, pos, 0, 0, 0, 1, height)
+                                      self.window, pos, line_ypos, 0, 0, 1, height)
         self.window.draw_line(self.style.fg_gc[gtk.STATE_NORMAL],
-                              pos, 0, pos, height)
+                              pos, line_ypos, pos, line_ypos + height)
         self.line_xpos = pos
 
 
@@ -89,14 +91,6 @@ class MsqHBarTimeWidget(gtk.Widget):
 
         self.dark_gc = self.style.dark_gc[gtk.STATE_NORMAL]
         self.fg_gc = self.style.fg_gc[gtk.STATE_NORMAL]
-
-        # self.dark = self.window.new_gc()
-
-        # self.light = self.window.new_gc()
-        # self.light.set_foreground(self.style.dark_gc[gtk.STATE_NORMAL].foreground)
-
-        # self.bg_gc = self.window.new_gc()
-        # self.bg_gc.set_foreground(self.style.bg_gc[gtk.STATE_NORMAL].foreground)
 
     def do_unrealize(self):
         self.window.set_user_data(None)
@@ -142,17 +136,89 @@ class MsqHBarTimeWidget(gtk.Widget):
         self.window.draw_line(self.fg_gc, area.x, ypos, area.x + area.width, ypos)
 
 class MsqVBarNoteWidget(gtk.Widget):
+    def clear_note(self):
+        if self.last_shown_note:
+            xpos = self.piano_xpos
+            width = self.width - xpos
+            height = self.ypadsz
+            ypos = (127 - self.last_shown_note) * self.ypadsz
+            area = gtk.gdk.Rectangle(xpos, ypos, width, height)
+            self.draw_area(area)
+            self.last_shown_note = None
+
+    def ypos2noteval(self, ypos):
+        return 127 - (ypos / self.ypadsz)
+
+    def handle_button_press(self, widget, event, grid):
+        if event.x < self.piano_xpos:
+            return
+        note = self.ypos2noteval(int(event.y))
+        self.show_note(note)
+        port = grid.track.get_port()
+        if port:
+            port.send_note(grid.note_param["channel"],
+                           MIDI_NOTEON_EVENT,
+                           note,
+                           grid.note_param["val_on"])
+            self.last_play_note = note
+
+    def handle_button_release(self, widget, event, grid):
+        self.clear_note()
+        note = self.ypos2noteval(int(event.y))
+        port = grid.track.get_port()
+        if port:
+            port.send_note(grid.note_param["channel"],
+                           MIDI_NOTEOFF_EVENT,
+                           note,
+                           grid.note_param["val_off"])
+            self.last_play_note = None
+
+    def handle_motion(self, widget, event, grid):
+        if self.last_play_note == None:
+            return
+        note = self.ypos2noteval(int(event.y))
+        self.show_note(note)
+        port = grid.track.get_port()
+        if port and note != self.last_play_note:
+            port.send_note(grid.note_param["channel"],
+                           MIDI_NOTEOFF_EVENT,
+                           self.last_play_note,
+                           grid.note_param["val_off"])
+            port.send_note(grid.note_param["channel"],
+                           MIDI_NOTEON_EVENT,
+                           note,
+                           grid.note_param["val_on"])
+            self.last_play_note = note
+
+    def show_note(self, note):
+        xpos = self.piano_xpos
+        width = self.width - xpos
+        height = self.ypadsz
+
+        if self.last_shown_note:
+            ypos = (127 - self.last_shown_note) * self.ypadsz
+            area = gtk.gdk.Rectangle(xpos, ypos, width, height)
+            self.draw_area(area)
+
+        ypos = (127 - note) * self.ypadsz
+        cr = self.window.cairo_create()
+        cr.set_source_rgba(0, 0, 0, 0.5)
+        cr.set_source_rgba(0.5, 0.5, 0.5, 0.5)
+        cr.rectangle(xpos, ypos, width, height)
+        cr.fill()
+        self.last_shown_note = note
+
     def __init__(self, font_name=DEFAULT_FONT_NAME):
         gtk.Widget.__init__(self)
 
         self.font = gdk.Font(font_name)
         self.font_height = self.font.string_height("C -10X")
-        self.width = self.font.string_width("C -10X") * 2
+        self.width = self.font.string_width("00 C -10X") * 2
         self.piano_xpos = self.width / 2
 
-        # self.ypadsz = self.font_height + 3
         self.ypadsz = self.font_height + 1
         self.max_height = (NOTE_MAX + 1) * self.ypadsz + 1
+        self.last_play_note = None
 
     def do_realize(self):
         self.set_flags(gtk.REALIZED)
@@ -161,14 +227,14 @@ class MsqVBarNoteWidget(gtk.Widget):
                                  height=self.allocation.height,
                                  window_type=gdk.WINDOW_CHILD,
                                  wclass=gdk.INPUT_OUTPUT,
-                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK)
+                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK | gdk.BUTTON_PRESS_MASK | gdk.BUTTON_RELEASE_MASK | gdk.POINTER_MOTION_MASK | gdk.POINTER_MOTION_HINT_MASK)
         self.window.set_user_data(self)
         self.window.move_resize(*self.allocation)
 
-        self.dark = self.window.new_gc()
+        self.fg_gc = self.style.fg_gc[gtk.STATE_NORMAL]
+        self.bg_gc = self.style.bg_gc[gtk.STATE_NORMAL]
 
-        self.bg_gc = self.window.new_gc()
-        self.bg_gc.set_foreground(self.style.bg_gc[gtk.STATE_NORMAL].foreground)
+        self.last_shown_note = None
 
     def do_unrealize(self):
         self.window.set_user_data(None)
@@ -182,8 +248,7 @@ class MsqVBarNoteWidget(gtk.Widget):
         if self.flags() & gtk.REALIZED:
             self.window.move_resize(*self.allocation)
 
-    def do_expose_event(self, event):
-        area = event.area
+    def draw_area(self, area):
         xmax = area.x + area.width
         ymax = area.y + area.height
         ypos = area.y - (area.y % self.ypadsz)
@@ -201,23 +266,27 @@ class MsqVBarNoteWidget(gtk.Widget):
             piano_xpos = area.x
         else:
             piano_xpos = self.piano_xpos
-            self.window.draw_line(self.dark, piano_xpos, area.y, piano_xpos, ymax)
+            self.window.draw_line(self.fg_gc, piano_xpos, area.y, piano_xpos, ymax)
         win_xsize , win_ysize = self.window.get_size()
         if (xmax >= win_xsize):
-            self.window.draw_line(self.dark, win_xsize - 1, area.y, win_xsize - 1, ymax)
+            self.window.draw_line(self.fg_gc, win_xsize - 1, area.y, win_xsize - 1, ymax)
 
         while ypos < ymax:
-            self.window.draw_line(self.dark, piano_xpos, ypos, xmax, ypos)
+            self.window.draw_line(self.fg_gc, piano_xpos, ypos, xmax, ypos)
             note_pos += 1
-            note_val = (128 - note_pos) % 12
-            if note_val == 0:
+            note_val = (128 - note_pos)
+            note_key = note_val % 12
+            if note_key == 0:
                 if area.x < piano_xpos:
-                    self.window.draw_line(self.dark, area.x, ypos + self.ypadsz, piano_xpos, ypos + self.ypadsz)
-                self.window.draw_string(self.font, self.dark, 1, ypos + self.ypadsz - 1, "C%i" % octave)
+                    self.window.draw_line(self.fg_gc, area.x, ypos + self.ypadsz, piano_xpos, ypos + self.ypadsz)
+                self.window.draw_string(self.font, self.fg_gc, 1, ypos + self.ypadsz - 1, "%03d C%i" % (note_val, octave))
                 octave -= 1
-            elif note_val == 1 or note_val == 3 or note_val == 6 or note_val == 8 or note_val == 10:
-                self.window.draw_rectangle(self.dark, True, piano_xpos, ypos, (xmax - piano_xpos), self.ypadsz)
+            elif note_key == 1 or note_key == 3 or note_key == 6 or note_key == 8 or note_key == 10:
+                self.window.draw_rectangle(self.fg_gc, True, piano_xpos, ypos, (xmax - piano_xpos), self.ypadsz)
             ypos += self.ypadsz
+
+    def do_expose_event(self, event):
+        self.draw_area(event.area)
 
 
 NOTE_PX_SIZE = 8
@@ -249,17 +318,17 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         self.track = track
         self.note_param = {"channel": 0, "val_on": DEFAULT_NOTEON_VAL, "val_off": 0, "len": ppq / 4, "quant": ppq / 4}
         self.button3down = False
+        self.vadj = None
         self.line_cache = None
+        self.line_ypos = 0
         self.selection = []
         self.to_paste = []
+        self.to_move = None
         self.rect_select_start = None
         self.rect_select = None
         self.paste_area = None
-        self.selecting = False
         self.paste_motion = False
-
-    def refresh_rectangle(self, x, y, width, height):
-        self.draw_all(gtk.gdk.Rectangle(x, y, width, height))
+        self.ctrl_click = False
 
     def refresh_note(self, tick, note, len, val_on, val_off=0):
         xpos = tick * self.xpadsz / self.ppq
@@ -273,8 +342,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             ypos = ypos - (NOTE_PX_SIZE / 2)
         else:
             ypos = 0
-        self.refresh_rectangle(xpos, ypos, xsize + NOTE_PX_SIZE, self.ypadsz + NOTE_PX_SIZE)
-        # self.draw_all(gtk.gdk.Rectangle(xpos, ypos, xsize + NOTE_PX_SIZE, self.ypadsz + NOTE_PX_SIZE))
+        self.draw_all(gtk.gdk.Rectangle(xpos, ypos, xsize + NOTE_PX_SIZE, self.ypadsz + NOTE_PX_SIZE))
 
     def xpos2tick(self, xpos):
         return int(xpos * self.ppq / self.xpadsz)
@@ -379,15 +447,19 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
 
         return selection
 
-
     def handle_button_release(self, widget, event):
         if event.button == 3:
             self.window.set_cursor(self.cursor_arrow)
             self.button3down = False
-        if event.button == 1:
+        elif event.button == 1:
             if self.paste_motion:
                 self.paste_note(event.x, event.y)
                 self.paste_motion = False
+                self.paste_area = None
+                return
+            if self.to_move:
+                self.paste_move_selection(event.x, event.y)
+                self.to_move = None
                 self.paste_area = None
                 return
             if self.button3down:
@@ -395,13 +467,19 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             else:
                 if self.rect_select: # clear rectangle selection
                     self.draw_all(self.rect_select) # temporary change draw_all to reversible effect
-
-                if self.rect_select:
-                    self.selection = self.select_note(self.rect_select)
+                    if event.state & gtk.gdk.CONTROL_MASK and self.ctrl_click:
+                        self.selection.extend(self.select_note(self.rect_select))
+                    else:
+                        self.selection = self.select_note(self.rect_select)
+                    self.ctrl_click = False
                     if len(self.selection): # render new selection
-                        self.draw_all(self.get_notelist_area(self.selection))
-
-                # self.rect_select = None
+                        selarea = self.get_notelist_area(self.selection)
+                        selarea.x = selarea.x - 2
+                        selarea.y = selarea.y - 2
+                        selarea.width = selarea.width + 4
+                        selarea.height = selarea.height + 4
+                        self.draw_all(selarea)
+                    self.rect_select = None
                 self.rect_select_start = None
 
     def handle_button_press(self, widget, event):
@@ -412,13 +490,27 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             self.window.set_cursor(self.cursor_pencil)
             self.button3down = True
         elif event.button == 1 and not self.button3down:
-            sel_area = self.get_notelist_area(self.selection)
-            self.selection = []
-            self.rect_select = None
-            if sel_area:    # clear previous selection
-                self.draw_all(sel_area)
+            selarea = self.get_notelist_area(self.selection)
+            if event.state & gtk.gdk.CONTROL_MASK:
+                self.ctrl_click = True
+            else:
+                note_on_note_off_tick = self.coo_under_notelist(event.x, event.y, self.selection)
+                if note_on_note_off_tick:
+                    self.to_move = {"tick": int(note_on_note_off_tick[0][0] / self.note_param["quant"]) * self.note_param["quant"],
+                                    "note": note_on_note_off_tick[0][3],
+                                    "selection": map(lambda x: (x[0].get_event(), x[1].get_event()),
+                                                     self.selection)}
+                    self.delete_selection()
+                    return
+                else:
+                    self.selection = []
+            if selarea:    # clear previous selection
+                selarea.x = selarea.x - 2
+                selarea.y = selarea.y - 2
+                selarea.width = selarea.width + 4
+                selarea.height = selarea.height + 4
+                self.draw_all(selarea)
             self.rect_select_start = (event.x, event.y)
-            self.selecting = True
 
     def get_xpos(self, tick):
         return tick * self.xpadsz / self.ppq
@@ -442,21 +534,18 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
                 note[4])
         return note
 
-    def paste_note(self, xpos, ypos):
-        note_max = max(self.to_paste, key=lambda x: x[0][3])[0][3]
-        tick_min = min(self.to_paste, key=lambda x: x[0][0])[0][0]
-
+    def paste_note_selection(self, xpos, ypos, tick_seed, note_seed, selection):
         note = self.ypos2noteval(int(ypos))
         tick = self.xpos2tick(xpos)
         tick = int(tick / self.note_param["quant"]) * self.note_param["quant"]
 
-        note_diff = note - note_max
-        tick_diff = tick - tick_min
+        note_diff = note - note_seed
+        tick_diff = tick - tick_seed
 
-        note_min = note_max + note_diff
-        tick_max = tick_min + tick_diff
+        note_min = note_seed + note_diff
+        tick_max = tick_seed + tick_diff
 
-        for note_on, note_off in self.to_paste:
+        for note_on, note_off in selection:
             diff_note_on = self.diff_note(note_on, tick_diff, note_diff)
             diff_note_off = self.diff_note(note_off, tick_diff, note_diff)
             self.track.add_note_event(*diff_note_on)
@@ -465,38 +554,76 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             self.draw_all(self.paste_area)
 
 
+    def paste_note(self, xpos, ypos):
+        note_max = max(self.to_paste, key=lambda x: x[0][3])[0][3]
+        tick_min = min(self.to_paste, key=lambda x: x[0][0])[0][0]
+        self.paste_note_selection(xpos, ypos, tick_min, note_max, self.to_paste)
+
+    def paste_move_selection(self, xpos, ypos):
+        self.paste_note_selection(xpos, ypos,
+                                  self.to_move["tick"], self.to_move["note"],
+                                  self.to_move["selection"])
+
+    def draw_selection_motion(self, xpos, ypos, tick_seed, note_seed, selection):
+        note = self.ypos2noteval(int(ypos))
+        tick = self.xpos2tick(xpos)
+        tick = int(tick / self.note_param["quant"]) * self.note_param["quant"]
+
+        note_diff = note - note_seed
+        tick_diff = tick - tick_seed
+
+        tick_min = tick_seed + tick_diff
+        tick_max = tick_seed + tick_diff
+        note_min = note_seed + note_diff
+        note_max = note_seed + note_diff
+
+        for note_on, note_off in selection:
+            diff_note_on = self.diff_note(note_on, tick_diff, note_diff)
+            diff_note_off = self.diff_note(note_off, tick_diff, note_diff)
+            self.draw_note(diff_note_on, diff_note_off)
+            if tick_max < note_off[0]:
+                tick_max = note_off[0]
+            if tick_min > note_on[0]:
+                tick_min = note_on[0]
+            if note_min > note_on[3]:
+                note_min = note_on[3]
+            if note_max < note_on[3]:
+                note_max = note_on[3]
+        xmin = self.get_xpos(tick_min + tick_diff)
+        xmax = self.get_xpos(tick_max + tick_diff)
+        ymin = self.get_ypos(note_max + note_diff)
+        ymax = self.get_ypos(note_min + note_diff)
+        self.paste_area = gtk.gdk.Rectangle(xmin - 2,
+                                            ymin - 2,
+                                            xmax - xmin + 4,
+                                            ymax - ymin + self.ypadsz + 4)
+
     def draw_paste(self, xpos, ypos):
         if self.paste_area:
             self.draw_all(self.paste_area)
         note_max = max(self.to_paste, key=lambda x: x[0][3])[0][3]
         tick_min = min(self.to_paste, key=lambda x: x[0][0])[0][0]
+        self.draw_selection_motion(xpos, ypos, tick_min, note_max, self.to_paste)
 
+    def draw_move(self, xpos, ypos):
+        if self.paste_area:
+            self.draw_all(self.paste_area)
+        self.draw_selection_motion(xpos, ypos,
+                                   self.to_move["tick"], self.to_move["note"], self.to_move["selection"])
+
+    def coo_under_notelist(self, xpos, ypos, note_list):
         note = self.ypos2noteval(int(ypos))
         tick = self.xpos2tick(xpos)
-        tick = int(tick / self.note_param["quant"]) * self.note_param["quant"]
-
-        note_diff = note - note_max
-        tick_diff = tick - tick_min
-
-        note_min = note_max + note_diff
-        tick_max = tick_min + tick_diff
-
-        for note_on, note_off in self.to_paste:
-            diff_note_on = self.diff_note(note_on, tick_diff, note_diff)
-            diff_note_off = self.diff_note(note_off, tick_diff, note_diff)
-            self.draw_note(diff_note_on, diff_note_off)
-            if note_min > note_off[3]:
-                note_min = note_off[3]
-            if tick_max < note_off[0]:
-                tick_max = note_off[0]
-        xmin = self.get_xpos(tick_min + tick_diff)
-        xmax = self.get_xpos(tick_max + tick_diff)
-        ymin = self.get_ypos(note_max + note_diff)
-        ymax = self.get_ypos(note_min + note_diff)
-        self.paste_area = gtk.gdk.Rectangle(xmin - 1,
-                                            ymin - 1,
-                                            xmax - xmin + 2,
-                                            ymax - ymin + self.ypadsz + 2)
+        for evwr_on, evwr_off in self.selection:
+            ev_on = evwr_on.get_event()
+            note_on = ev_on[3]
+            if note == note_on:
+                tick_on = ev_on[0]
+                ev_off = evwr_off.get_event()
+                tick_off = ev_off[0]
+                if tick >= tick_on and tick <= tick_off:
+                    return ev_on, ev_off, tick
+        return None
 
     def handle_motion(self, widget, event):
         if event.is_hint and self.rect_select_start:
@@ -527,10 +654,36 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             cr.set_source_rgba(0, 0, 0, 0.5)
             cr.rectangle(int(xmin), int(ymin), int(xmax - xmin), int(ymax - ymin))
             cr.fill()
-        if self.paste_motion == True:
-            self.draw_paste(event.x, event.y)
+        else:
+            if self.paste_motion == True:
+                self.draw_paste(event.x, event.y)
+            elif self.to_move != None:
+                self.draw_move(event.x, event.y)
+            else:
+                ev_on_off_tick = self.coo_under_notelist(event.x, event.y, self.selection)
+                if ev_on_off_tick:
+                    # if event.state & gtk.gdk.SHIFT_MASK:
+                    #     len1 = ev_on_off_tick[2] - ev_on_off_tick[0][0]
+                    #     len2 = ev_on_off_tick[1][0] - ev_on_off_tick[2]
+                    #     if len1 > len2:
+                    #         if self.current_cursor != self.cursor_move_left:
+                    #             self.window.set_cursor(self.cursor_move_left)
+                    #             self.current_cursor = self.cursor_move_left
+                    #     else:
+                    #         if self.current_cursor != self.cursor_move_right:
+                    #             self.window.set_cursor(self.cursor_move_right)
+                    #             self.current_cursor = self.cursor_move_right
+                    # elif self.current_cursor != self.cursor_move:
+                    if self.current_cursor != self.cursor_move:
+                        self.window.set_cursor(self.cursor_move)
+                        self.current_cursor = self.cursor_move
+                else:
+                    if self.current_cursor != self.cursor_arrow:
+                        self.window.set_cursor(self.cursor_arrow)
+                        self.current_cursor = self.cursor_arrow
 
     def delete_selection(self):
+        selarea = self.get_notelist_area(self.selection)
         self.track.lock()
         if self.track.is_handled():
             for ev_noteon, ev_noteoff in self.selection:
@@ -542,23 +695,32 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
                 ev_noteoff.del_event()
         self.track.unlock()
         self.selection = []
+        if selarea:
+            selarea.x = selarea.x - 2
+            selarea.y = selarea.y - 2
+            selarea.width = selarea.width + 4
+            selarea.height = selarea.height + 4
+            self.draw_all(selarea)
 
     def handle_key_press(self, widget, event):
         self.grab_focus()
         keyname = gtk.gdk.keyval_name(event.keyval)
         # print "Key %s (%d) was pressed" % (keyname, event.keyval)
         if event.state & gtk.gdk.CONTROL_MASK:
-            if keyname == "v":
-                self.paste_motion = True
-            if keyname == "c":
-                self.to_paste = []
-                for note_on, note_off in self.selection:
-                    self.to_paste.append((note_on.get_event(), note_off.get_event()))
+            if self.paste_motion == False:
+                if keyname == "v" and len(self.to_paste) > 0:
+                    self.paste_motion = True
+                if keyname == "c":
+                    self.to_paste = []
+                    for note_on, note_off in self.selection:
+                        self.to_paste.append((note_on.get_event(), note_off.get_event()))
+                if keyname == "x":
+                    self.to_paste = []
+                    for note_on, note_off in self.selection:
+                        self.to_paste.append((note_on.get_event(), note_off.get_event()))
+                    self.delete_selection()
         if event.keyval == gtk.keysyms.Delete or event.keyval == gtk.keysyms.BackSpace:
-            sel_area = self.get_notelist_area(self.selection)
             self.delete_selection()
-            if sel_area:
-                self.draw_all(sel_area)
 
     def do_realize(self):
         self.set_flags(gtk.REALIZED)
@@ -571,19 +733,11 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         self.window.set_user_data(self)
         self.window.move_resize(*self.allocation)
 
-        self.grid_fg = self.style.fg[gtk.STATE_ACTIVE]
-        self.grid_bg = self.style.bg[gtk.STATE_ACTIVE]
+        self.grid_fg = gtk.gdk.Color(0.0, 0.0, 0.0)
+        self.grid_bg = gtk.gdk.Color(0.4, 0.4, 0.4)
         self.grid_light = gtk.gdk.Color((self.grid_fg.red + self.grid_bg.red) / 2,
                                         (self.grid_fg.green + self.grid_bg.green) / 2,
                                         (self.grid_fg.blue + self.grid_bg.blue) / 2)
-
-        self.dark = self.window.new_gc()
-
-        self.bg_gc = self.window.new_gc()
-        self.bg_gc.set_foreground(self.style.bg_gc[gtk.STATE_NORMAL].foreground)
-
-        self.light = self.window.new_gc()
-        self.light.set_foreground(self.style.dark_gc[gtk.STATE_NORMAL].foreground)
 
         self.connect("button_press_event", self.handle_button_press)
         self.connect("button_release_event", self.handle_button_release)
@@ -591,6 +745,10 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         self.connect("motion_notify_event", self.handle_motion)
         self.cursor_arrow = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
         self.cursor_pencil = gtk.gdk.Cursor(gtk.gdk.PENCIL)
+        self.cursor_move = gtk.gdk.Cursor(gtk.gdk.FLEUR)
+        self.cursor_move_left = gtk.gdk.Cursor(gtk.gdk.SB_RIGHT_ARROW)
+        self.cursor_move_right = gtk.gdk.Cursor(gtk.gdk.SB_LEFT_ARROW)
+        self.current_cursor = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
         self.window.set_cursor(self.cursor_arrow)
         self.set_can_focus(True)
 
@@ -643,11 +801,9 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
                 cr.set_source_color(self.grid_fg)
             else:
                 cr.set_source_color(self.grid_light)
-            cr.move_to(area.x + 0.5, ypos + 0.5)
+            cr.move_to(area.x - 0.5, ypos + 0.5)
             cr.line_to(xmax + 0.5, ypos + 0.5)
             cr.stroke()
-            # gc = self.dark if ((128 - note_pos) % 12) == 0 else self.light
-            # self.window.draw_line(gc, area.x, ypos, xmax, ypos)
             note_pos += 1
             ypos += self.ypadsz
 
@@ -670,13 +826,13 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
             if value > 255.0 or value < 0.0:
                 print "ERROR in get_note_color value is not between 0 255"
                 return
-            first_color  = [130.0, 130.0, 130.0]
-            second_color = [0.0, 255.0, 0.0]
-            third_color  = [255.0, 255.0, 0.0]
+            first_color  = [140.0, 140.0, 140.0]
+            second_color = [0.0, 179.0, 0.0]
+            third_color  = [217.0, 217.0, 0.0]
             fouth_color  = [255.0, 0.0, 0.0]
 
-            first_threshold  = 96.0
-            second_threshold = 112.0
+            first_threshold  = 64.0
+            second_threshold = 96.0
 
             red_value   = 0.0
             green_value = 0.0
@@ -702,7 +858,10 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineWidget):
         cr.rectangle(x, y, width, height)
         cr.fill()
         if selected:
-            self.window.draw_rectangle(self.dark, False, x - 1, y - 1, width + 1, height + 1)
+            cr.set_source_color(self.grid_fg)
+            cr.set_line_width(1.5)
+            cr.rectangle(x - 1.0, y - 1.0, width + 2.0, height + 2.0)
+            cr.stroke()
 
     def draw_notes_bar(self, area):
         xmax = area.x + area.width
