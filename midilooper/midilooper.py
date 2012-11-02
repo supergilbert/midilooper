@@ -44,14 +44,21 @@ class MidiLooper(gtk.Window):
             self.portlist_win.show_all()
             self.portlist_win.map()
 
-    def file_save(self, menuitem):
+    def file_save_as(self, menuitem):
         fchooser = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_SAVE,
                                          buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                                                   gtk.STOCK_SAVE, gtk.RESPONSE_OK))
         if fchooser.run() == gtk.RESPONSE_OK:
             filename = fchooser.get_filename()
             self.msq.save(filename)
+            self.filename = filename
         fchooser.destroy()
+
+    def file_save(self, menuitem):
+        if self.filename:
+            self.msq.save(self.filename)
+        else:
+            self.file_save_as(menuitem)
 
     def __init__(self, seq_name="MidiLooper", msq=None, filename=None):
         gtk.Window.__init__(self)
@@ -100,9 +107,12 @@ class MidiLooper(gtk.Window):
         pl_mi.connect("activate", self.show_portlist)
         save_mi = gtk.MenuItem("Save (Experimental)")
         save_mi.connect("activate", self.file_save)
+        save_as_mi = gtk.MenuItem("Save as (Experimental)")
+        save_as_mi.connect("activate", self.file_save_as)
         menu = gtk.Menu()
         menu.append(pl_mi)
         menu.append(save_mi)
+        menu.append(save_as_mi)
         mi = gtk.MenuItem("Menu")
         mi.set_submenu(menu)
         menubar = gtk.MenuBar()

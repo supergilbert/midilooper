@@ -181,8 +181,8 @@ PyObject *midiseq_evwr_copy(PyObject *obj, PyObject *args);
 static PyMethodDef midiseq_evwr_methods[] = {
   {"get_event", midiseq_evwr_getevent, METH_NOARGS,
    "Get the event representation as a tuple of integer"},
-  {"del_event", midiseq_evwr_del_event, METH_NOARGS,
-   "Delete the currnent event of the track"},
+  {"_del_event", midiseq_evwr_del_event, METH_NOARGS,
+   "Delete the current event of the track (/!\ Never use this function when engine is running it is really not thread safe and will surely make memory corruption)"},
   {"copy", midiseq_evwr_copy, METH_NOARGS,
    "Delete the currnent event of the track"},
   {NULL, NULL, 0, NULL}
