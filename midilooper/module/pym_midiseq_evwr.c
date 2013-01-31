@@ -87,7 +87,7 @@ static void _evwr_goto_available_ev(midiseq_evwrObject *self)
   while (iter_node(&(self->evit)) != NULL)
     {
       ev = iter_node_ptr(&(self->evit));
-      if (ev->todel == TRUE)
+      if (ev->deleted == TRUE)
         {
           iter_next(&(self->evit));
           if (iter_node(&(self->evit)) != NULL)
@@ -180,11 +180,11 @@ PyObject *midiseq_evwr_copy(PyObject *obj, PyObject *args);
 
 static PyMethodDef midiseq_evwr_methods[] = {
   {"get_event", midiseq_evwr_getevent, METH_NOARGS,
-   "Get the event representation as a tuple of integer"},
+   "Get the event representation as a tuple of integer (tick, channel, note_type, note, val)"},
   {"_del_event", midiseq_evwr_del_event, METH_NOARGS,
-   "Delete the current event of the track (/!\ Never use this function when engine is running it is really not thread safe and will surely make memory corruption)"},
-  {"copy", midiseq_evwr_copy, METH_NOARGS,
-   "Delete the currnent event of the track"},
+   "Delete the current event of the track (/!\\ Never use this function when engine is running it is really not thread safe and will surely make memory corruption)"},
+  {"_copy", midiseq_evwr_copy, METH_NOARGS,
+   "Create a clone of the event evwr (/!\\ Caution with memory corruption)"},
   {NULL, NULL, 0, NULL}
 };
 

@@ -10,7 +10,7 @@ if gtk.pygtk_version < (2, 8):
     print "PyGtk 2.8 or later required for this example"
     raise SystemExit
 
-from widget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, DEFAULT_XPADSZ, DEFAULT_FONT_NAME#, DEFAULT_NOTEON_VAL
+from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, DEFAULT_XPADSZ, DEFAULT_FONT_NAME#, DEFAULT_NOTEON_VAL
 
 class LengthSettingHBox(gtk.HBox):
     def numerator_cb(self, combobox):

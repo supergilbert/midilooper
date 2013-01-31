@@ -25,7 +25,7 @@ typedef struct
   pthread_rwlock_t lock;
   list_t           trash;
   bool_t           is_handled;
-  bool_t           todel;
+  bool_t           deleted;
 } track_ctx_t;
 
 typedef struct

@@ -13,14 +13,14 @@ typedef struct
 {
   seqevtype_t   type;
   void          *addr;
-  bool_t        todel;
+  bool_t        deleted;
 } seqev_t;
 
 typedef struct
 {
   uint_t	tick;
   list_t        seqev_list;
-  bool_t        todel;
+  bool_t        deleted;
 }		tickev_t;
 
 typedef struct

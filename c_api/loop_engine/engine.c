@@ -55,9 +55,9 @@ void trackctx_event2trash(track_ctx_t *trackctx,
   tickev_t    *tickev = (tickev_t *) iter_node_ptr(tickit);
 
   if (tickev->seqev_list.len == 1)
-    tickev->todel = TRUE;
+    tickev->deleted = TRUE;
 
-  seqev->todel = TRUE;
+  seqev->deleted = TRUE;
 
   if (trackctx->aseqport_ctx != NULL)
     play_if_noteoff(seqev, trackctx->aseqport_ctx);
@@ -85,7 +85,7 @@ void goto_next_available_tick(list_iterator_t *tickit, uint_t tick)
        iter_next(tickit))
     {
       tickev = (tickev_t *) iter_node_ptr(tickit);
-      if (tickev->tick >= tick && tickev->todel == FALSE)
+      if (tickev->tick >= tick && tickev->deleted == FALSE)
         return;
     }
 }
@@ -99,7 +99,7 @@ void iter_next_available_tick(list_iterator_t *tickit)
        iter_next(tickit))
     {
       tickev = (tickev_t *) iter_node_ptr(tickit);
-      if (tickev->todel == FALSE)
+      if (tickev->deleted == FALSE)
         return;
     }
 }
@@ -142,7 +142,7 @@ void	play_midiev(list_t *seqevlist, track_ctx_t *track_ctx)
        iter_next(&iter))
     {
       seqev = (seqev_t *) iter_node_ptr(&(iter));
-      if (seqev->todel == FALSE && seqev->type == MIDICEV)
+      if (seqev->deleted == FALSE && seqev->type == MIDICEV)
         {
           set_aseqev((midicev_t *) seqev->addr,
                      &aseqev,
@@ -237,7 +237,7 @@ void play_all_trackev(engine_ctx_t *ctx)
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
-      if (track_ctx->todel == TRUE)
+      if (track_ctx->deleted == TRUE)
         iter_node_del(&trackit, _free_trackctx);
       if (iter_node(&trackit) != NULL)
         track_ctx = iter_node_ptr(&trackit);
@@ -355,7 +355,7 @@ bool_t engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx)
       if (track_ctx == trackctx)
         {
           if (track_ctx->is_handled == TRUE)
-            track_ctx->todel = TRUE;
+            track_ctx->deleted = TRUE;
           else
             iter_node_del(&trackit, _free_trackctx);
           /* free_track(track_ctx); */
@@ -381,7 +381,7 @@ track_ctx_t  *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtra
   trackctx->mute = FALSE;
   trackctx->loop_start = 0;
   trackctx->is_handled = FALSE;
-  trackctx->todel = FALSE;
+  trackctx->deleted = FALSE;
 
   pthread_rwlock_init(&(trackctx->lock), NULL);
   iter_init(&(trackctx->current_tickev), &(trackctx->track->tickev_list));
@@ -458,7 +458,7 @@ track_ctx_t  *engine_new_track(engine_ctx_t *ctx, char *name)
     trackctx->is_handled = TRUE;
   else
     trackctx->is_handled = FALSE;
-  trackctx->todel = FALSE;
+  trackctx->deleted = FALSE;
   pthread_rwlock_init(&(trackctx->lock), NULL);
   iter_init(&(trackctx->current_tickev), &(trackctx->track->tickev_list));
   push_to_list_tail(&(ctx->track_list), trackctx);
@@ -531,7 +531,7 @@ void unset_engine_trackev_handling(engine_ctx_t *ctx)
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
-      if (track_ctx->todel == TRUE)
+      if (track_ctx->deleted == TRUE)
         iter_node_del(&trackit, _free_trackctx);
       if (iter_node(&trackit) != NULL)
         track_ctx = iter_node_ptr(&trackit);

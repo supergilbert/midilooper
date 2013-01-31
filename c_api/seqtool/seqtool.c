@@ -69,7 +69,7 @@ tickev_t *_create_new_tick_ev(uint_t tick)
 
   bzero(tickev, sizeof (tickev_t));
   tickev->tick = tick;
-  tickev->todel = FALSE;
+  tickev->deleted = FALSE;
   return tickev;
 }
 
@@ -131,7 +131,7 @@ void add_new_seqev(track_t *track,
   bzero(seqev, sizeof (seqev_t));
   seqev->addr = addr;
   seqev->type = type;
-  seqev->todel = FALSE;
+  seqev->deleted = FALSE;
   push_to_list_tail(&(tickev->seqev_list), (void *) seqev);
 }
 
