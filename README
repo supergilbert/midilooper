@@ -1,6 +1,6 @@
 This code is in development.
 
-To test you need:
-python-dev libasound2-dev package
-Launch "make" and try to solve dependencies.
-Launch run_midilooper.sh
+To test you need the following packages:i
+"python-dev" "libasound2-dev" "make" "gcc"
+Launch "make" (solve dependencies problems)
+Launch "./run_midilooper.sh"
