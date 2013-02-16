@@ -216,6 +216,7 @@ class MsqNGWEventHdl(object):
                     while event and self.is_selected(event, note_list):
                         self.track.event2trash(evwr)
                         evwr.next()
+                        event = evwr.get_event()
             except StopIteration: # bis: catching exception raised by the next function
                 pass
         else:
