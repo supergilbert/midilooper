@@ -134,6 +134,7 @@ void	play_midiev(list_t *seqevlist, track_ctx_t *track_ctx)
   list_iterator_t iter;
   bool_t          ev_to_drain = FALSE;
   seqev_t         *seqev = NULL;
+  midicev_t       *midicev = NULL;
 
   if (track_ctx->aseqport_ctx == NULL || track_ctx->mute == TRUE)
     return;
@@ -144,11 +145,29 @@ void	play_midiev(list_t *seqevlist, track_ctx_t *track_ctx)
       seqev = (seqev_t *) iter_node_ptr(&(iter));
       if (seqev->deleted == FALSE && seqev->type == MIDICEV)
         {
-          set_aseqev((midicev_t *) seqev->addr,
-                     &aseqev,
-                     aseq_ctx->output_port);
-          snd_seq_event_output(aseq_ctx->handle, &aseqev);
-          ev_to_drain = TRUE;
+          midicev = (midicev_t *) seqev->addr;
+          if (midicev->type == NOTEOFF)
+            {
+              set_aseqev(midicev, &aseqev, aseq_ctx->output_port);
+              snd_seq_event_output(aseq_ctx->handle, &aseqev);
+              ev_to_drain = TRUE;
+            }
+        }
+    }
+  for (iter_init(&iter, seqevlist);
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      seqev = (seqev_t *) iter_node_ptr(&(iter));
+      if (seqev->deleted == FALSE && seqev->type == MIDICEV)
+        {
+          midicev = (midicev_t *) seqev->addr;
+          if (midicev->type == NOTEON)
+            {
+              set_aseqev(midicev, &aseqev, aseq_ctx->output_port);
+              snd_seq_event_output(aseq_ctx->handle, &aseqev);
+              ev_to_drain = TRUE;
+            }
         }
     }
   if (ev_to_drain)
@@ -176,7 +195,7 @@ void play_trackev(uint_t tick, track_ctx_t *track_ctx)
   if (iter_node(&(track_ctx->current_tickev)) == NULL)
     {
       if (track_ctx->current_tickev.list != NULL)
-        iter_head(&(track_ctx->current_tickev));
+        goto_next_available_tick(&(track_ctx->current_tickev), track_ctx->loop_start);
       /* else */
       /*   output_error("Current tick event list = NULL"); */
       return;
@@ -188,31 +207,32 @@ void play_trackev(uint_t tick, track_ctx_t *track_ctx)
   if (tickev && (tickev->tick % track_ctx->len) == tick)
     {
       play_midiev(&(tickev->seqev_list), track_ctx);
-      iter_next_available_tick(&(track_ctx->current_tickev));
-
       /* play the first tick if last one has been detected */
       if (tickev->tick == track_ctx->len)
         {
-          goto_next_available_tick(&(track_ctx->current_tickev), 0);
+          goto_next_available_tick(&(track_ctx->current_tickev), track_ctx->loop_start);
+          tickev = (tickev_t *) iter_node_ptr(&(track_ctx->current_tickev));
           if (tickev->tick == 0)
             {
               play_midiev(&(tickev->seqev_list), track_ctx);
               iter_next_available_tick(&(track_ctx->current_tickev));
             }
         }
+      else
+        iter_next_available_tick(&(track_ctx->current_tickev));
 
       /* if no more event go to head */
       if (iter_node(&(track_ctx->current_tickev)) == NULL)
         {
           if (track_ctx->current_tickev.list != NULL)
-            iter_head(&(track_ctx->current_tickev));
+            goto_next_available_tick(&(track_ctx->current_tickev), track_ctx->loop_start);
           return;
         }
 
       /* temp (may not occur event musnt be greater than len) */
       tickev = iter_node_ptr(&(track_ctx->current_tickev));
       if (tickev->tick > track_ctx->len)
-        iter_head(&(track_ctx->current_tickev));
+          goto_next_available_tick(&(track_ctx->current_tickev), track_ctx->loop_start);
     }
   return;
 }

@@ -9,13 +9,14 @@ SRC=asound/aseq.c\
 	seqtool/seqtool.c\
 	clock/clock.c\
 	tool/tool.c\
-	debug_tool/debug_tool.c
+	debug_tool/debug_tool.c\
+	debug_tool/dump_trackst.c
 
 OBJ=$(SRC:.c=.o)
 
 MIDISEQLIB=./libmidiseq.a
 
-CFLAGS=-Wall -g -fPIC -I ./
+CFLAGS=-Wall -Werror -g -fPIC -I ./
 CC=gcc
 
 all : $(MIDISEQLIB)

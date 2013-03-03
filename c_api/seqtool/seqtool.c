@@ -83,7 +83,10 @@ tickev_t *_search_or_add_tickev(track_t *track, uint_t tick)
     {
       tickev = iter_node_ptr(&iter);
       if (tickev->tick == tick)
-        return tickev;
+        {
+          tickev->deleted = FALSE;
+          return tickev;
+        }
       else if (tickev->tick > tick)
         {
           tickev = _create_new_tick_ev(tick);

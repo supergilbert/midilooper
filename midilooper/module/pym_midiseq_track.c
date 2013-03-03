@@ -126,6 +126,7 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
   mcev->event.note.num = num;
   mcev->event.note.val = val;
   add_new_seqev(self->trackctx->track, tick, mcev, MIDICEV);
+
   Py_RETURN_NONE;
 }
 
@@ -209,11 +210,16 @@ static PyObject *midiseq_track_ishandled(PyObject *obj,
   Py_RETURN_FALSE;
 }
 
-static PyObject *midiseq_track_repr(PyObject *obj)
+void dump_track(track_t *);
+
+static PyObject *midiseq_track_dump(PyObject *obj,
+                                    PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  return Py_BuildValue("s", self->trackctx->track->name);
+  output("\ntrackctx:trash.len %d\n", self->trackctx->trash.len);
+  dump_track(self->trackctx->track);
+  Py_RETURN_NONE;
 }
 
 static PyMethodDef midiseq_track_methods[] = {
@@ -231,8 +237,17 @@ static PyMethodDef midiseq_track_methods[] = {
   {"unlock", midiseq_track_unlock, METH_NOARGS, "Unlock track"},
   {"event2trash", midiseq_track_event2trash, METH_VARARGS, "Put event to the trash"},
   {"is_handled", midiseq_track_ishandled, METH_NOARGS, "Get if the track is handled"},
+  {"_dump", midiseq_track_dump, METH_NOARGS, "Dump track event(s)"},
   {NULL, NULL, 0, NULL}
 };
+
+
+static PyObject *midiseq_track_repr(PyObject *obj)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  return Py_BuildValue("s", self->trackctx->track->name);
+}
 
 #include "./pym_midiseq_evwr.h"
 

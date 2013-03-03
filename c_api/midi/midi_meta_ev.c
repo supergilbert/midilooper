@@ -14,7 +14,7 @@ void		get_midifile_asciitext(byte_t *buffer, midimev_t *metaev, uint_t *offset)
 uint_t		get_midi_meta_event(midimev_t *metaev, byte_t *buffer)
 {
   uint_t offset = 0;
-  //byte_t type;
+  /* byte_t type; */
 
   switch (buffer[offset])
     {
@@ -161,8 +161,7 @@ uint_t		get_midi_meta_event(midimev_t *metaev, byte_t *buffer)
       offset++;
       output_error("1 offset=0x%X\n", offset);
       offset += get_varlen_from_idx(buffer, &offset);
-      output_error("2 offset=0x%X\n", offset);
-      output_error("");
+      output_error("2 offset=0x%X\n\n", offset);
       break;
     }
   return offset;

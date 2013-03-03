@@ -37,7 +37,6 @@ void next_tick(clocktick_t *tick, struct timespec *res, clockid_t clkid)
 bool_t _clockloop(clocktick_t *tick, struct timespec *res, clockloop_cb cb_func, void *cb_arg)
 {
   clockid_t	clkid = CLOCK_REALTIME;
-  clock_req_t   clkreq = 0;
 
   debug("%s: start loop with res at %ds %dns\n",
         __FUNCTION__, res->tv_sec, res->tv_nsec);
@@ -46,11 +45,8 @@ bool_t _clockloop(clocktick_t *tick, struct timespec *res, clockloop_cb cb_func,
       perror("line: __LINE__ function: __FUNCTION__");
       return FALSE;
     }
-  do
-    {
-      clkreq = cb_func(cb_arg);
-      next_tick(tick, res, clkid);
-    }  while (clkreq != STOP);
+  while (STOP != cb_func(cb_arg))
+    next_tick(tick, res, clkid);
   return TRUE;
 }
 

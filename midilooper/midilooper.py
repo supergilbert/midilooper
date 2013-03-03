@@ -76,7 +76,7 @@ class MidiLooper(gtk.Window):
             try:
                 mfile = midiseq.midifile(self.filename)
             except:
-                print "Unable to file \"%s\" exiting" % self.filename
+                print "Unable to find file \"%s\"" % self.filename
                 import sys; sys.exit()
             self.msq.import_msqfile(mfile)
         else:

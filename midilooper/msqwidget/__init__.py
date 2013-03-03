@@ -578,8 +578,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
 
 
     def do_expose_event(self, event):
-        self.draw_grid(event.area)
-        self.draw_notes_bar(event.area)
+        self.draw_all(event.area)
 
 
 gobject.type_register(MsqHBarTimeWidget)

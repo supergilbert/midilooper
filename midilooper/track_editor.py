@@ -161,8 +161,11 @@ class ChannelEditor(gtk.VBox):
                                  int(vadj.get_page_size()))
         grid.draw_all(area)
 
-    def debug_grid(self, button, grid_vp, track):
+    def debug_grid1(self, button, grid_vp, track):
         self.redraw_grid_vp(grid_vp)
+
+    def debug_grid2(self, button, grid_vp, track):
+        track._dump()
 
     def handle_motion(self, widget, event, hbar, vbar):
         # tick = self.grid.xpos2tick(event.x)
@@ -246,8 +249,12 @@ class ChannelEditor(gtk.VBox):
 
         debug_hbox = gtk.HBox()
 
-        button_misc = gtk.Button("Refresh")
-        button_misc.connect("clicked", self.debug_grid, grid_vp, self.tracked.track)
+        button_misc = gtk.Button("Refresh widget")
+        button_misc.connect("clicked", self.debug_grid1, grid_vp, self.tracked.track)
+        debug_hbox.pack_start(button_misc)
+
+        button_misc = gtk.Button("Dump track")
+        button_misc.connect("clicked", self.debug_grid2, grid_vp, self.tracked.track)
         debug_hbox.pack_start(button_misc)
 
         debug_frame = gtk.Frame("Note grid debug")

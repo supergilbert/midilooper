@@ -72,11 +72,20 @@ static void evwr_goto_head(midiseq_evwrObject *self)
 
 static void evwr_goto_next_tick(midiseq_evwrObject *self)
 {
-  if (iter_node(&(self->tickit)) != NULL)
+  tickev_t *tickev = NULL;
+
+  while (iter_node(&(self->tickit)) != NULL)
     {
       iter_next(&(self->tickit));
       if (iter_node(&(self->tickit)) != NULL)
-        evwr_goto_seqevlist_head(self);
+        {
+          tickev = (tickev_t *) iter_node_ptr(&(self->tickit));
+          if (tickev->deleted == FALSE)
+            {
+              evwr_goto_seqevlist_head(self);
+              return;
+            }
+        }
     }
 }
 
