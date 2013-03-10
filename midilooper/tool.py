@@ -17,6 +17,7 @@ def prompt_gettext(label):
         dialog.response(gtk.RESPONSE_OK)
     dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
     dialog.set_decorated(False)
+    dialog.set_position(gtk.WIN_POS_MOUSE)
     label = gtk.Label(label)
     # dialog.set_markup(label)
     entry = gtk.Entry()

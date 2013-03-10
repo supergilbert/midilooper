@@ -64,6 +64,7 @@ void trackctx_event2trash(track_ctx_t *trackctx,
   bcopy(evit, &(ctn->evit), sizeof (list_iterator_t));
   bcopy(tickit, &(ctn->tickit), sizeof (list_iterator_t));
   push_to_list_tail(&(trackctx->trash), ctn);
+  trackctx->need_sync = TRUE;
 }
 
 void _free_trash_ctn(void *addr)
@@ -177,19 +178,17 @@ void	play_midiev(list_t *seqevlist, track_ctx_t *track_ctx)
 void play_trackev(uint_t tick, track_ctx_t *track_ctx)
 {
   tickev_t        *tickev    = NULL;
-  static bool_t   to_reload  = FALSE;
+  /* static bool_t   to_reload  = FALSE; */
 
   tick = tick % track_ctx->len;
 
   /* reload of the iterator if some node has been deleted
      and reload again after the trash has been empty */
-  if (track_ctx->trash.len > 0 || to_reload == TRUE)
+  if (track_ctx->need_sync == TRUE)
     {
       goto_next_available_tick(&(track_ctx->current_tickev), tick);
-      if (track_ctx->trash.len > 0)
-        to_reload = TRUE;
-      else
-        to_reload = FALSE;
+      if (track_ctx->trash.len == 0)
+        track_ctx->need_sync = FALSE;
     }
 
   if (iter_node(&(track_ctx->current_tickev)) == NULL)

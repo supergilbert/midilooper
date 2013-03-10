@@ -133,20 +133,38 @@ class ChannelEditor(gtk.VBox):
         self.grid.resize_grid()
 
     def set_chaned_adj(self, widget, event, hadj, vadj, xpadsz, ypadsz):
+        if (event.state & gtk.gdk.CONTROL_MASK or
+            event.state & gtk.gdk.MOD1_MASK or
+            event.state & gtk.gdk.MOD3_MASK or
+            event.state & gtk.gdk.MOD4_MASK or
+            event.state & gtk.gdk.MOD5_MASK):
+           return
         value = vadj.get_value()
         xinc = xpadsz * 5
         yinc = ypadsz * 5
         if event.direction == gdk.SCROLL_DOWN:
-            new_val = value + yinc
-            vupper = vadj.upper - vadj.page_size
-            vadj.set_value(new_val if new_val <= vupper else vupper)
+            if event.state & gtk.gdk.SHIFT_MASK:
+                new_val = value + xinc
+                hupper = hadj.upper - hadj.page_size
+                hadj.set_value(new_val if new_val <= hupper else hupper)
+            else:
+                new_val = value + yinc
+                vupper = vadj.upper - vadj.page_size
+                vadj.set_value(new_val if new_val <= vupper else vupper)
+
         elif event.direction == gdk.SCROLL_UP:
-            new_val = value - yinc
-            vadj.set_value(new_val if new_val >= vadj.lower else vadj.lower)
+            if event.state & gtk.gdk.SHIFT_MASK:
+                new_val = value - xinc
+                hadj.set_value(new_val if new_val >= hadj.lower else hadj.lower)
+            else:
+                new_val = value - yinc
+                vadj.set_value(new_val if new_val >= vadj.lower else vadj.lower)
+
         elif event.direction == gdk.SCROLL_RIGHT:
             new_val = value + xinc
             hupper = hadj.upper - hadj.page_size
             hadj.set_value(new_val if new_val <= hupper else hupper)
+
         elif event.direction == gdk.SCROLL_LEFT:
             new_val = value - xinc
             hadj.set_value(new_val if new_val >= hadj.lower else hadj.lower)
@@ -199,8 +217,6 @@ class ChannelEditor(gtk.VBox):
         vbar_vp.set_shadow_type(gtk.SHADOW_NONE)
         vadj = vbar_vp.get_vadjustment()
         vbar_vp.connect("scroll_event", self.set_chaned_adj, hadj, vadj, xpadsz, ypadsz)
-        vadj.set_upper(3.0)
-        vadj.set_value(1.0)
 
         self.grid = MsqNoteGridWidget(chan_num,
                                       self.tracked.track,
@@ -227,9 +243,6 @@ class ChannelEditor(gtk.VBox):
 
         hsb = gtk.HScrollbar(hadj)
         vsb = gtk.VScrollbar(vadj)
-
-        # def_vertical_val = vadj.get_page_size() / 2
-        # vadj.set_value(def_vertical_val)
 
         table = gtk.Table(3, 3)
         table.attach(hbar_vp, 1, 2, 0, 1, gtk.FILL, 0)

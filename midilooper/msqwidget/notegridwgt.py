@@ -278,14 +278,13 @@ class MsqNGWEventHdl(object):
             self.window.set_cursor(self.current_cursor)
             self.wgt_mode = NO_MODE
 
-        elif event.button == 1:
-
-            if self.wgt_mode == EDIT_MODE:
+        elif event.button == 1 or event.button == 2:
+            if self.wgt_mode == EDIT_MODE and event.button == 1:
                 self.add_note(event.x, event.y)
 
-            elif self.wgt_mode == SELECT_MODE:
+            elif self.wgt_mode == SELECT_MODE and event.button == 1:
                 if self.select_area:
-                    self.draw_all(self.select_area) # tmp: change draw_all to reversible effect
+                    self.draw_all(self.select_area) # tmp: change draw_all to reversible effect (or a faster redraw)
                     new_sel = self.get_notes(self.select_area)
                 else:
                     self.select_area = gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1)
@@ -308,7 +307,7 @@ class MsqNGWEventHdl(object):
                     self.draw_notelist_area(self.selection)
                 self.wgt_mode = NO_MODE
 
-            elif self.wgt_mode == PASTE_MODE:
+            elif self.wgt_mode == PASTE_MODE and event.button == 1:
                 if  self.tmp_note_area:
                     self.draw_all(self.tmp_note_area)
 
@@ -318,8 +317,7 @@ class MsqNGWEventHdl(object):
                         self.draw_all(self.get_notelist_area(self.selection))
                 self.wgt_mode = NO_MODE
 
-        elif event.button == 1 or event.button == 2:
-            if self.wgt_mode == INC_MODE:
+            elif self.wgt_mode == INC_MODE:
                 if self.tmp_note_area:
                     self.draw_all(self.tmp_note_area)
                     self.tmp_note_area = None
@@ -509,13 +507,14 @@ class MsqNGWEventHdl(object):
                 ymin = event.y
             if self.select_area:
                 self.draw_all(self.select_area)
-            cr = self.window.cairo_create()
             self.select_area = gtk.gdk.Rectangle(int(xmin) - 2,
                                                  int(ymin) - 2,
                                                  int(xmax - xmin) + 4,
                                                  int(ymax - ymin) + 4)
+            cr = self.window.cairo_create()
             cr.set_source_rgb(0, 0, 0)
-            cr.rectangle(int(xmin), int(ymin), int(xmax - xmin), int(ymax - ymin))
+            cr.set_line_width(1)
+            cr.rectangle(int(xmin) - 0.5, int(ymin) - 0.5, int(xmax - xmin), int(ymax - ymin))
             cr.stroke()
         elif self.wgt_mode == PASTE_MODE:
             self.draw_paste_at(event.x, event.y, self.paste_cache)

@@ -26,6 +26,7 @@ typedef struct
   list_t           trash;
   bool_t           is_handled;
   bool_t           deleted;
+  bool_t           need_sync;
 } track_ctx_t;
 
 typedef struct

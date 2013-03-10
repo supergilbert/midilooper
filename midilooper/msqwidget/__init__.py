@@ -373,9 +373,8 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
         xmax = self.tick2xpos(note_off[0])
         width = xmax - xmin
         ypos = self.note2ypos(note_on[3]) + 1
-        self.draw_note_rectangle(selected,
-                                 xmin, ypos, width, self.ypadsz - 1,
-                                 note_on[4])
+        self.draw_note_rectangle(xmin, ypos, width, self.ypadsz - 1,
+                                 note_on[4], selected)
 
 
     def do_realize(self):
@@ -465,7 +464,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
         return False
 
 
-    def draw_note_rectangle(self, selected, x, y, width, height, value):
+    def draw_note_rectangle(self, x, y, width, height, value, selected):
         def ponder_color(coef, color1, color2):
             def ponder_value(coef, value1, value2):
                 dist = value2 - value1
@@ -504,16 +503,22 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
             green_value = green_value / 256.0
             blue_value  = blue_value / 256.0
             return gtk.gdk.Color(red=red_value, green=green_value, blue=blue_value)
+
         note_color = get_note_color(value)
         cr = self.window.cairo_create()
         cr.set_source_color(note_color)
         cr.rectangle(x, y, width, height)
         cr.fill()
+
+        cr.set_source_color(self.grid_fg)
+        cr.set_line_width(1)
+        cr.rectangle(x - 0.5, y - 0.5, width + 1, height + 1)
+        cr.stroke()
+
         if selected:
-            cr.set_source_color(self.grid_fg)
-            cr.set_line_width(1.5)
-            cr.rectangle(x - 1.0, y - 1.0, width + 2.0, height + 2.0)
-            cr.stroke()
+            cr.set_source_rgba(0, 0, 0, 0.5)
+            cr.rectangle(x, y, width, height)
+            cr.fill()
 
 
     def get_notes(self, rectangle):
