@@ -130,7 +130,7 @@ void engine_free_trash(engine_ctx_t *ctx)
 
 void	play_midiev(list_t *seqevlist, track_ctx_t *track_ctx)
 {
-  aseqport_ctx_t *aseq_ctx = track_ctx->aseqport_ctx;
+  aseqport_ctx_t  *aseq_ctx = track_ctx->aseqport_ctx;
   snd_seq_event_t aseqev;
   list_iterator_t iter;
   bool_t          ev_to_drain = FALSE;
@@ -147,28 +147,9 @@ void	play_midiev(list_t *seqevlist, track_ctx_t *track_ctx)
       if (seqev->deleted == FALSE && seqev->type == MIDICEV)
         {
           midicev = (midicev_t *) seqev->addr;
-          if (midicev->type == NOTEOFF)
-            {
-              set_aseqev(midicev, &aseqev, aseq_ctx->output_port);
-              snd_seq_event_output(aseq_ctx->handle, &aseqev);
-              ev_to_drain = TRUE;
-            }
-        }
-    }
-  for (iter_init(&iter, seqevlist);
-       iter_node(&iter);
-       iter_next(&iter))
-    {
-      seqev = (seqev_t *) iter_node_ptr(&(iter));
-      if (seqev->deleted == FALSE && seqev->type == MIDICEV)
-        {
-          midicev = (midicev_t *) seqev->addr;
-          if (midicev->type == NOTEON)
-            {
-              set_aseqev(midicev, &aseqev, aseq_ctx->output_port);
-              snd_seq_event_output(aseq_ctx->handle, &aseqev);
-              ev_to_drain = TRUE;
-            }
+          set_aseqev(midicev, &aseqev, aseq_ctx->output_port);
+          snd_seq_event_output(aseq_ctx->handle, &aseqev);
+          ev_to_drain = TRUE;
         }
     }
   if (ev_to_drain)

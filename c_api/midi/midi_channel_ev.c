@@ -138,12 +138,20 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
 #include <stdlib.h>
 #include <strings.h>
 
+void add_new_midicev(track_t *track, uint_t tick, midicev_t *mcev)
+{
+  if (mcev->type == NOTEOFF)
+    add_new_seqev_head(track, tick, mcev, MIDICEV);
+  else
+    add_new_seqev_tail(track, tick, mcev, MIDICEV);
+}
+
 void copy_midicev_to_track(track_t *track, uint_t tick, midicev_t *mcev)
 {
   midicev_t     *new_mcev = myalloc(sizeof (midicev_t));
 
   bcopy(mcev, new_mcev, sizeof (midicev_t));
-  add_new_seqev(track, tick, (void *) new_mcev, MIDICEV);
+  add_new_midicev(track, tick, new_mcev);
 }
 
 typedef struct

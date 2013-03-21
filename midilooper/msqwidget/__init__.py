@@ -171,13 +171,16 @@ class MsqVBarNoteWidget(gtk.Widget):
 
 
     def handle_button_press(self, widget, event, grid):
+        if self.tracked and self.tracked.sequencer.isrunning(): # tmp hack to prevent segfault
+            print "Can't play note while sequencer is running"
+            return
         if event.x < self.piano_xpos:
             return
         note = self.ypos2noteval(int(event.y))
         self.show_note(note)
         port = grid.track.get_port()
         if port:
-            port.send_note(grid.note_param["channel"],
+            port.send_note(grid.chan_num,
                            MIDI_NOTEON_EVENT,
                            note,
                            grid.note_param["val_on"])
@@ -185,11 +188,14 @@ class MsqVBarNoteWidget(gtk.Widget):
 
 
     def handle_button_release(self, widget, event, grid):
+        if self.tracked and self.tracked.sequencer.isrunning(): # tmp hack to prevent segfault
+            print "Can't play note while sequencer is running"
+            return
         self.clear_note()
         note = self.ypos2noteval(int(event.y))
         port = grid.track.get_port()
         if port:
-            port.send_note(grid.note_param["channel"],
+            port.send_note(grid.chan_num,
                            MIDI_NOTEOFF_EVENT,
                            note,
                            grid.note_param["val_off"])
@@ -201,13 +207,16 @@ class MsqVBarNoteWidget(gtk.Widget):
             return
         note = self.ypos2noteval(int(event.y))
         self.show_note(note)
+        if self.tracked and self.tracked.sequencer.isrunning(): # tmp hack to prevent segfault
+            print "Can't play note while sequencer is running"
+            return
         port = grid.track.get_port()
         if port and note != self.last_play_note:
-            port.send_note(grid.note_param["channel"],
+            port.send_note(grid.chan_num,
                            MIDI_NOTEOFF_EVENT,
                            self.last_play_note,
                            grid.note_param["val_off"])
-            port.send_note(grid.note_param["channel"],
+            port.send_note(grid.chan_num,
                            MIDI_NOTEON_EVENT,
                            note,
                            grid.note_param["val_on"])
@@ -233,10 +242,11 @@ class MsqVBarNoteWidget(gtk.Widget):
         self.last_shown_note = note
 
 
-    def __init__(self, font_name=DEFAULT_FONT_NAME):
+    def __init__(self, tracked):
         gtk.Widget.__init__(self)
 
-        self.font = gdk.Font(font_name)
+        self.tracked = tracked
+        self.font = gdk.Font(self.tracked.font_name)
         self.font_height = self.font.string_height("C -10X")
         self.width = self.font.string_width("00 C -10X") * 2
         self.piano_xpos = self.width / 2
@@ -512,7 +522,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
 
         cr.set_source_color(self.grid_fg)
         cr.set_line_width(1)
-        cr.rectangle(x - 0.5, y - 0.5, width + 1, height + 1)
+        cr.rectangle(x + 0.5, y - 0.5, width, height + 1)
         cr.stroke()
 
         if selected:

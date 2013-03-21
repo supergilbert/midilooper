@@ -125,7 +125,7 @@ static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args)
   mcev->type = type;
   mcev->event.note.num = num;
   mcev->event.note.val = val;
-  add_new_seqev(self->trackctx->track, tick, mcev, MIDICEV);
+  add_new_midicev(self->trackctx->track, tick, mcev);
 
   Py_RETURN_NONE;
 }

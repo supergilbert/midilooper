@@ -65,6 +65,7 @@ class PortList(gtk.Window):
         self.set_resizable(False)
         self.seq = midiseq
         self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str)
+        self.liststore.append([None, ""])
         for seqport in self.seq.getports():
             self.liststore.append([seqport, repr(seqport)])
         treev = gtk.TreeView(self.liststore)

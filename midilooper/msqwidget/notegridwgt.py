@@ -25,8 +25,7 @@ INC_RIGHT = 1
 
 class MsqNGWEventHdl(object):
     def __init__(self, ppq):
-        self.note_param  = {"channel": 0,
-                            "val_on":  DEFAULT_NOTEON_VAL,
+        self.note_param  = {"val_on":  DEFAULT_NOTEON_VAL,
                             "val_off": 0,
                             "len":     ppq / 4,
                             "quant":   ppq / 4}
@@ -175,25 +174,26 @@ class MsqNGWEventHdl(object):
         noteon_tick = self.quantify_tick(self.xpos2tick(xpos))
         note = self.ypos2noteval(int(ypos))
 
-        self.track.lock()
         noteoff_tick = noteon_tick + self.note_param["len"]
 
         # Check if there is already a note at position
+        self.track.lock()
         for evwr in self.track:
             ev = evwr.get_event()
-            if ev[3] == note:
-                if noteon_tick <= ev[0] and ev[0] <= noteoff_tick:
-                    self.track.unlock()
-                    print "Can't add note at this position found other one", ev
-                    return
+            if ev[2] == MIDI_NOTEON_EVENT or ev[2] == MIDI_NOTEOFF_EVENT:
+                if ev[1] == self.chan_num and ev[3] == note:
+                    if noteon_tick <= ev[0] and ev[0] <= noteoff_tick:
+                        self.track.unlock()
+                        print "Can't add note at this position found other one", ev
+                        return
 
         note_on = (noteon_tick,
-                   self.note_param["channel"],
+                   self.chan_num,
                    MIDI_NOTEON_EVENT,
                    note,
                    self.note_param["val_on"])
         note_off = (noteoff_tick,
-                    self.note_param["channel"],
+                    self.chan_num,
                     MIDI_NOTEOFF_EVENT,
                     note,
                     self.note_param["val_off"])
@@ -205,11 +205,9 @@ class MsqNGWEventHdl(object):
 
 
     def _get_diff_from_start_coo(self, xpos, ypos):
-        # TODO ergonomy
-        tick_diff = self.quantify_tick(self.xpos2tick(xpos - self.start_coo[0])
-                                       + (self.note_param["quant"]/2))
-        note_diff = int(- (ypos - (self.start_coo[1] + (self.ypadsz / 2)))
-                          / self.ypadsz)
+        # TODO (optimisation)
+        tick_diff = self.quantify_tick(self.xpos2tick(xpos)) - self.quantify_tick(self.xpos2tick(self.start_coo[0]))
+        note_diff = self.ypos2noteval(ypos) - self.ypos2noteval(self.start_coo[1])
         return tick_diff, note_diff
 
 

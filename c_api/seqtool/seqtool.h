@@ -32,10 +32,15 @@ typedef struct
 
 void dumpaddr_seqevlist(list_t *seqev_list);
 
-void add_new_seqev(track_t *track,
-                   uint_t tick,
-                   void *addr,
-                   seqevtype_t type);
+void add_new_seqev_head(track_t *track,
+                        uint_t tick,
+                        void *addr,
+                        seqevtype_t type);
+
+void add_new_seqev_tail(track_t *track,
+                        uint_t tick,
+                        void *addr,
+                        seqevtype_t type);
 
 typedef void (*free_seqev_addr_func)(void *addr);
 
