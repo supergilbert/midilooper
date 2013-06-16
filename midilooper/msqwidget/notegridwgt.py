@@ -135,7 +135,7 @@ class MsqNGWEventHdl(object):
                 self.draw_notelist(self.selection, True)
                 self.wgt_mode = PASTE_MODE
                 self.paste_cache = self.selection
-                self.data_cache = (ev_on_off_tick[0][0], ev_on_off_tick[0][3])
+                self.data_cache = (self.quantify_tick(ev_on_off_tick[2]), ev_on_off_tick[0][3])
                 self.start_coo = (event.x, event.y)
             else:
                 if event.state & gtk.gdk.CONTROL_MASK:
