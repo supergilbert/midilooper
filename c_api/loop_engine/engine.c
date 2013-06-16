@@ -238,7 +238,7 @@ void play_all_trackev(engine_ctx_t *ctx)
     {
       track_ctx = iter_node_ptr(&trackit);
       if (track_ctx->deleted == TRUE)
-        iter_node_del(&trackit, _free_trackctx);
+        iter_node_del(&trackit, _free_trackctx); /* /!\ Memory corruption while asking tracklist */
       if (iter_node(&trackit) != NULL)
         track_ctx = iter_node_ptr(&trackit);
       else

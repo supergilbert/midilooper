@@ -289,7 +289,7 @@ midifile_t *get_midifile_tracks(int fd,
 
       if (midifile_track != NULL)
         {
-          push_to_list(&track_list, (void *) midifile_track);
+          push_to_list_tail(&track_list, (void *) midifile_track);
           midifile_track = NULL;
         }
     }

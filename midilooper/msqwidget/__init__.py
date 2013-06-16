@@ -12,9 +12,10 @@ if gtk.pygtk_version < (2, 8):
 
 #import sys
 
-DEFAULT_XPADSZ = 140
+DEFAULT_PPQXSZ = 140
 DEFAULT_FONT_NAME = "-misc-fixed-medium-r-normal--10-70-100-100-c-60-iso8859-1"
 #DEFAULT_FONT_NAME = "-misc-fixed-medium-r-normal--6-60-75-75-c-40-iso8859-*"
+# DEFAULT_FONT_NAME = "-misc-fixed-medium-r-normal--13-120-75-75-c-120-*-*"
 
 NOTE_MAX = 127
 
@@ -22,7 +23,7 @@ MIDI_NOTEOFF_EVENT = 0x8
 MIDI_NOTEON_EVENT  = 0x9
 
 
-DEFAULT_YPADSZ = gdk.Font(DEFAULT_FONT_NAME).string_height("C -10X") + 4
+DEFAULT_NOTE_YSZ = gdk.Font(DEFAULT_FONT_NAME).string_height("C -10X") + 4
 
 
 
@@ -73,17 +74,20 @@ class ProgressLineListener(object):
 
 class MsqHBarTimeWidget(gtk.Widget):
 
-    def set_len(self, track_len):
-        self.hbarlen = self.xpadsz * track_len
+    def resize_hbar(self):
         self.set_size_request(self.hbarlen, self.height)
 
+    def set_len(self, track_len):
+        self.hbarlen = self.ppqxsz * track_len
+        self.resize_hbar()
 
-    def __init__(self, track_len, mlen=4, xpadsz=DEFAULT_XPADSZ, font_name=DEFAULT_FONT_NAME):
+    def __init__(self, track_len, mlen=4, ppqxsz=DEFAULT_PPQXSZ, font_name=DEFAULT_FONT_NAME):
         gtk.Widget.__init__(self)
 
         self.mlen = mlen
-        self.xpadsz = xpadsz
-        self.hbarlen = xpadsz * track_len
+        self.ppqxsz = ppqxsz
+        self.ppqxsz_seed = ppqxsz
+        self.hbarlen = ppqxsz * track_len
 
         self.font = gdk.Font(font_name)
         self.font_height = self.font.string_height("3600")
@@ -119,9 +123,7 @@ class MsqHBarTimeWidget(gtk.Widget):
         if self.flags() & gtk.REALIZED:
             self.window.move_resize(*self.allocation)
 
-
-    def do_expose_event(self, event):
-        area = event.area
+    def draw_area(self, area):
         self.window.draw_rectangle(self.dark_gc,
                                    True,
                                    area.x,
@@ -132,8 +134,8 @@ class MsqHBarTimeWidget(gtk.Widget):
         ymax = area.y + area.height
         # if ymax > self.max_height:
         #     ymax = self.max_height
-        xpos = area.x - (area.x % self.xpadsz)
-        time_pos = xpos / self.xpadsz
+        xpos = area.x - (area.x % self.ppqxsz)
+        time_pos = xpos / self.ppqxsz
 
         mypos = self.font_height * 2
         nypos = self.font_height * 5 / 2
@@ -147,9 +149,13 @@ class MsqHBarTimeWidget(gtk.Widget):
                 ypos = area.y
             self.window.draw_line(self.fg_gc, xpos, ypos, xpos, ymax)
             time_pos += 1
-            xpos += self.xpadsz
+            xpos += self.ppqxsz
         ypos = self.height - 1
         self.window.draw_line(self.fg_gc, area.x, ypos, area.x + area.width, ypos)
+
+
+    def do_expose_event(self, event):
+        self.draw_area(event.area)
 
 
 
@@ -159,21 +165,21 @@ class MsqVBarNoteWidget(gtk.Widget):
         if self.last_shown_note:
             xpos = self.piano_xpos
             width = self.width - xpos
-            height = self.ypadsz
-            ypos = (127 - self.last_shown_note) * self.ypadsz
+            height = self.noteysz
+            ypos = (127 - self.last_shown_note) * self.noteysz
             area = gtk.gdk.Rectangle(xpos, ypos, width, height)
             self.draw_area(area)
             self.last_shown_note = None
 
 
     def ypos2noteval(self, ypos):
-        return 127 - (ypos / self.ypadsz)
+        return 127 - (ypos / self.noteysz)
 
 
     def handle_button_press(self, widget, event, grid):
-        if self.tracked and self.tracked.sequencer.isrunning(): # tmp hack to prevent segfault
-            print "Can't play note while sequencer is running"
-            return
+        # if self.tracked and self.tracked.sequencer.isrunning(): # tmp hack to prevent segfault
+        #     print "Can't play note while sequencer is running"
+        #     return
         if event.x < self.piano_xpos:
             return
         note = self.ypos2noteval(int(event.y))
@@ -183,14 +189,14 @@ class MsqVBarNoteWidget(gtk.Widget):
             port.send_note(grid.chan_num,
                            MIDI_NOTEON_EVENT,
                            note,
-                           grid.note_param["val_on"])
+                           grid.note_val_on)
             self.last_play_note = note
 
 
     def handle_button_release(self, widget, event, grid):
-        if self.tracked and self.tracked.sequencer.isrunning(): # tmp hack to prevent segfault
-            print "Can't play note while sequencer is running"
-            return
+        # if self.tracked and self.tracked.sequencer.isrunning(): # tmp hack to prevent segfault
+        #     print "Can't play note while sequencer is running"
+        #     return
         self.clear_note()
         note = self.ypos2noteval(int(event.y))
         port = grid.track.get_port()
@@ -198,7 +204,7 @@ class MsqVBarNoteWidget(gtk.Widget):
             port.send_note(grid.chan_num,
                            MIDI_NOTEOFF_EVENT,
                            note,
-                           grid.note_param["val_off"])
+                           grid.note_val_off)
             self.last_play_note = None
 
 
@@ -207,33 +213,33 @@ class MsqVBarNoteWidget(gtk.Widget):
             return
         note = self.ypos2noteval(int(event.y))
         self.show_note(note)
-        if self.tracked and self.tracked.sequencer.isrunning(): # tmp hack to prevent segfault
-            print "Can't play note while sequencer is running"
-            return
+        # if self.tracked and self.tracked.sequencer.isrunning(): # tmp hack to prevent segfault
+        #     print "Can't play note while sequencer is running"
+        #     return
         port = grid.track.get_port()
         if port and note != self.last_play_note:
             port.send_note(grid.chan_num,
                            MIDI_NOTEOFF_EVENT,
                            self.last_play_note,
-                           grid.note_param["val_off"])
+                           grid.note_val_off)
             port.send_note(grid.chan_num,
                            MIDI_NOTEON_EVENT,
                            note,
-                           grid.note_param["val_on"])
+                           grid.note_val_on)
             self.last_play_note = note
 
 
     def show_note(self, note):
         xpos = self.piano_xpos
         width = self.width - xpos
-        height = self.ypadsz
+        height = self.noteysz
 
         if self.last_shown_note:
-            ypos = (127 - self.last_shown_note) * self.ypadsz
+            ypos = (127 - self.last_shown_note) * self.noteysz
             area = gtk.gdk.Rectangle(xpos, ypos, width, height)
             self.draw_area(area)
 
-        ypos = (127 - note) * self.ypadsz
+        ypos = (127 - note) * self.noteysz
         cr = self.window.cairo_create()
         cr.set_source_rgba(0, 0, 0, 0.5)
         cr.set_source_rgba(0.5, 0.5, 0.5, 0.5)
@@ -251,8 +257,8 @@ class MsqVBarNoteWidget(gtk.Widget):
         self.width = self.font.string_width("00 C -10X") * 2
         self.piano_xpos = self.width / 2
 
-        self.ypadsz = self.font_height + 1
-        self.max_height = (NOTE_MAX + 1) * self.ypadsz + 1
+        self.noteysz = self.font_height + 1
+        self.max_height = (NOTE_MAX + 1) * self.noteysz + 1
         self.last_play_note = None
 
 
@@ -291,8 +297,8 @@ class MsqVBarNoteWidget(gtk.Widget):
     def draw_area(self, area):
         xmax = area.x + area.width
         ymax = area.y + area.height
-        ypos = area.y - (area.y % self.ypadsz)
-        note_pos = ypos / self.ypadsz
+        ypos = area.y - (area.y % self.noteysz)
+        note_pos = ypos / self.noteysz
         octave = ((128 - note_pos) / 12) - 1
 
         self.window.draw_rectangle(self.bg_gc,
@@ -318,12 +324,12 @@ class MsqVBarNoteWidget(gtk.Widget):
             note_key = note_val % 12
             if note_key == 0:
                 if area.x < piano_xpos:
-                    self.window.draw_line(self.fg_gc, area.x, ypos + self.ypadsz, piano_xpos, ypos + self.ypadsz)
-                self.window.draw_string(self.font, self.fg_gc, 1, ypos + self.ypadsz - 1, "%03d C %i" % (note_val, octave))
+                    self.window.draw_line(self.fg_gc, area.x, ypos + self.noteysz, piano_xpos, ypos + self.noteysz)
+                self.window.draw_string(self.font, self.fg_gc, 1, ypos + self.noteysz - 1, "%03d C %i" % (note_val, octave))
                 octave -= 1
             elif note_key == 1 or note_key == 3 or note_key == 6 or note_key == 8 or note_key == 10:
-                self.window.draw_rectangle(self.fg_gc, True, piano_xpos, ypos, (xmax - piano_xpos), self.ypadsz)
-            ypos += self.ypadsz
+                self.window.draw_rectangle(self.fg_gc, True, piano_xpos, ypos, (xmax - piano_xpos), self.noteysz)
+            ypos += self.noteysz
 
 
     def do_expose_event(self, event):
@@ -339,19 +345,13 @@ NOTE_PX_SIZE = 8
 class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
 
     def resize_grid(self):
-        width  = self.xpadsz * self.track.get_len() / self.ppq
+        width  = self.ppqxsz * self.track.get_len() / self.ppq
         height = self.max_height
         self.set_size_request(width, height)
 
 
-    def set_pad_size(self, xpadsz, ypadsz):
-        self.xpadsz = xpadsz
-        self.ypadsz = ypadsz
-        self.max_height = (NOTE_MAX + 1) * self.ypadsz + 1
-
-
     def update_pos(self, tickpos):
-        xpos = int((tickpos % self.track.get_len()) * self.xpadsz / self.ppq)
+        xpos = int((tickpos % self.track.get_len()) * self.ppqxsz / self.ppq)
         self._update_pos(xpos)
 
 
@@ -359,23 +359,27 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
         self.clear_progressline()
 
 
-    def __init__(self, chan_num, track, mlen=4, ppq=48, xpadsz=DEFAULT_XPADSZ, ypadsz=DEFAULT_YPADSZ):
+    def __init__(self, chan_num, track, mlen=4, ppq=48, ppqxsz=DEFAULT_PPQXSZ, noteysz=DEFAULT_NOTE_YSZ):
         gtk.Widget.__init__(self)
-        MsqNGWEventHdl.__init__(self, ppq)
+        MsqNGWEventHdl.__init__(self)
         ProgressLineListener.__init__(self)
+        self.note_resolution = int(ppq / 4)
         self.chan_num = chan_num
         self.mlen = mlen # 4/4 or 3/4
         self.ppq = ppq
-        self.set_pad_size(xpadsz, ypadsz)
+        self.ppqxsz_seed = ppqxsz
+        self.ppqxsz = ppqxsz
+        self.noteysz = noteysz
+        self.max_height = (NOTE_MAX + 1) * self.noteysz + 1
         self.track = track
         self.vadj = None
         self.selection = None
 
 
     def tick2xpos(self, tick):
-        return tick * self.xpadsz / self.ppq
+        return tick * self.ppqxsz / self.ppq
     def note2ypos(self, note):
-        return (127 - note) * self.ypadsz
+        return (127 - note) * self.noteysz
 
 
     def draw_note(self, note_on, note_off, selected=False):
@@ -383,7 +387,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
         xmax = self.tick2xpos(note_off[0])
         width = xmax - xmin
         ypos = self.note2ypos(note_on[3]) + 1
-        self.draw_note_rectangle(xmin, ypos, width, self.ypadsz - 1,
+        self.draw_note_rectangle(xmin, ypos, width, self.noteysz - 1,
                                  note_on[4], selected)
 
 
@@ -403,7 +407,13 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
         self.grid_light = gtk.gdk.Color((self.grid_fg.red + self.grid_bg.red) / 2,
                                         (self.grid_fg.green + self.grid_bg.green) / 2,
                                         (self.grid_fg.blue + self.grid_bg.blue) / 2)
+        self.grid_res_col = gtk.gdk.Color((self.grid_light.red + self.grid_bg.red) / 2,
+                                          (self.grid_light.green + self.grid_bg.green) / 2,
+                                          (self.grid_light.blue + self.grid_bg.blue) / 2)
         self.realize_event_handler()
+
+        self.vadj.set_value((self.vadj.get_lower() + self.vadj.get_upper() / 2))
+        self.vadj.value_changed()
 
 
     def do_unrealize(self):
@@ -411,7 +421,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
 
 
     def do_size_request(self, requisition):
-        requisition.width  = self.xpadsz * self.track.get_len() / self.ppq
+        requisition.width  = self.ppqxsz * self.track.get_len() / self.ppq
         requisition.height = self.max_height
 
 
@@ -422,26 +432,36 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
 
 
     def draw_grid(self, area):
-        xmax = area.x + area.width
-        ymax = area.y + area.height
-        if ymax > self.max_height:
-            ymax = self.max_height
-        xpos = area.x - (area.x % self.xpadsz)
-        ypos = area.y - (area.y % self.ypadsz)
-        time_pos = xpos / self.xpadsz
-        note_pos = ypos / self.ypadsz
-
         cr = self.window.cairo_create()
         cr.set_source_color(self.grid_bg)
         cr.rectangle(area.x, area.y, area.width, area.height)
         cr.fill()
 
+        xmax = area.x + area.width
+        ymax = area.y + area.height
+        if ymax > self.max_height:
+            ymax = self.max_height
+
         cr.set_line_width(1)
+
         # dx = 0.5
         # dy = dx
         # cr.device_to_user_distance(dx, dy)
         # cr.set_line_width(dx if dx > dy else dy)
-        # import pdb; pdb.set_trace()
+
+        idx = 0
+        xpos_seed =  area.x - (area.x % self.ppqxsz)
+        xpos = xpos_seed
+        cr.set_source_color(self.grid_res_col)
+        while xpos <= xmax:
+            cr.move_to(xpos + 0.5, area.y)
+            cr.line_to(xpos + 0.5, ymax + 0.5)
+            cr.stroke()
+            xpos = xpos_seed + self.tick2xpos(self.note_resolution * idx)
+            idx += 1
+
+        xpos =  area.x - (area.x % self.ppqxsz)
+        time_pos = xpos / self.ppqxsz
         while xpos <= xmax:
             if  (time_pos % self.mlen) == 0:
                 cr.set_source_color(self.grid_fg)
@@ -451,18 +471,20 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
             cr.line_to(xpos + 0.5, ymax + 0.5)
             cr.stroke()
             time_pos += 1
-            xpos += self.xpadsz
+            xpos += self.ppqxsz
 
+        ypos = area.y - (area.y % self.noteysz)
+        note_pos = ypos / self.noteysz
         while ypos < ymax:
             if ((128 - note_pos) % 12) == 0:
                 cr.set_source_color(self.grid_fg)
             else:
                 cr.set_source_color(self.grid_light)
-            cr.move_to(area.x - 0.5, ypos + 0.5)
-            cr.line_to(xmax + 0.5, ypos + 0.5)
+            cr.move_to(area.x + 0.5, ypos + 0.5)
+            cr.line_to(xmax + 0.5,   ypos + 0.5)
             cr.stroke()
             note_pos += 1
-            ypos += self.ypadsz
+            ypos += self.noteysz
 
 
     def is_selected(self, event, note_list):
@@ -487,7 +509,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
             if value > 255.0 or value < 0.0:
                 print "ERROR in get_note_color value is not between 0 255"
                 return
-            first_color  = [140.0, 140.0, 140.0]
+            first_color  = [100.0, 100.0, 140.0]
             second_color = [0.0, 179.0, 0.0]
             third_color  = [217.0, 217.0, 0.0]
             fouth_color  = [255.0, 0.0, 0.0]
@@ -529,6 +551,34 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
             cr.set_source_rgba(0, 0, 0, 0.5)
             cr.rectangle(x, y, width, height)
             cr.fill()
+
+
+    def get_all_notes(self):
+        noteon = {}
+        note_list = []
+
+        self.track.lock()
+        for evwr in self.track:
+            event = evwr.get_event()
+            ev_tick = event[0]
+            ev_type = event[2]
+            if ev_type != MIDI_NOTEON_EVENT and ev_type != MIDI_NOTEOFF_EVENT:
+                continue
+            ev_channel = event[1]
+            if ev_channel != self.chan_num:
+                continue
+            ev_note = event[3]
+
+            if ev_type == MIDI_NOTEON_EVENT:
+                noteon[ev_note] = evwr.get_event()
+                continue
+            elif ev_type == MIDI_NOTEOFF_EVENT:
+                if noteon.has_key(ev_note):
+                    note_list.append((noteon[ev_note], evwr.get_event()))
+                    noteon.pop(ev_note)
+        self.track.unlock()
+
+        return note_list
 
 
     def get_notes(self, rectangle):
@@ -587,13 +637,13 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl):
         self.track.unlock()
 
 
-    def draw_all(self, area):
+    def draw_area(self, area):
         self.draw_grid(area)
         self.draw_notes_bar(area)
 
 
     def do_expose_event(self, event):
-        self.draw_all(event.area)
+        self.draw_area(event.area)
 
 
 gobject.type_register(MsqHBarTimeWidget)
