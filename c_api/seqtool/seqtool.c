@@ -15,6 +15,7 @@ void dumpaddr_seqevlist(list_t *seqev_list)
     output("ev node addr = %p\n", iter_node(&evit));
 }
 
+
 void free_seqev(void *addr)
 {
   seqev_t *seqev = (seqev_t *) addr;
@@ -34,6 +35,7 @@ void free_seqev(void *addr)
     }
 }
 
+
 void free_tickev(void *addr)
 {
   tickev_t *tickev = (tickev_t *) addr;
@@ -44,11 +46,13 @@ void free_tickev(void *addr)
   free(tickev);
 }
 
+
 void clear_tickev_list(list_t *tickev_list)
 {
   free_list_node(tickev_list, free_tickev);
   tickev_list->len = 0;
 }
+
 
 void free_track(void *addr)
 {
@@ -63,6 +67,7 @@ void free_track(void *addr)
     }
 }
 
+
 tickev_t *_create_new_tick_ev(uint_t tick)
 {
   tickev_t     *tickev = myalloc(sizeof (tickev_t));
@@ -73,46 +78,44 @@ tickev_t *_create_new_tick_ev(uint_t tick)
   return tickev;
 }
 
-tickev_t *_search_or_add_tickev(track_t *track, uint_t tick)
+
+/* Search in track for  tick event set tick time if the tick time doesnt
+   exit it create a new one */
+node_t *search_or_add_ticknode(list_t *tickev_list, uint_t tick)
 {
   list_iterator_t iter;
   tickev_t *tickev = NULL;
 
-  iter_init(&iter, &(track->tickev_list));
+  if (LIST_HEAD(tickev_list) == NULL)
+    {
+      tickev = _create_new_tick_ev(tick);
+      return push_to_list(tickev_list, (void *) tickev);
+    }
+
+  iter_init(&iter, tickev_list);
   while (iter_node(&iter))
     {
       tickev = iter_node_ptr(&iter);
       if (tickev->tick == tick)
         {
           tickev->deleted = FALSE;
-          return tickev;
+          return iter_node(&iter);
         }
       else if (tickev->tick > tick)
         {
           tickev = _create_new_tick_ev(tick);
-          iter_push_before(&iter, (void *) tickev);
-          return tickev;
+          return iter_push_before(&iter, (void *) tickev);
         }
       iter_next(&iter);
     }
   tickev = _create_new_tick_ev(tick);
-  push_to_list_tail(&(track->tickev_list), tickev);
-  return tickev;
+  return push_to_list_tail(tickev_list, tickev);
 }
 
-/* Search in track for  tick event set tick time if the tick time doesnt
-   exit it create a new one */
-tickev_t *_get_or_add_tickev(track_t *track, uint_t tick)
+tickev_t *search_or_add_tickev(track_t *track, uint_t tick)
 {
-  tickev_t *tickev = NULL;
-
-  if (LIST_HEAD(&(track->tickev_list)) == NULL)
-    {
-      tickev = _create_new_tick_ev(tick);
-      push_to_list(&(track->tickev_list), (void *) tickev);
-      return tickev;
-    }
-  return _search_or_add_tickev(track, tick);
+  node_t *ticknode = search_or_add_ticknode(&(track->tickev_list), tick);
+  return (tickev_t *) ticknode->addr;
 }
 
 seqev_t *alloc_seqev(void *addr,
@@ -128,6 +131,7 @@ seqev_t *alloc_seqev(void *addr,
   return seqev;
 }
 
+
 void add_new_seqev_tail(track_t *track,
                         uint_t tick,
                         void *addr,
@@ -136,10 +140,11 @@ void add_new_seqev_tail(track_t *track,
   tickev_t *tickev = NULL;
   seqev_t *seqev;
 
-  tickev = _get_or_add_tickev(track, tick);
+  tickev = search_or_add_tickev(track, tick);
   seqev = alloc_seqev(addr, type);
   push_to_list_tail(&(tickev->seqev_list), (void *) seqev);
 }
+
 
 void add_new_seqev_head(track_t *track,
                         uint_t tick,
@@ -149,7 +154,7 @@ void add_new_seqev_head(track_t *track,
   tickev_t *tickev = NULL;
   seqev_t *seqev;
 
-  tickev = _get_or_add_tickev(track, tick);
+  tickev = search_or_add_tickev(track, tick);
   seqev = alloc_seqev(addr, type);
   push_to_list(&(tickev->seqev_list), (void *) seqev);
 }
@@ -169,4 +174,34 @@ node_t *search_ticknode(list_t *tickev_list, uint_t tick)
       iter_next(&iter);
     }
   return NULL;
+}
+
+
+void goto_next_available_tick(list_iterator_t *tickit, uint_t tick)
+{
+  tickev_t *tickev = NULL;
+
+  for (iter_head(tickit);
+       iter_node(tickit);
+       iter_next(tickit))
+    {
+      tickev = (tickev_t *) iter_node_ptr(tickit);
+      if (tickev->tick >= tick && tickev->deleted == FALSE)
+        return;
+    }
+}
+
+
+void iter_next_available_tick(list_iterator_t *tickit)
+{
+  tickev_t *tickev = NULL;
+
+  for (iter_next(tickit);
+       iter_node(tickit);
+       iter_next(tickit))
+    {
+      tickev = (tickev_t *) iter_node_ptr(tickit);
+      if (tickev->deleted == FALSE)
+        return;
+    }
 }

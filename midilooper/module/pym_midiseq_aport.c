@@ -1,9 +1,9 @@
 #include <Python.h>
 
 #include "asound/aseq.h"
-
-#include "./pym_midiseq_aport.h"
+#include "asound/aseq_tool.h"
 #include "debug_tool/debug_tool.h"
+#include "./pym_midiseq_aport.h"
 
 static void midiseq_aport_dealloc(PyObject *obj)
 {

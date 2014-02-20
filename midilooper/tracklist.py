@@ -97,7 +97,8 @@ class TrackList(gtk.Frame):
                 return val * 100 / track_len
             self.liststore.set_value(tv_iter, 2, get_percent(tickpos, tedit.track.get_len()))
         tvmodel = self.treev.get_model()
-        tvmodel.foreach(update_tedit, tickpos)
+        if tvmodel:
+            tvmodel.foreach(update_tedit, tickpos)
 
     def clear_progress(self):
         def clear_tedit_progress(tvmodel, path, tv_iter):
@@ -112,14 +113,23 @@ class TrackList(gtk.Frame):
             if event.button == 3:
                 self.menu.path = path
                 self.menu.popup(None, None, None, event.button, event.time)
-            elif self.track_col == path[1]:
-                tv_iter = self.liststore.get_iter(path[0])
-                tedit = self.liststore.get_value(tv_iter, 0)
-                if tedit.get_mapped():
-                    tedit.unmap()
-                else:
-                    tedit.show_all()
-                    tedit.map()
+            # elif self.track_col == path[1]:
+            #     tv_iter = self.liststore.get_iter(path[0])
+            #     tedit = self.liststore.get_value(tv_iter, 0)
+            #     if tedit.get_mapped():
+            #         tedit.unmap()
+            #     else:
+            #         tedit.show_all()
+            #         tedit.map()
+
+    def tvbutton_row_activated(self, treeview, path, view_column):
+        tv_iter = self.liststore.get_iter(path[0])
+        tedit = self.liststore.get_value(tv_iter, 0)
+        if tedit.get_mapped():
+            tedit.unmap()
+        else:
+            tedit.show_all()
+            tedit.map()
 
     def add_track(self, track_name):
         track = self.seq.newtrack(track_name);
@@ -143,6 +153,30 @@ class TrackList(gtk.Frame):
             self.liststore.set_value(tv_iter, 3, mute_val)
         self.liststore.foreach(_toggle_mute)
 
+    def drag_data_get_data(self, treeview, context, selection, target_id, etime):
+        if self.seq.isrunning():
+            return
+        treeselection = treeview.get_selection()
+        model, iter = treeselection.get_selected()
+        self.dnd_tedit = model.get_value(iter, 0)
+        model.remove(iter)
+
+    def drag_data_received_data(self, treeview, context, x, y, selection, info, etime):
+        if self.seq.isrunning():
+            return
+        model = treeview.get_model()
+        drop_info = treeview.get_dest_row_at_pos(x, y)
+        if drop_info:
+            path, position = drop_info
+            iter = model.get_iter(path)
+            tedit = model.get_value(iter, 0)
+            if (position == gtk.TREE_VIEW_DROP_BEFORE or position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
+                self.seq.insert_before(tedit.track, self.dnd_tedit.track)
+                model.insert_before(iter, [self.dnd_tedit, repr(self.dnd_tedit.track), 0, 0])
+            else:
+                self.seq.insert_after(tedit.track, self.dnd_tedit.track)
+                model.insert_after(iter, [self.dnd_tedit, repr(self.dnd_tedit.track), 0, 0])
+
     def __init__(self, seq, portlist):
         gtk.Frame.__init__(self, "Track list")
         self.seq = seq
@@ -162,16 +196,23 @@ class TrackList(gtk.Frame):
         self.track_col = tvcolumn
         self.treev.append_column(tvcolumn)
         self.treev.connect('button-press-event', self.tvbutton_press_event)
+        self.treev.connect('row-activated', self.tvbutton_row_activated)
 
         cell = gtk.CellRendererToggle()
-        cell.set_property('activatable', True)
+        # cell.set_property('activatable', True)
         cell.connect('toggled', self.toggle_mute, self.liststore)
         tvcolumn = gtk.TreeViewColumn('M', cell, active=3)
         tvcolumn.set_expand(False)
         tvcolumn.set_clickable(True)
         tvcolumn.connect('clicked', self.toggle_mute_all)
         self.treev.append_column(tvcolumn)
-        # self.treev.set_reorderable(True)
+        self.treev.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
+                                            [("MIDILOOPER_TRACK_LIST", gtk.TARGET_SAME_WIDGET, 0)],
+                                            gtk.gdk.ACTION_DEFAULT|gtk.gdk.ACTION_MOVE)
+        self.treev.enable_model_drag_dest([("MIDILOOPER_TRACK_LIST", gtk.TARGET_SAME_WIDGET, 0)],
+                                          gtk.gdk.ACTION_DEFAULT)
+        self.treev.connect("drag_data_get", self.drag_data_get_data)
+        self.treev.connect("drag_data_received", self.drag_data_received_data)
 
         button_add = gtk.Button(stock=gtk.STOCK_ADD)
         # button_add.add(img_button_add)

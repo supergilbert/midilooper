@@ -21,6 +21,21 @@ else
 		shift 1
 		gdb --args python $MIDILOOPER_PATH/midilooper.py $@
 		;;
+	"gdbemacs")
+		echo "\033[31mLanching midilooper with gdb in emacs.\033[0m"
+                shift 1
+		emacs --eval "(gdb \"gdb -i=mi --args python $MIDILOOPER_PATH/midilooper.py $@\")"
+		;;
+	"emacscore")
+		echo "\033[31mLanching midilooper with gdb in emacs.\033[0m"
+                shift 1
+		emacs --eval "(gdb \"gdb -i=mi --core=$1 --args python\")"
+		;;
+	"emacs")
+		echo "\033[31mLanching emacs with midilooper environment.\033[0m"
+                shift 1
+		emacs
+		;;
 	"valgrind")
 		echo "\033[31mLanching midilooper with valgrind.\033[0m"
 		shift 1

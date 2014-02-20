@@ -133,6 +133,53 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
   return 0;
 }
 
+
+#define _SETBIT(byte, bitnb)   ((byte) = ((byte) | (1 << (bitnb))))
+#define _UNSETBIT(byte, bitnb) ((byte) = ((byte) & (~(1 << (bitnb)))))
+
+void set_pending_note(byte_t *pending_notes,
+                      byte_t channel,
+                      byte_t num)
+{
+  uint_t idx    = ((channel * 128) + num) / 8;
+  uint_t bitnum = ((channel * 128) + num) % 8;
+
+  _SETBIT(pending_notes[idx], bitnum);
+}
+
+void unset_pending_note(byte_t *pending_notes, byte_t channel, byte_t num)
+{
+  uint_t idx    = ((channel * 128) + num) / 8;
+  uint_t bitnum = ((channel * 128) + num) % 8;
+
+  _UNSETBIT(pending_notes[idx], bitnum);
+}
+
+
+#define _GETBIT(byte, bitnb)   (((byte) >> (bitnb)) & 1 ? TRUE : FALSE)
+
+bool_t is_pending_notes(byte_t *pending_notes, byte_t channel, byte_t num)
+{
+  uint_t idx    = ((channel * 128) + num) / 8;
+  uint_t bitnum = ((channel * 128) + num) % 8;
+
+  return _GETBIT(pending_notes[idx], bitnum);
+}
+
+
+void update_pending_notes(byte_t *pending_notes, midicev_t *midicev)
+{
+  if (midicev->type == NOTEON)
+    set_pending_note(pending_notes,
+                     midicev->chan,
+                     midicev->event.note.num);
+  else if (midicev->type == NOTEOFF)
+    unset_pending_note(pending_notes,
+                       midicev->chan,
+                       midicev->event.note.num);
+}
+
+
 /* #warning include a gerer */
 #include "seqtool/seqtool.h"
 #include <stdlib.h>

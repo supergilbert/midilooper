@@ -1,71 +1,8 @@
 #include "./engine.h"
-#include "tool/tool.h"
+/* #include "tool/tool.h" */
 #include "debug_tool/debug_tool.h"
-#include "midi/midifile.h"
-
-typedef struct
-{
-  list_iterator_t evit;
-  list_iterator_t tickit;
-} trash_ctn_t;
-
-void dump_trach_ctn(trash_ctn_t *ctn)
-{
-  tickev_t *tickev = NULL;
-
-  if (iter_node(&(ctn->tickit)) == NULL)
-    return;
-
-  tickev = (tickev_t *) iter_node_ptr(&(ctn->tickit));
-  dumpaddr_seqevlist(ctn->evit.list);
-  dumpaddr_seqevlist(&(tickev->seqev_list));
-}
-
-void play_if_noteoff(seqev_t *seqev,
-                     aseqport_ctx_t *aseqport_ctx)
-{
-  midicev_t *mcev = NULL;
-  snd_seq_event_t aseqev;
-
-  switch (seqev->type)
-    {
-    case ASEQTYPE:
-    case MIDICEV:
-      mcev = (midicev_t *) seqev->addr;
-      if (mcev->type == NOTEOFF)
-        {
-          set_aseqev(mcev,
-                     &aseqev,
-                     aseqport_ctx->output_port);
-          snd_seq_event_output(aseqport_ctx->handle, &aseqev);
-          snd_seq_drain_output(aseqport_ctx->handle);
-        }
-      break;
-    default:
-      break;
-    }
-}
-
-void trackctx_event2trash(track_ctx_t *trackctx,
-                          list_iterator_t *tickit,
-                          list_iterator_t *evit)
-{
-  trash_ctn_t *ctn = myalloc(sizeof (trash_ctn_t));
-  seqev_t     *seqev = (seqev_t *) iter_node_ptr(evit);
-  tickev_t    *tickev = (tickev_t *) iter_node_ptr(tickit);
-
-  if (tickev->seqev_list.len == 1)
-    tickev->deleted = TRUE;
-
-  seqev->deleted = TRUE;
-
-  if (trackctx->aseqport_ctx != NULL)
-    play_if_noteoff(seqev, trackctx->aseqport_ctx);
-  bcopy(evit, &(ctn->evit), sizeof (list_iterator_t));
-  bcopy(tickit, &(ctn->tickit), sizeof (list_iterator_t));
-  push_to_list_tail(&(trackctx->trash), ctn);
-  trackctx->need_sync = TRUE;
-}
+/* #include "midi/midifile.h" */
+/* #include "asound/aseq_tool.h" */
 
 void _free_trash_ctn(void *addr)
 {
@@ -77,32 +14,15 @@ void _free_trash_ctn(void *addr)
   free(ctn);
 }
 
-void goto_next_available_tick(list_iterator_t *tickit, uint_t tick)
+void _free_trackctx(void *addr)
 {
-  tickev_t *tickev = NULL;
+  track_ctx_t *trackctx = (track_ctx_t  *) addr;
 
-  for (iter_head(tickit);
-       iter_node(tickit);
-       iter_next(tickit))
-    {
-      tickev = (tickev_t *) iter_node_ptr(tickit);
-      if (tickev->tick >= tick && tickev->deleted == FALSE)
-        return;
-    }
-}
-
-void iter_next_available_tick(list_iterator_t *tickit)
-{
-  tickev_t *tickev = NULL;
-
-  for (iter_next(tickit);
-       iter_node(tickit);
-       iter_next(tickit))
-    {
-      tickev = (tickev_t *) iter_node_ptr(tickit);
-      if (tickev->deleted == FALSE)
-        return;
-    }
+  pthread_rwlock_destroy(&(trackctx->lock));
+  if (trackctx->trash.len)
+    free_list_node(&(trackctx->trash), _free_trash_ctn);
+  free_track(trackctx->track);
+  free(trackctx);
 }
 
 void engine_free_trash(engine_ctx_t *ctx)
@@ -128,105 +48,21 @@ void engine_free_trash(engine_ctx_t *ctx)
     }
 }
 
-void	play_midiev(list_t *seqevlist, track_ctx_t *track_ctx)
+void play_all_tracks_pending_notes(engine_ctx_t *ctx)
 {
-  aseqport_ctx_t  *aseq_ctx = track_ctx->aseqport_ctx;
-  snd_seq_event_t aseqev;
-  list_iterator_t iter;
-  bool_t          ev_to_drain = FALSE;
-  seqev_t         *seqev = NULL;
-  midicev_t       *midicev = NULL;
+    track_ctx_t     *track_ctx = NULL;
+  list_iterator_t trackit;
 
-  if (track_ctx->aseqport_ctx == NULL || track_ctx->mute == TRUE)
-    return;
-  for (iter_init(&iter, seqevlist);
-       iter_node(&iter);
-       iter_next(&iter))
+  for (iter_init(&trackit, &(ctx->track_list));
+       iter_node(&trackit) != NULL;
+       iter_next(&trackit))
     {
-      seqev = (seqev_t *) iter_node_ptr(&(iter));
-      if (seqev->deleted == FALSE && seqev->type == MIDICEV)
-        {
-          midicev = (midicev_t *) seqev->addr;
-          set_aseqev(midicev, &aseqev, aseq_ctx->output_port);
-          snd_seq_event_output(aseq_ctx->handle, &aseqev);
-          ev_to_drain = TRUE;
-        }
+      track_ctx = iter_node_ptr(&trackit);
+      play_track_pending_notes(track_ctx);
     }
-  if (ev_to_drain)
-    snd_seq_drain_output(aseq_ctx->handle);
 }
 
-void play_trackev(uint_t tick, track_ctx_t *track_ctx)
-{
-  tickev_t        *tickev    = NULL;
-  /* static bool_t   to_reload  = FALSE; */
-
-  tick = tick % track_ctx->len;
-
-  /* reload of the iterator if some node has been deleted
-     and reload again after the trash has been empty */
-  if (track_ctx->need_sync == TRUE)
-    {
-      goto_next_available_tick(&(track_ctx->current_tickev), tick);
-      if (track_ctx->trash.len == 0)
-        track_ctx->need_sync = FALSE;
-    }
-
-  if (iter_node(&(track_ctx->current_tickev)) == NULL)
-    {
-      if (track_ctx->current_tickev.list != NULL)
-        goto_next_available_tick(&(track_ctx->current_tickev), track_ctx->loop_start);
-      /* else */
-      /*   output_error("Current tick event list = NULL"); */
-      return;
-    }
-  tickev = (tickev_t *) iter_node_ptr(&(track_ctx->current_tickev));
-
-  /* The loop goes to the last tick and play the last tick +1
-     with the first one */
-  if (tickev && (tickev->tick % track_ctx->len) == tick)
-    {
-      play_midiev(&(tickev->seqev_list), track_ctx);
-      /* play the first tick if last one has been detected */
-      if (tickev->tick == track_ctx->len)
-        {
-          goto_next_available_tick(&(track_ctx->current_tickev), track_ctx->loop_start);
-          tickev = (tickev_t *) iter_node_ptr(&(track_ctx->current_tickev));
-          if (tickev->tick == 0)
-            {
-              play_midiev(&(tickev->seqev_list), track_ctx);
-              iter_next_available_tick(&(track_ctx->current_tickev));
-            }
-        }
-      else
-        iter_next_available_tick(&(track_ctx->current_tickev));
-
-      /* if no more event go to head */
-      if (iter_node(&(track_ctx->current_tickev)) == NULL)
-        {
-          if (track_ctx->current_tickev.list != NULL)
-            goto_next_available_tick(&(track_ctx->current_tickev), track_ctx->loop_start);
-          return;
-        }
-
-      /* temp (may not occur event musnt be greater than len) */
-      tickev = iter_node_ptr(&(track_ctx->current_tickev));
-      if (tickev->tick > track_ctx->len)
-          goto_next_available_tick(&(track_ctx->current_tickev), track_ctx->loop_start);
-    }
-  return;
-}
-
-void _free_trackctx(void *addr)
-{
-  track_ctx_t *trackctx = (track_ctx_t  *) addr;
-
-  pthread_rwlock_destroy(&(trackctx->lock));
-  free_track(trackctx->track);
-  free(trackctx);
-}
-
-void play_all_trackev(engine_ctx_t *ctx)
+void play_all_tracks_ev(engine_ctx_t *ctx)
 {
   track_ctx_t     *track_ctx = NULL;
   clockloop_t     *looph     = &(ctx->looph);
@@ -275,10 +111,12 @@ clock_req_t engine_cb(void *arg)
   if (get_engine_rq(ctx) == engine_stop)
     {
       debug("engine: Got stop request\n");
+      engine_free_trash(ctx);
+      play_all_tracks_pending_notes(ctx);
       ctx->isrunning = FALSE;
       return STOP;
     }
-  play_all_trackev(ctx);
+  play_all_tracks_ev(ctx);
   engine_free_trash(ctx);
   return CONTINUE;
 }

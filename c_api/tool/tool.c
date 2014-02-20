@@ -40,7 +40,7 @@ void foreach_list_node(list_t *list, list_func func, void *args)
     }
 }
 
-void push_to_list(list_t *list, void *addr)
+node_t *push_to_list(list_t *list, void *addr)
 {
   node_t *new_node = myalloc(sizeof (node_t));
 
@@ -63,9 +63,10 @@ void push_to_list(list_t *list, void *addr)
       list->head = new_node;
     }
   (list->len)++;
+  return new_node;
 }
 
-void push_to_list_tail(list_t *list, void *addr)
+node_t *push_to_list_tail(list_t *list, void *addr)
 {
   node_t *new_node = myalloc(sizeof (node_t));
 
@@ -75,15 +76,24 @@ void push_to_list_tail(list_t *list, void *addr)
     {
       new_node->prev = NULL;
       list->tail = new_node;
+      /* Atomic assigment */
       list->head = new_node;
     }
   else
     {
       new_node->prev = list->tail;
       list->tail = new_node;
+      /* Atomic assigment */
       new_node->prev->next = new_node;
     }
   (list->len)++;
+  return new_node;
+}
+
+void iter_copy(list_iterator_t *iter_src, list_iterator_t *iter_dst)
+{
+  iter_dst->node = iter_src->node;
+  iter_dst->list = iter_src->list;
 }
 
 void iter_init(list_iterator_t *iterator, list_t *list)
@@ -92,7 +102,7 @@ void iter_init(list_iterator_t *iterator, list_t *list)
   iterator->list = list;
 }
 
-void iter_push_before(list_iterator_t *iterator, void *addr)
+node_t *iter_push_before(list_iterator_t *iterator, void *addr)
 {
   node_t *node = myalloc(sizeof (node_t));
 
@@ -107,7 +117,6 @@ void iter_push_before(list_iterator_t *iterator, void *addr)
     }
   else
     {
-      /* iterator->node->prev = node; */
       node->next = iterator->node;
       if (iterator->node->prev == NULL)
         {
@@ -121,11 +130,46 @@ void iter_push_before(list_iterator_t *iterator, void *addr)
           node->prev = iterator->node->prev;
           /* Atomic assigment */
           iterator->node->prev->next = node;
-          iterator->node->prev = node;
+          iterator->node->prev = node; /* (can not be atomic) */
         }
     }
   (iterator->list->len)++;
-  return;
+  return node;
+}
+
+node_t *iter_push_after(list_iterator_t *iterator, void *addr)
+{
+  node_t *node = myalloc(sizeof (node_t));
+
+  node->addr = addr;
+  if (iterator->node == NULL)
+    {
+      node->prev = NULL;
+      node->next = NULL;
+      iterator->list->tail = node;
+      /* Atomic assigment */
+      iterator->list->head = node;
+    }
+  else
+    {
+      node->prev = iterator->node;
+      if (iterator->node->next == NULL)
+        {
+          node->next = NULL;
+          iterator->list->tail = node;
+          /* Atomic assigment */
+          iterator->node->next = node;
+        }
+      else
+        {
+          node->next = iterator->node->next;
+          iterator->node->next->prev = node;
+          /* Atomic assigment */
+          iterator->node->next = node;
+        }
+    }
+  (iterator->list->len)++;
+  return node;
 }
 
 void _del_list_node(list_t *list, node_t *node, free_list_func func)
@@ -159,7 +203,8 @@ void _del_list_node(list_t *list, node_t *node, free_list_func func)
           list->head = node->prev;
     }
   (list->len)--;
-  func(node->addr);
+  if (func)
+    func(node->addr);
   free(node);
 }
 
@@ -190,4 +235,12 @@ void iter_node_del(list_iterator_t *iterator, free_list_func func)
             }
         }
     }
+}
+
+bool_t iter_move_to_addr(list_iterator_t *iterator, void *addr)
+{
+  for (iter_head(iterator); iter_node(iterator); iter_next(iterator))
+    if (iter_node_ptr(iterator) == addr)
+      return TRUE;
+  return FALSE;
 }

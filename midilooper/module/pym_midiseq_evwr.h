@@ -2,15 +2,18 @@
 #define __PYM_TICKEVWR
 
 #include <Python.h>
-#include "seqtool/seqtool.h"
+#include "loop_engine/engine.h"
+#include "loop_engine/ev_iterator.h"
 
-PyObject *create_midiseq_evwr(track_t *track);
+PyObject *build_evwr(track_ctx_t *);
+PyObject *build_evwr_from_evit(ev_iterator_t *, track_ctx_t *);
+PyObject *build_evrepr(uint_t tick, midicev_t *midicev);
+
 
 typedef struct {
   PyObject_HEAD
-  list_iterator_t tickit;
-  list_iterator_t evit;
-  bool_t          evit_started;
+  ev_iterator_t evit;
+  track_ctx_t   *trackctx;
 } midiseq_evwrObject;
 
 

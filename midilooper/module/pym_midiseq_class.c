@@ -263,7 +263,6 @@ static PyObject *midiseq_delport(PyObject *obj,
 {
   midiseq_Object      *self = (midiseq_Object *) obj;
   midiseq_aportObject *port = NULL;
-  /* aseqport_ctx_t      *aport = NULL; */
 
   if (!PyArg_ParseTuple(args , "O", &port))
     return NULL;
@@ -296,14 +295,51 @@ static PyObject *midiseq_import_msqfile_tracks(PyObject *obj,
 {
   midiseq_Object      *self = (midiseq_Object *) obj;
   midiseq_fileObject  *mfile = NULL;
-  /* aseqport_ctx_t      *aport = NULL; */
 
   if (!PyArg_ParseTuple(args , "O", &mfile))
     return NULL;
   engine_read_midifile(self->engine_ctx, mfile->midifile);
 
-  /* if (engine_del_port(self->engine_ctx, port->aport) == FALSE) */
-  /*   return NULL; */
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_insert_before(PyObject *obj,
+                                       PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_trackObject *track_sibling = NULL;
+  midiseq_trackObject *track_topaste = NULL;
+  list_iterator_t     iterator;
+
+  if (!PyArg_ParseTuple(args , "OO", &track_sibling, &track_topaste))
+    return NULL;
+  iter_init(&iterator, &(self->engine_ctx->track_list));
+  if (!iter_move_to_addr(&iterator, track_topaste->trackctx))
+    return NULL;
+  iter_node_del(&iterator, NULL);
+  if (!iter_move_to_addr(&iterator, track_sibling->trackctx))
+    return NULL;
+  iter_push_before(&iterator, track_topaste->trackctx);
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_insert_after(PyObject *obj,
+                                      PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_trackObject *track_sibling = NULL;
+  midiseq_trackObject *track_topaste = NULL;
+  list_iterator_t     iterator;
+
+  if (!PyArg_ParseTuple(args , "OO", &track_sibling, &track_topaste))
+    return NULL;
+  iter_init(&iterator, &(self->engine_ctx->track_list));
+  if (!iter_move_to_addr(&iterator, track_topaste->trackctx))
+    return NULL;
+  iter_node_del(&iterator, NULL);
+  if (!iter_move_to_addr(&iterator, track_sibling->trackctx))
+    return NULL;
+  iter_push_after(&iterator, track_topaste->trackctx);
   Py_RETURN_NONE;
 }
 
@@ -346,6 +382,10 @@ static PyMethodDef midiseq_methods[] = {
    "Delete a track"},
   {"gettracks", midiseq_gettracks, METH_NOARGS,
    "Create new sequencer track"},
+  {"insert_before", midiseq_insert_before, METH_VARARGS,
+   ""},
+  {"insert_after", midiseq_insert_after, METH_VARARGS,
+   ""},
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
   /* {"getname", midiseq_readtrack, METH_NOARGS, "get track name"}, */
   {NULL, NULL, 0, NULL}

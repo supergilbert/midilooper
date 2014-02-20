@@ -77,8 +77,4 @@ void           free_aseqh(snd_seq_t *handle);
 const char     *aseqport_get_name(aseqport_ctx_t *aseq);
 void           aseqport_set_name(aseqport_ctx_t *aseq, char *name);
 
-#include "midi/midiev_inc.h"
-
-bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port);
-
 #endif

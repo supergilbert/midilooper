@@ -10,7 +10,7 @@ if gtk.pygtk_version < (2, 8):
     print "PyGtk 2.8 or later required for this example"
     raise SystemExit
 
-from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, DEFAULT_PPQXSZ, DEFAULT_FONT_NAME#, DEFAULT_NOTEON_VAL
+from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, DEFAULT_QNOTE_XSZ, DEFAULT_FONT_NAME#, DEFAULT_NOTEON_VAL
 
 class LengthSettingHBox(gtk.HBox):
     def numerator_cb(self, combobox):
@@ -94,7 +94,7 @@ class TrackSettingTable(gtk.Table):
 class NoteSettingTable(gtk.Table):
 
     def set_note_res(self, numerator, denominator):
-        self.chaned.grid.note_resolution = self.chaned.grid.ppq * numerator / denominator
+        self.chaned.grid.tick_res = self.chaned.grid.ppq * numerator / denominator
         self.chaned.redraw_grid_vp()
 
     def set_note_value_cb(self, widget):
@@ -144,7 +144,7 @@ class ChannelEditor(gtk.VBox):
         self.hbar.set_len(track_len)
         self.grid.resize_grid()
 
-    def set_chaned_adj(self, widget, event, hadj, vadj, ppqxsz, noteysz):
+    def set_chaned_adj(self, widget, event, hadj, vadj, qnxsz, noteysz):
         if (event.state & gtk.gdk.CONTROL_MASK or
             event.state & gtk.gdk.MOD1_MASK or
             event.state & gtk.gdk.MOD3_MASK or
@@ -152,7 +152,7 @@ class ChannelEditor(gtk.VBox):
             event.state & gtk.gdk.MOD5_MASK):
            return
         value = vadj.get_value()
-        xinc = ppqxsz * 5
+        xinc = qnxsz * 5
         yinc = noteysz * 5
         if event.direction == gdk.SCROLL_DOWN:
             if event.state & gtk.gdk.SHIFT_MASK:
@@ -215,8 +215,9 @@ class ChannelEditor(gtk.VBox):
         vbar.clear_note()
 
     def handle_zoom_x(self, adj):
-        self.grid.ppqxsz = int(self.grid.ppqxsz_seed * adj.get_value() / 8)
-        self.hbar.ppqxsz = int(self.hbar.ppqxsz_seed * adj.get_value() / 8)
+        self.grid.qnxsz = int(DEFAULT_QNOTE_XSZ * adj.get_value() / 8)
+        self.hbar.qnxsz = self.grid.qnxsz
+
         self.grid.resize_grid()
         self.hbar.resize_hbar()
         self.redraw_grid_vp()
@@ -228,14 +229,14 @@ class ChannelEditor(gtk.VBox):
 
         track_len = self.tracked.track.get_len() / self.tracked.sequencer.getppq()
 
-        self.hbar = MsqHBarTimeWidget(track_len, ppqxsz=self.tracked.ppqxsz)
-        ppqxsz = self.hbar.ppqxsz
+        self.hbar = MsqHBarTimeWidget(track_len, qnxsz=self.tracked.qnxsz)
+        qnxsz = self.hbar.qnxsz
         self.hbar_vp = gtk.Viewport()
         self.hbar_vp.set_size_request(self.tracked.min_width, -1)
         self.hbar_vp.add(self.hbar)
         self.hbar_vp.set_shadow_type(gtk.SHADOW_NONE)
         hadj = self.hbar_vp.get_hadjustment()
-        self.hbar_vp.connect("scroll_event", self.set_chaned_adj, hadj, hadj, ppqxsz, ppqxsz)
+        self.hbar_vp.connect("scroll_event", self.set_chaned_adj, hadj, hadj, qnxsz, qnxsz)
 
         vbar = MsqVBarNoteWidget(self.tracked)
         noteysz = vbar.noteysz
@@ -244,12 +245,12 @@ class ChannelEditor(gtk.VBox):
         vbar_vp.add(vbar)
         vbar_vp.set_shadow_type(gtk.SHADOW_NONE)
         vadj = vbar_vp.get_vadjustment()
-        vbar_vp.connect("scroll_event", self.set_chaned_adj, hadj, vadj, ppqxsz, noteysz)
+        vbar_vp.connect("scroll_event", self.set_chaned_adj, hadj, vadj, qnxsz, noteysz)
 
         self.grid = MsqNoteGridWidget(chan_list[0] if len(chan_list) > 0 else 0,
                                       self.tracked.track,
                                       ppq=self.tracked.sequencer.getppq(),
-                                      ppqxsz=ppqxsz,
+                                      qnxsz=qnxsz,
                                       noteysz=noteysz)
 
         self.grid.connect("motion_notify_event", self.handle_motion, self.hbar, vbar)
@@ -257,7 +258,7 @@ class ChannelEditor(gtk.VBox):
         self.grid_vp = gtk.Viewport()
         self.grid_vp.set_size_request(self.tracked.min_width, self.tracked.min_height)
         self.grid_vp.add(self.grid)
-        self.grid_vp.connect("scroll_event", self.set_chaned_adj, hadj, vadj, ppqxsz, noteysz)
+        self.grid_vp.connect("scroll_event", self.set_chaned_adj, hadj, vadj, qnxsz, noteysz)
         self.grid_vp.set_shadow_type(gtk.SHADOW_NONE)
         self.grid_vp.set_hadjustment(hadj)
         self.grid_vp.set_vadjustment(vadj)
@@ -316,11 +317,11 @@ def get_track_info(track):
     track_min = 0
     track_max = 0
     channel_list = []
-    for evwr in track:
-        event = evwr.get_event()
+    for event in track.getall_event():
+        # event = evwr.get_event()
         if event[0] < track_min:
             track_min = event[0]
-        if event[0] < track_max:
+        if event[0] > track_max:
             track_max = event[0]
         if not (event[1] in channel_list):
             channel_list.append(event[1])
@@ -343,7 +344,7 @@ class TrackEditor(gtk.Window):
     def clear_progress(self):
         self.chaned.grid.clear_progress()
 
-    def __init__(self, track, sequencer, portlist=None, ppqxsz=DEFAULT_PPQXSZ, font_name=DEFAULT_FONT_NAME):
+    def __init__(self, track, sequencer, portlist=None, qnxsz=DEFAULT_QNOTE_XSZ, font_name=DEFAULT_FONT_NAME):
         gtk.Window.__init__(self)
 
         self.sequencer = sequencer
@@ -354,7 +355,7 @@ class TrackEditor(gtk.Window):
         self.min_width = 320
         self.min_height = 240
 
-        self.ppqxsz = ppqxsz
+        self.qnxsz = qnxsz
         self.font_name = font_name
 
         self.chaned = ChannelEditor(self, channel_list)

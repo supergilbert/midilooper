@@ -30,6 +30,12 @@ UNDO_LOGMODE = 1
 
 history_list = []
 
+def evwr_to_repr_list(noteonoff_list):
+    repr_list = []
+    for noteon, noteoff in noteonoff_list:
+        repr_list.append((noteon.get_event(), noteoff.get_event()))
+    return repr_list
+
 class MsqNGWEventHdl(object):
     def __init__(self):
         self.note_val_on     = DEFAULT_NOTEON_VAL
@@ -45,10 +51,20 @@ class MsqNGWEventHdl(object):
         self.set_flags(gtk.CAN_DEFAULT)
 
 
+    def get_notes_evwr(self, rectangle):
+        tick_min = self.xpos2tick(rectangle.x)
+        tick_max = self.xpos2tick(rectangle.x + rectangle.width)
+        note_max = self.ypos2noteval(rectangle.y)
+        note_min = self.ypos2noteval(rectangle.y + rectangle.height)
+        return self.track.sel_noteonoff_evwr(self.chan_num,
+                                             tick_min,
+                                             tick_max,
+                                             note_min,
+                                             note_max)
+
     def get_notelist_area(self, note_list):
         if len(note_list) == 0:
             return None
-        self.track.lock()
         ev_noteon, ev_noteoff = note_list[0]
         min_tick = ev_noteon[0]
         max_tick = ev_noteoff[0]
@@ -63,18 +79,18 @@ class MsqNGWEventHdl(object):
                 min_note = ev_noteon[3]
             if ev_noteon[3] > max_note:
                 max_note = ev_noteon[3]
-        self.track.unlock()
-        xmax = max_tick * self.ppqxsz / self.ppq
-        xmin = min_tick * self.ppqxsz / self.ppq
+        xmax = max_tick * self.qnxsz / self.ppq
+        xmin = min_tick * self.qnxsz / self.ppq
         ymax = ((127 - min_note) * self.noteysz)
         ymin = ((127 - max_note) * self.noteysz)
         return gtk.gdk.Rectangle(xmin - 1, ymin - 1, xmax - xmin + 2, ymax - ymin + self.noteysz + 2)
 
 
     def _getminlen_noteonoff(self):
-        min_len = self.selection[0][1][0] - self.selection[0][0][0]
-        minev_on_off = self.selection[0]
-        for note_on, note_off in self.selection:
+        repr_list = evwr_to_repr_list(self.selection)
+        min_len = repr_list[0][1][0] - repr_list[0][0][0]
+        minev_on_off = repr_list[0]
+        for note_on, note_off in repr_list:
             note_len = note_off[0] - note_on[0]
             if note_len < min_len:
                 min_len = note_len
@@ -83,21 +99,21 @@ class MsqNGWEventHdl(object):
 
     def leftinc_getdata(self, ev_on_off_tick):
         min_len, minev_on_off = self._getminlen_noteonoff()
-        evon_maxtick = self.quantify_tick(minev_on_off[1][0] - self.note_resolution)
+        evon_maxtick = self.quantify_tick(minev_on_off[1][0] - self.tick_res)
         if evon_maxtick != minev_on_off[1][0]:
             maxtick = ev_on_off_tick[0][0] + (evon_maxtick - minev_on_off[0][0])
         else:
-            maxtick = ev_on_off_tick[0][0] + self.note_resolution
+            maxtick = ev_on_off_tick[0][0] + self.tick_res
         return (INC_LEFT, ev_on_off_tick[0][0], maxtick)
 
 
     def rightinc_getdata(self, ev_on_off_tick):
         min_len, minev_on_off = self._getminlen_noteonoff()
-        evoff_mintick = self.quantify_tick(minev_on_off[0][0] + self.note_resolution)
+        evoff_mintick = self.quantify_tick(minev_on_off[0][0] + self.tick_res)
         if evoff_mintick != minev_on_off[0][0]:
             mintick = ev_on_off_tick[1][0] + (evoff_mintick - minev_on_off[1][0])
         else:
-            mintick = minev_on_off[1][0] - self.note_resolution
+            mintick = minev_on_off[1][0] - self.tick_res
         return (INC_RIGHT, ev_on_off_tick[1][0], mintick)
 
 
@@ -106,35 +122,30 @@ class MsqNGWEventHdl(object):
 
         if self.wgt_mode == EDIT_MODE and event.button == 1:
             self.data_cache = self.gen_note_at_pos(event.x, event.y)
-            if self.selection:
-                selarea = self.get_notelist_area(self.selection)
             if self.data_cache:
                 self.draw_notelist(self.data_cache, True)
-                if self.selection:
-                    self.selection = self.data_cache
-                    self.draw_area(selarea)
             else:
                 self.wgt_mode = NO_MODE
 
         elif self.wgt_mode == NO_MODE and event.button == 1:
             if self.selection:
-                ev_on_off_tick = self.coo_under_notelist(event.x, event.y, self.selection)
+                ev_on_off_tick = self.coo_under_notelist(event.x, event.y, evwr_to_repr_list(self.selection))
                 if not ev_on_off_tick:
-                    new_selection = self.get_notes(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
+                    new_selection = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
                     if new_selection:
-                        ev_on_off_tick = self.coo_under_notelist(event.x, event.y, new_selection)
+                        ev_on_off_tick = self.coo_under_notelist(event.x, event.y, evwr_to_repr_list(new_selection))
                         if ev_on_off_tick:
-                            selarea = self.get_notelist_area(self.selection)
+                            selarea = self.get_notelist_area(evwr_to_repr_list(self.selection))
                             self.selection = new_selection
                             self.draw_area(selarea)
             else:
-                self.selection = self.get_notes(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
-                ev_on_off_tick = self.coo_under_notelist(event.x, event.y, self.selection) if self.selection else None
+                self.selection = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
+                ev_on_off_tick = self.coo_under_notelist(event.x, event.y, evwr_to_repr_list(self.selection)) if self.selection else None
 
             if ev_on_off_tick:
-                self.draw_notelist(self.selection, True)
+                self.draw_notelist(evwr_to_repr_list(self.selection), True)
                 self.wgt_mode = PASTE_MODE
-                self.paste_cache = self.selection
+                self.paste_cache = evwr_to_repr_list(self.selection)
                 self.data_cache = (self.quantify_tick(ev_on_off_tick[2]), ev_on_off_tick[0][3])
                 self.start_coo = (event.x, event.y)
             else:
@@ -143,7 +154,7 @@ class MsqNGWEventHdl(object):
                 self.start_coo = (event.x, event.y)
                 self.wgt_mode = SELECT_MODE
                 if (not self.ctrl_click) and self.selection:
-                    selarea = self.get_notelist_area(self.selection)
+                    selarea = self.get_notelist_area(evwr_to_repr_list(self.selection))
                     self.selection = None
                     if selarea:    # clear previous selection
                         selarea.x = selarea.x - 2
@@ -159,17 +170,17 @@ class MsqNGWEventHdl(object):
         elif self.wgt_mode == INC_MODE or (self.wgt_mode == NO_MODE and event.button == 2):
             self.wgt_mode = INC_MODE
             if self.selection:
-                ev_on_off_tick = self.coo_under_notelist(event.x, event.y, self.selection)
+                ev_on_off_tick = self.coo_under_notelist(event.x, event.y, evwr_to_repr_list(self.selection))
                 if ev_on_off_tick == None:
-                    note_list = self.selection
-                    self.selection = self.get_notes(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
+                    note_list = evwr_to_repr_list(self.selection)
+                    self.selection = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
                     self.draw_notelist(note_list, False)
                     if self.selection:
                         ev_on_off_tick = self.coo_under_notelist(event.x, event.y, self.selection)
             else:
-                self.selection = self.get_notes(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
+                self.selection = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
                 if self.selection:
-                    ev_on_off_tick = self.coo_under_notelist(event.x, event.y, self.selection)
+                    ev_on_off_tick = self.coo_under_notelist(event.x, event.y, evwr_to_repr_list(self.selection))
                 else:
                     ev_on_off_tick = None
 
@@ -187,22 +198,25 @@ class MsqNGWEventHdl(object):
         elif event.button == 2:
             self.wgt_mode = INC_MODE
             # if not self.selection:
-            #     self.selection = self.get_notes(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
+            #     self.selection = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
 
         else:
             pass
 
 
     def xpos2tick(self, xpos):
-        return int(xpos * self.ppq / self.ppqxsz)
+        return int(xpos * self.ppq / self.qnxsz)
 
 
     def ypos2noteval(self, ypos):
-        return int(127 - (ypos / self.noteysz))
+        note = int(127 - (ypos / self.noteysz))
+        if note < 0:
+            note = 0
+        return note
 
 
     def quantify_tick(self, tick):
-        return int(tick / self.note_resolution) * self.note_resolution
+        return int(tick / self.tick_res) * self.tick_res
 
 
     def is_in_notelist(self, noteon, noteoff, notelist):
@@ -225,9 +239,6 @@ class MsqNGWEventHdl(object):
 
 
     def note_collision(self, tick_on, tick_off, note, notelist, excl_list=None):
-        # /!\ LOCK
-        # Check if there is already a note at position
-        # TODO exclusion list
         if tick_on < 0:
             return True
         for note_on, note_off in notelist:
@@ -244,32 +255,46 @@ class MsqNGWEventHdl(object):
 
 
     def notelist_collision(self, notelist, excl_list=None):
-        # /!\ LOCK
-        track_notes = self.get_all_notes()
+        track_notes = self.track.getall_noteonoff(self.chan_num)
         for note_on, note_off in notelist:
             if self.note_collision(note_on[0], note_off[0], note_on[3], track_notes, excl_list):
                 return True
         return False
 
 
+    def get_noteonoff_from_list(self, evwrlist):
+        # Based on the fact that note was append ordered
+        ret_list = []
+        idx = 0
+        idx_end = len(evwrlist)
+        while (idx + 1 < idx_end):
+            ret_list.append((evwrlist[idx], evwrlist[idx + 1]))
+            idx += 2
+        return ret_list
+
     def add_note_on_off_list(self, notelist, logtype=UNDO_LOGMODE):
-        # /!\ LOCK
-        self.track.lock()
+        note_to_add = []
         for note_on, note_off in notelist:
-            self.track.add_note_event(*note_on)
-            self.track.add_note_event(*note_off)
-        self.track.unlock()
-        self.draw_notelist_area(notelist)
+            note_to_add.append(note_on)
+            note_to_add.append(note_off)
+        evwr_list = self.track.add_evrepr_list(note_to_add)
+
+        ret_list = self.get_noteonoff_from_list(evwr_list)
+
         if logtype == UNDO_LOGMODE:
             history_list.append((ADD_NOTE, notelist))
+        if len(ret_list):
+            return ret_list
+        else:
+            return None
 
 
     def gen_note_at_pos(self, xpos, ypos):
         noteon_tick = self.quantify_tick(self.xpos2tick(xpos))
-        noteoff_tick = noteon_tick + self.note_resolution
+        noteoff_tick = noteon_tick + self.tick_res
         note = self.ypos2noteval(int(ypos))
 
-        if self.note_collision(noteon_tick, noteoff_tick, note, self.get_all_notes()):
+        if self.note_collision(noteon_tick, noteoff_tick, note, self.track.getall_noteonoff(self.chan_num)):
             print "Can not add notes at this position"
             return None
 
@@ -302,32 +327,19 @@ class MsqNGWEventHdl(object):
         if self.notelist_collision(new_list):
             return None
         else:
-            self.add_note_on_off_list(new_list)
-            return new_list
+            return self.add_note_on_off_list(new_list)
 
 
     def delete_notes(self, notelist, logtype=UNDO_LOGMODE):
-        self.track.lock()
-        if self.track.is_handled():
-            # tmp hack: handle of trash API (usage of node's deleted attribut)
-            try:
-                for evwr in self.track:
-                    event = evwr.get_event()
-                    while event and self.is_selected(event, notelist):
-                        self.track.event2trash(evwr)
-                        evwr.next()
-                        event = evwr.get_event()
-            except StopIteration: # bis: catching exception raised by the next function
-                pass
-        else:
-            for evwr in self.track:
-                event = evwr.get_event()
-                while event and self.is_selected(event, notelist):
-                    evwr._del_event()
-                    event = evwr.get_event()
-        self.track.unlock()
-
-        selarea = self.get_notelist_area(notelist)
+        notelist_repr = []
+        notes_to_del = []
+        for note_on, note_off in notelist:
+            notes_to_del.append(note_on)
+            notes_to_del.append(note_off)
+            notelist_repr.append((note_on.get_event(),
+                                  note_off.get_event()))
+        selarea = self.get_notelist_area(notelist_repr)
+        self.track._delete_evwr_list(notes_to_del)
         if selarea:
             selarea.x = selarea.x - 2
             selarea.y = selarea.y - 2
@@ -337,6 +349,11 @@ class MsqNGWEventHdl(object):
 
         if logtype == UNDO_LOGMODE:
             history_list.append((DEL_NOTE, notelist))
+
+    def delete_selection(self):
+        notelist = self.selection
+        self.selection = None
+        self.delete_notes(notelist)
 
 
     def draw_notelist_area(self, notelist):
@@ -361,7 +378,7 @@ class MsqNGWEventHdl(object):
             self.wgt_mode = NO_MODE
 
         elif event.button == 1 and not self.wgt_mode == INC_MODE:
-            if self.wgt_mode == EDIT_MODE:
+            if self.wgt_mode == EDIT_MODE and self.data_cache:
                 tick = self.xpos2tick(event.x)
                 if tick < self.data_cache[0][0][0]:
                     tickdiff = self.get_inc_left_tickdiff(self.xpos2tick(event.x),
@@ -378,25 +395,27 @@ class MsqNGWEventHdl(object):
                 if self.notelist_collision(notelist):
                     print "Can not add note at this position"
                 else:
-                    self.add_note_on_off_list(notelist)
-                    if self.selection:
-                        tmp_notelist = self.selection
-                        self.selection = None
+                    new_selection = self.add_note_on_off_list(notelist)
+                    if new_selection:
+                        if self.selection:
+                            tmp_notelist = evwr_to_repr_list(self.selection)
+                            self.selection = new_selection
+                            self.draw_notelist_area(tmp_notelist)
+                        else:
+                            self.selection = new_selection
+                        tmp_notelist = evwr_to_repr_list(self.selection)
                         self.draw_notelist_area(tmp_notelist)
-                    self.selection = notelist
-                    self.draw_notelist_area(self.selection)
                     self.data_cache = None
 
             elif self.wgt_mode == SELECT_MODE:
                 if self.select_area:
                     # tmp: change draw_area to reversible effect (or a faster redraw)
                     self.draw_area(self.select_area)
-                    new_sel = self.get_notes(self.select_area)
                 else:
                     self.select_area = gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1)
 
                 if self.ctrl_click:
-                    new_sel = self.get_notes(self.select_area)
+                    new_sel = self.get_notes_evwr(self.select_area)
                     if new_sel and self.selection:
                         for noteonoff in new_sel:
                             if not note_in_select(noteonoff, self.selection):
@@ -404,13 +423,13 @@ class MsqNGWEventHdl(object):
                     else:
                         self.selection = new_sel
                 else:
-                    self.selection = self.get_notes(self.select_area)
+                    self.selection = self.get_notes_evwr(self.select_area)
                 self.ctrl_click  = False
                 self.select_area = None
                 self.start_coo   = None
                 self.wgt_mode    = NO_MODE
                 if self.selection: # render new selection
-                    self.draw_notelist_area(self.selection)
+                    self.draw_notelist_area(evwr_to_repr_list(self.selection))
                 self.wgt_mode = NO_MODE
 
             elif self.wgt_mode == PASTE_MODE:
@@ -418,11 +437,11 @@ class MsqNGWEventHdl(object):
                     self.draw_area(self.tmp_note_area)
 
                     if self.paste_cache:
-                        if self.selection: self.delete_notes(self.selection)
+                        if self.selection: self.delete_selection()
                         new_notes = self._paste_notes_at(event.x, event.y, self.paste_cache)
                         if new_notes:
                             self.selection = new_notes
-                            self.draw_notelist_area(self.selection)
+                            self.draw_notelist_area(evwr_to_repr_list(new_notes))
                         else:
                             print "Can not move note at this position"
                 else:
@@ -436,23 +455,23 @@ class MsqNGWEventHdl(object):
                 self.tmp_note_area = None
             self.window.set_cursor(self.current_cursor)
             if self.data_cache:
+                repr_list = evwr_to_repr_list(self.selection)
                 if self.data_cache[0] == INC_LEFT:
                     tickdiff = self.get_inc_left_tickdiff(self.xpos2tick(event.x),
                                                           self.data_cache[1],
                                                           self.data_cache[2])
-                    notelist = self.get_inc_left_notelist(tickdiff, self.selection)
+                    notelist = self.get_inc_left_notelist(tickdiff, repr_list)
                 else:
                     tickdiff = self.get_inc_right_tickdiff(self.xpos2tick(event.x),
                                                            self.data_cache[1],
                                                            self.data_cache[2])
-                    notelist = self.get_inc_right_notelist(tickdiff, self.selection)
+                    notelist = self.get_inc_right_notelist(tickdiff, repr_list)
 
-                if self.notelist_collision(notelist, self.selection):
+                if self.notelist_collision(notelist, repr_list):
                     print "Can not increment note at this position"
                 else:
-                    self.delete_notes(self.selection)
-                    self.selection = notelist
-                    self.add_note_on_off_list(notelist)
+                    self.delete_selection()
+                    self.selection = self.add_note_on_off_list(notelist)
                 self.data_cache = None
             self.wgt_mode = NO_MODE
 
@@ -601,7 +620,7 @@ class MsqNGWEventHdl(object):
 
 
     def get_inc_right_tickdiff(self, tick, current_noteoff_tick, mintick):
-        qtick = self.quantify_tick(tick + self.note_resolution)
+        qtick = self.quantify_tick(tick + self.tick_res)
         if mintick > qtick:
             tick_diff = mintick - current_noteoff_tick
         else:
@@ -677,7 +696,7 @@ class MsqNGWEventHdl(object):
                 self.draw_notelist(self.data_cache)
 
         elif self.wgt_mode == PASTE_MODE:
-            self.draw_paste_at(event.x, event.y, self.paste_cache, True, self.selection)
+            self.draw_paste_at(event.x, event.y, self.paste_cache, True, self.paste_cache)
 
         elif self.wgt_mode == INC_MODE and self.selection:
             if self.data_cache:
@@ -685,23 +704,24 @@ class MsqNGWEventHdl(object):
                     self.draw_area(self.tmp_note_area)
                     self.tmp_note_area = None
                 tick = self.xpos2tick(event.x)
+                note_list = evwr_to_repr_list(self.selection)
                 if self.data_cache[0] == INC_LEFT:
                     self.tmp_note_area = self.draw_inc_left(tick,
-                                                            self.selection,
+                                                            note_list,
                                                             self.data_cache[1],
                                                             self.data_cache[2],
-                                                            self.selection)
+                                                            note_list)
                 else:
                     self.tmp_note_area = self.draw_inc_right(tick,
-                                                             self.selection,
+                                                             note_list,
                                                              self.data_cache[1],
                                                              self.data_cache[2],
-                                                             self.selection)
+                                                             note_list)
             else:
                 self.set_inc_cursor(event.x, event.y)
 
         elif self.wgt_mode == NO_MODE and self.selection:
-            ev_on_off_tick = self.coo_under_notelist(event.x, event.y, self.selection)
+            ev_on_off_tick = self.coo_under_notelist(event.x, event.y, evwr_to_repr_list(self.selection))
             if ev_on_off_tick:
                 self.window.set_cursor(self.cursor_move)
             else:
@@ -713,7 +733,7 @@ class MsqNGWEventHdl(object):
         if self.selection and (event.keyval == gtk.keysyms.Delete
                                or event.keyval == gtk.keysyms.BackSpace):
             if self.selection:
-                self.delete_notes(self.selection)
+                self.delete_selection()
                 self.selection = None
         else:
             if event.keyval == gtk.keysyms.Alt_L or event.keyval == gtk.keysyms.Alt_R:
@@ -746,17 +766,17 @@ class MsqNGWEventHdl(object):
                 keyname = gtk.gdk.keyval_name(event.keyval)
                 if self.selection:
                     if keyname == "x":
-                        self.note_clipboard = self.selection
-                        self.delete_notes(self.selection)
+                        self.note_clipboard = evwr_to_repr_list(self.selection)
+                        self.delete_selection()
                         self.selection = None
                     elif keyname == "c":
-                        self.note_clipboard = self.selection
+                        self.note_clipboard = evwr_to_repr_list(self.selection)
                 if keyname == "v":
                     if self.note_clipboard:
                         self.paste_cache = self.note_clipboard
                         self.data_cache = self.get_paste_data(self.paste_cache)
                         if self.selection:
-                            note_list = self.selection
+                            note_list = evwr_to_repr_list(self.selection)
                             self.selection = None
                             self.draw_notelist_area(note_list) # clear last selection
                         pointer = self.window.get_pointer()

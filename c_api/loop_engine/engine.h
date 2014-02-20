@@ -27,6 +27,7 @@ typedef struct
   bool_t           is_handled;
   bool_t           deleted;
   bool_t           need_sync;
+  byte_t           pending_notes[256];
 } track_ctx_t;
 
 typedef struct
@@ -57,10 +58,20 @@ bool_t          engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx);
 track_ctx_t     *engine_new_track(engine_ctx_t *ctx, char *name);
 void            engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile);
 /* void            engine_copy_tracklist(engine_ctx_t *ctx, list_t *tracklist); */
-void            trackctx_event2trash(track_ctx_t *traxkctx,
-                                     list_iterator_t *tickit,
-                                     list_iterator_t *evit);
 
 void            engine_save_project(engine_ctx_t *ctx, char *file_path);
+void            play_trackev(uint_t tick, track_ctx_t *track_ctx);
+void            play_track_pending_notes(track_ctx_t *track_ctx);
+
+# include "ev_iterator.h"
+
+typedef struct
+{
+  list_iterator_t evit;
+  list_iterator_t tickit;
+} trash_ctn_t;
+
+void            trackctx_event2trash(track_ctx_t *traxkctx,
+                                     ev_iterator_t *ev_iterator);
 
 #endif

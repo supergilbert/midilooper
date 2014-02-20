@@ -3,7 +3,7 @@
 
 #include <Python.h>
 
-#include "./loop_engine/engine.h"
+#include "loop_engine/engine.h"
 
 PyObject *create_midiseq_track(track_ctx_t *trackctx);
 

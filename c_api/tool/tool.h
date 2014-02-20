@@ -34,8 +34,8 @@ typedef struct
 #include <stdlib.h>
 void *myalloc(size_t size);
 
-void push_to_list(list_t *list, void *addr);
-void push_to_list_tail(list_t *list, void *addr);
+node_t *push_to_list(list_t *list, void *addr);
+node_t *push_to_list_tail(list_t *list, void *addr);
 
 typedef void (*free_list_func)(void *addr);
 void free_list_node(list_t *list, free_list_func func);
@@ -58,6 +58,8 @@ typedef struct
 } list_iterator_t;
 
 void iter_init(list_iterator_t *iterator, list_t *list);
+void iter_copy(list_iterator_t *iter_src, list_iterator_t *iter_dst);
+bool_t iter_move_to_addr(list_iterator_t *iterator, void *addr);
 /* #define iter_init(iterator, list) (iterator)->node = (list)->head; (iterator)->list = (list) */
 #define iter_node(iterator) ((iterator)->node)
 #define iter_node_ptr(iterator) ((iterator)->node->addr)
@@ -66,7 +68,8 @@ void iter_init(list_iterator_t *iterator, list_t *list);
 #define iter_next(iterator) ((iterator)->node = (iterator)->node->next)
 #define iter_head(iterator) ((iterator)->node = (iterator)->list->head)
 
-void iter_push_before(list_iterator_t *iterator, void *addr);
+node_t *iter_push_before(list_iterator_t *iterator, void *addr);
+node_t *iter_push_after(list_iterator_t *iterator, void *addr);
 void iter_node_del(list_iterator_t *iterator, free_list_func func);
 
 #endif
