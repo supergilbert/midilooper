@@ -96,6 +96,7 @@ void   set_pending_note(byte_t *pending_notes, byte_t channel, byte_t num);
 void   unset_pending_note(byte_t *pending_notes, byte_t channel, byte_t num);
 void   update_pending_notes(byte_t *noteson_state, midicev_t *midicev);
 bool_t is_pending_notes(byte_t *pending_notes, byte_t channel, byte_t num);
+bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2);
 
 
 #endif

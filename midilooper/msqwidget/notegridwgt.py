@@ -25,6 +25,7 @@ INC_RIGHT = 1
 ADD_NOTE = 0
 DEL_NOTE = 1
 
+# other mode ???
 NO_LOGMODE   = 0
 UNDO_LOGMODE = 1
 
@@ -56,6 +57,8 @@ class MsqNGWEventHdl(object):
         tick_max = self.xpos2tick(rectangle.x + rectangle.width)
         note_max = self.ypos2noteval(rectangle.y)
         note_min = self.ypos2noteval(rectangle.y + rectangle.height)
+        if tick_min < 0:
+            tick_min = 0
         return self.track.sel_noteonoff_evwr(self.chan_num,
                                              tick_min,
                                              tick_max,
@@ -750,6 +753,11 @@ class MsqNGWEventHdl(object):
         note_max = max(notelist, key=lambda x: x[0][3])[0][3]
         return (tick_min, note_max)
 
+    def clear_selection(self):
+        if self.selection:
+            note_list = evwr_to_repr_list(self.selection)
+            self.selection = None
+            self.draw_notelist_area(note_list)
 
     def handle_key_release(self, widget, event):
         self.grab_focus()
@@ -775,10 +783,7 @@ class MsqNGWEventHdl(object):
                     if self.note_clipboard:
                         self.paste_cache = self.note_clipboard
                         self.data_cache = self.get_paste_data(self.paste_cache)
-                        if self.selection:
-                            note_list = evwr_to_repr_list(self.selection)
-                            self.selection = None
-                            self.draw_notelist_area(note_list) # clear last selection
+                        self.clear_selection() # clear last selection
                         pointer = self.window.get_pointer()
                         self.draw_paste_at(float(pointer[0]), float(pointer[1]), self.paste_cache, True)
                         self.wgt_mode = PASTE_MODE
@@ -786,11 +791,22 @@ class MsqNGWEventHdl(object):
                     self.undo()
 
 
+    def _delete_noterepr_list(self, noterepr_list):
+        evrepr_list = []
+        for noteon, noteoff in noterepr_list:
+            evrepr_list.append(noteon)
+            evrepr_list.append(noteoff)
+        evwr_list = self.track._get_evwr_list(evrepr_list)
+        self.track._delete_evwr_list(evwr_list)
+        self.draw_notelist_area(noterepr_list)
+
+
     def undo(self):
         if len(history_list):
             ev = history_list.pop()
+            self.clear_selection()
             if ev[0] == ADD_NOTE:
-                self.delete_notes(ev[1], NO_LOGMODE)
+                self._delete_noterepr_list(ev[1])
             elif ev[0] == DEL_NOTE:
                 self.add_note_on_off_list(ev[1], NO_LOGMODE)
         else:

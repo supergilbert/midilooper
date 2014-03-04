@@ -12,44 +12,6 @@ if gtk.pygtk_version < (2, 8):
 
 from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, DEFAULT_QNOTE_XSZ, DEFAULT_FONT_NAME#, DEFAULT_NOTEON_VAL
 
-class LengthSettingHBox(gtk.HBox):
-    def numerator_cb(self, combobox):
-        val = combobox.get_model()[combobox.get_active()][0]
-        self.length_numerator = int(val)
-        self.cb_func(self.length_numerator,
-                     self.length_denominator)
-
-    def denominator_cb(self, combobox):
-        val = combobox.get_model()[combobox.get_active()][0]
-        self.length_denominator = int(val)
-        self.cb_func(self.length_numerator,
-                     self.length_denominator)
-
-    def __init__(self, cb_func, *cb_args):
-        gtk.HBox.__init__(self)
-        self.length_numerator = 1
-        self.length_denominator = 4
-        self.cb_func = cb_func
-        self.cb_args = cb_args
-
-        num_cbbox = gtk.combo_box_new_text()
-        for numerator in [1, 2, 3, 4, 6, 8, 12, 16]:
-            num_cbbox.append_text(str(numerator))
-        num_cbbox.set_active(0)
-        num_cbbox.connect("changed", self.numerator_cb)
-
-        slash_str = gtk.Label("/")
-
-        den_cbbox = gtk.combo_box_new_text()
-        for denominator in [1, 2, 4, 8, 16, 32, 3, 6, 12, 24]:
-            den_cbbox.append_text(str(denominator))
-        den_cbbox.set_active(2)
-        den_cbbox.connect("changed", self.denominator_cb)
-
-        self.pack_start(num_cbbox)
-        self.pack_start(slash_str)
-        self.pack_start(den_cbbox)
-
 
 class TrackSettingTable(gtk.Table):
     def port_changed(self, combobox):
@@ -93,10 +55,6 @@ class TrackSettingTable(gtk.Table):
 
 class NoteSettingTable(gtk.Table):
 
-    def set_note_res(self, numerator, denominator):
-        self.chaned.grid.tick_res = self.chaned.grid.ppq * numerator / denominator
-        self.chaned.redraw_grid_vp()
-
     def set_note_value_cb(self, widget):
         self.chaned.grid.note_val_on = int(widget.get_value())
 
@@ -105,14 +63,30 @@ class NoteSettingTable(gtk.Table):
         self.chaned.grid.chan_num = chan_num
         self.chaned.redraw_grid_vp()
 
+    def res_changed(self, cbbox):
+        val_int = cbbox.get_model()[cbbox.get_active()][0]
+        self.chaned.grid.tick_res = val_int
+        self.chaned.redraw_grid_vp()
+
     def __init__(self, chaned, chan_list):
         self.chaned = chaned
         gtk.Table.__init__(self, 8, 1)
 
         label = gtk.Label("   Resolution: ")
-        note_pos_box = LengthSettingHBox(self.set_note_res, chaned.grid)
+        res_list = gtk.ListStore(int, str)
+        ppq = self.chaned.tracked.sequencer.getppq()
+        for val in [1, 2, 4, 8, 16, 32, 64, 3, 6, 12, 24, 48]:
+            if not ppq % val:
+                res_list.append((ppq/val, "1 / %s (%sp)" % (val, ppq/val)))
+        combo_res = gtk.ComboBox(res_list)
+        combo_res.set_active(2)
+        cell = gtk.CellRendererText()
+        combo_res.pack_start(cell, True)
+        combo_res.add_attribute(cell, 'text', 1)
+        combo_res.connect("changed", self.res_changed)
+
         self.attach(label, 2, 3, 0, 1)
-        self.attach(note_pos_box, 3, 4, 0, 1)
+        self.attach(combo_res, 3, 4, 0, 1)
 
         label = gtk.Label("   Value: ")
         spinadj = gtk.Adjustment(chaned.grid.note_val_on, 0, 127, 1)
@@ -327,6 +301,7 @@ def get_track_info(track):
             channel_list.append(event[1])
     channel_list.sort()
     return (track_min, track_max, channel_list)
+
 
 class TrackEditor(gtk.Window):
     def set_len(self, track_len):

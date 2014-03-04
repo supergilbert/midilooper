@@ -318,6 +318,64 @@ void delete_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
 
 #include "seqtool/seqtool.h"
 
+
+bool_t gen_mcev_from_evrepr(PyObject *evrepr, uint_t *tick, midicev_t *mcev)
+{
+  Py_ssize_t list_len = PyTuple_Size(evrepr);
+  long       chan, type, num, val;
+
+  if (list_len < 5)
+    return FALSE;
+  /* todo: more test */
+  *tick = (uint_t) PyInt_AsLong(PyTuple_GetItem(evrepr, 0));
+  chan  = PyInt_AsLong(PyTuple_GetItem(evrepr, 1));
+  type  = PyInt_AsLong(PyTuple_GetItem(evrepr, 2));
+  num   = PyInt_AsLong(PyTuple_GetItem(evrepr, 3));
+  val   = PyInt_AsLong(PyTuple_GetItem(evrepr, 4));
+  /* todo: switch */
+  mcev->chan = (byte_t) chan;
+  mcev->type = (byte_t) type;
+  mcev->event.note.num  = (byte_t) num;
+  mcev->event.note.val  = (byte_t) val;
+  return TRUE;
+}
+
+PyObject *try_gen_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
+{
+  Py_ssize_t    list_len;
+  Py_ssize_t    idx;
+  PyObject      *evrepr = NULL, *evwr = NULL, *ret = PyList_New(0);
+  midicev_t     mcev;
+  uint_t        tick = 0;
+  ev_iterator_t evit;
+
+  if (evit_init(&evit, &(trackctx->track->tickev_list)))
+    for (list_len = PyList_GET_SIZE(pylist),
+           idx = 0;
+         idx < list_len;
+         idx++)
+      {
+        evrepr = (PyObject *) PyList_GetItem(pylist, idx);
+        if (gen_mcev_from_evrepr(evrepr, &tick, &mcev) == TRUE)
+          {
+            if (evit_searchev(&evit, tick, &mcev))
+              {
+                evwr = build_evwr_from_evit(&evit, trackctx);
+                PyList_Append(ret, evwr);
+              }
+            else
+              output_error("Can not find tick %d %s Missing an event",
+                           tick,
+                           midicmd_to_str(mcev.type));
+          }
+        else
+          output_error("Can not generate event repr. Missing an event");
+      }
+  else
+    output_error("Track has no seqev");
+  return ret;
+}
+
 void _evit_add_midicev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev)
 {
   node_t   *tick_node = search_or_add_ticknode(evit->tickit.list, tick);

@@ -253,6 +253,24 @@ static PyObject *msq_track_delete_evwr_list(PyObject *obj,
 }
 
 
+static PyObject *msq_track_get_evwr_list(PyObject *obj,
+                                         PyObject *args)
+{
+  midiseq_trackObject *self    = (midiseq_trackObject *) obj;
+  PyObject            *pylist  = NULL, *evwr_list = NULL;
+
+  if (!PyArg_ParseTuple(args , "O", &pylist))
+    return NULL;
+  pthread_rwlock_rdlock(&(self->trackctx->lock));
+  evwr_list = try_gen_evwr_list(self->trackctx, pylist);
+  pthread_rwlock_unlock(&(self->trackctx->lock));
+  if (evwr_list)
+    return evwr_list;
+  else
+    Py_RETURN_NONE;
+}
+
+
 static PyObject *msq_track_getall_event(PyObject *obj,
                                         PyObject *args)
 {
@@ -364,28 +382,30 @@ static PyObject *midiseq_track_dump(PyObject *obj,
 }
 
 static PyMethodDef midiseq_track_methods[] = {
-  {"get_name",           midiseq_track_get_name,           METH_NOARGS,  "Get track name"},
-  {"set_name",           midiseq_track_set_name,           METH_VARARGS, "Set track name"},
-  {"get_len",            midiseq_track_get_len,            METH_NOARGS,  "Get track len"},
-  {"get_mute_state",     midiseq_track_get_mute_state,     METH_NOARGS,  "Get mute state"},
-  {"set_len",            midiseq_track_set_len,            METH_VARARGS, "Set track len"},
-  {"get_port",           midiseq_track_get_port,           METH_NOARGS,  "Get track port"},
-  {"set_port",           midiseq_track_set_port,           METH_VARARGS, "Set track port"},
-  {"toggle_mute",        midiseq_toggle_mute,              METH_NOARGS,  "Toggle mute state"},
-  {"has_port",           midiseq_track_has_port,           METH_VARARGS, "Check if track has port"},
+  {"get_name",            midiseq_track_get_name,           METH_NOARGS,  "Get track name"},
+  {"set_name",            midiseq_track_set_name,           METH_VARARGS, "Set track name"},
+  {"get_len",             midiseq_track_get_len,            METH_NOARGS,  "Get track len"},
+  {"get_mute_state",      midiseq_track_get_mute_state,     METH_NOARGS,  "Get mute state"},
+  {"set_len",             midiseq_track_set_len,            METH_VARARGS, "Set track len"},
+  {"get_port",            midiseq_track_get_port,           METH_NOARGS,  "Get track port"},
+  {"set_port",            midiseq_track_set_port,           METH_VARARGS, "Set track port"},
+  {"toggle_mute",         midiseq_toggle_mute,              METH_NOARGS,  "Toggle mute state"},
+  {"has_port",            midiseq_track_has_port,           METH_VARARGS, "Check if track has port"},
   /* {"add_note_event",     midiseq_track_add_note_event,     METH_VARARGS, "Add a note event"}, */
-  {"add_evrepr_list",    midiseq_track_add_note_list,      METH_VARARGS, "Add a note list event representation"},
+  {"add_evrepr_list",     midiseq_track_add_note_list,      METH_VARARGS, "Add a note list event representation"},
   /* {"lock",               midiseq_track_lock,               METH_NOARGS,  "Lock track"}, */
   /* {"unlock",             midiseq_track_unlock,             METH_NOARGS,  "Unlock track"}, */
   /* {"event2trash",        midiseq_track_event2trash,        METH_VARARGS, "Put event to the trash"}, */
-  {"is_handled",         midiseq_track_ishandled,          METH_NOARGS,  "Get if the track is handled"},
+  {"is_handled",          midiseq_track_ishandled,          METH_NOARGS,  "Get if the track is handled"},
   /* {"get_events",         midiseq_track_get_events,         METH_NOARGS,  "Get event list representation in python"}, */
-  {"_delete_evwr_list",  msq_track_delete_evwr_list,       METH_VARARGS,
+  {"_delete_evwr_list",   msq_track_delete_evwr_list,       METH_VARARGS,
    "Delete event wrapper list (Caution: never use event of other tracks)"},
-  {"getall_noteonoff",   msq_track_getall_noteonoff,       METH_VARARGS, "Get note list representation in python"},
-  {"getall_event",       msq_track_getall_event,           METH_VARARGS, "Get event list representation in python"},
-  {"sel_noteonoff_evwr", msq_track_sel_noteonoff_evwr,     METH_VARARGS, "select note (event wrapper list)"},
-  {"sel_noteonoff_repr", msq_track_sel_noteonoff_repr,     METH_VARARGS, "select note (event repr list)"},
+  {"_get_evwr_list",      msq_track_get_evwr_list,          METH_VARARGS,
+   "Delete event wrapper list (Caution: never use event of other tracks)"},
+  {"getall_noteonoff",    msq_track_getall_noteonoff,       METH_VARARGS, "Get note list representation in python"},
+  {"getall_event",        msq_track_getall_event,           METH_VARARGS, "Get event list representation in python"},
+  {"sel_noteonoff_evwr",  msq_track_sel_noteonoff_evwr,     METH_VARARGS, "select note (event wrapper list)"},
+  {"sel_noteonoff_repr",  msq_track_sel_noteonoff_repr,     METH_VARARGS, "select note (event repr list)"},
   /* {"get_note_selection", midiseq_track_get_note_selection, METH_VARARGS, "Get event list representation in python"}, */
   {"_dump",              midiseq_track_dump,               METH_NOARGS,  "Dump track event(s)"},
   {NULL, NULL, 0, NULL}

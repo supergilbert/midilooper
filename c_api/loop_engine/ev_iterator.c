@@ -107,6 +107,39 @@ seqev_t *evit_init(ev_iterator_t *ev_iterator, list_t *tickev_list)
   return evit_tick_head(ev_iterator);
 }
 
+bool_t evit_searchev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev)
+{
+  seqev_t       *ev = NULL;
+  midicev_t     *midicev = NULL;
+
+  for (ev = evit_tick_head(evit);
+       (ev && evit->tick <= tick);
+       ev = evit_next_tick(evit))
+    {
+      if (evit->tick == tick)
+        {
+          if (ev->type == MIDICEV)
+            {
+              midicev = (midicev_t *) ev->addr;
+              if (compare_midicev(midicev, mcev))
+                return TRUE;
+            }
+          for (ev = _it_next_seqev(&(evit->seqevit));
+               ev;
+               ev = _it_next_seqev(&(evit->seqevit)))
+            {
+              if (ev->type == MIDICEV)
+                {
+                  midicev = (midicev_t *) ev->addr;
+                  if (compare_midicev(midicev, mcev))
+                    return TRUE;
+                }
+            }
+          return FALSE;
+        }
+    }
+  return FALSE;
+}
 
 seqev_t *evit_get_seqev(ev_iterator_t *ev_iterator)
 {

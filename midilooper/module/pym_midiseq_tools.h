@@ -18,6 +18,7 @@ PyObject *getall_noteonoff_repr(list_t *tickev_list, byte_t channel);
 PyObject *getall_event_repr(list_t *tickev_list);
 PyObject *add_evrepr_list(track_ctx_t *trackctx, PyObject *pylist);
 void     delete_evwr_list(track_ctx_t *trackctx, PyObject *pylist);
+PyObject *try_gen_evwr_list(track_ctx_t *trackctx, PyObject *pylist);
 
 /* PyObject *get_event_list_repr(list_t *); */
 /* PyObject *get_note_list_repr(list_t *tickev_list, byte_t channel); */

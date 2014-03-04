@@ -179,6 +179,46 @@ void update_pending_notes(byte_t *pending_notes, midicev_t *midicev)
                        midicev->event.note.num);
 }
 
+bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2)
+{
+  if (mcev1->type == mcev2->type && mcev1->chan == mcev2->chan)
+    switch (mcev1->type)
+      {
+      case NOTEOFF:
+      case NOTEON:
+        if (mcev1->event.note.num == mcev2->event.note.num &&
+            mcev1->event.note.val == mcev2->event.note.val)
+          return TRUE;
+        break;
+      case KEYAFTERTOUCH:
+        if (mcev1->event.aftertouch.num == mcev2->event.aftertouch.num &&
+            mcev1->event.aftertouch.val == mcev2->event.aftertouch.val)
+          return TRUE;
+        break;
+      case CONTROLCHANGE:
+        if (mcev1->event.ctrl.num == mcev2->event.ctrl.num &&
+            mcev1->event.ctrl.val == mcev2->event.ctrl.val)
+          return TRUE;
+        break;
+      case PROGRAMCHANGE:
+        if (mcev1->event.prg_chg == mcev2->event.prg_chg)
+          return TRUE;
+        break;
+      case CHANNELAFTERTOUCH:
+        if (mcev1->event.chan_aftertouch == mcev2->event.chan_aftertouch)
+          return TRUE;
+        break;
+      case PITCHWHEELCHANGE:
+        if (mcev1->event.pitchbend.Lval == mcev2->event.pitchbend.Lval &&
+            mcev1->event.pitchbend.Hval == mcev2->event.pitchbend.Hval)
+          return TRUE;
+        break;
+      default:
+        return FALSE;
+      }
+  return FALSE;
+}
+
 
 /* #warning include a gerer */
 #include "seqtool/seqtool.h"

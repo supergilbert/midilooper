@@ -14,6 +14,7 @@ typedef struct {
 void    dump_evit(ev_iterator_t *evit);
 seqev_t *evit_init(ev_iterator_t *, list_t *tickev_list);
 seqev_t *evit_tick_head(ev_iterator_t *);
+bool_t  evit_searchev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev);
 seqev_t *evit_next_tick(ev_iterator_t *);
 seqev_t *evit_get_seqev(ev_iterator_t *);
 seqev_t *evit_next_seqev(ev_iterator_t *);
