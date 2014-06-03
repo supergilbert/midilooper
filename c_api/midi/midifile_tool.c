@@ -282,7 +282,7 @@ buf_node_t *_append_sysex_tracklen(buf_node_t *tail, uint_t len)
 {
   byte_t buf[5];
 
-  tail = _append_sysex_header(tail, 5, MSQ_TRACK_LEN_SYSEX);
+  tail = _append_sysex_header(tail, 5, MSQ_SYSEX_TRACK_LOOPLEN);
   set_be32b_uint(buf, len);
   buf[4] = 0xF7;
   tail->next = init_buf_node(buf, 5);
@@ -344,7 +344,7 @@ void write_midifile_track(int fd, midifile_track_t *mtrack)
 
   tail = _append_metaev_track_name(&head, name);
 
-  tail = _append_sysex_tracklen(tail, mtrack->sysex_len);
+  tail = _append_sysex_tracklen(tail, mtrack->sysex_loop_len);
   if (mtrack->sysex_portid != -1)
     tail = _append_sysex_portid(tail, mtrack->sysex_portid);
 

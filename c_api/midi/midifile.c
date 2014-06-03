@@ -81,13 +81,13 @@ void get_msq_sysex(midifile_info_t *info, midifile_track_t *track, byte_t *buffe
     {
       switch (buffer[4])
         {
-        case MSQ_TRACK_LEN_SYSEX:
-          track->sysex_len = buffer[5];
-          track->sysex_len = (track->sysex_len << 8) + buffer[6];
-          track->sysex_len = (track->sysex_len << 8) + buffer[7];
-          track->sysex_len = (track->sysex_len << 8) + buffer[8];
+        case MSQ_SYSEX_TRACK_LOOPLEN:
+          track->sysex_loop_len = buffer[5];
+          track->sysex_loop_len = (track->sysex_loop_len << 8) + buffer[6];
+          track->sysex_loop_len = (track->sysex_loop_len << 8) + buffer[7];
+          track->sysex_loop_len = (track->sysex_loop_len << 8) + buffer[8];
           break;
-        case MSQ_PORTNAME_SYSEX:
+        case MSQ_SYSEX_PORTNAME:
           get_sysex_portname(&(info->portinfo_list), &(buffer[5]));
           break;
         case MSQ_TRACK_PORTID:

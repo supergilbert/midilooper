@@ -15,7 +15,7 @@ void write_trackctx2midifile(int fd, track_ctx_t *ctx)
   COPY_LIST_NODE(&(ctx->track->tickev_list), &(mtrack.track.tickev_list));
   mtrack.track.name = ctx->track->name;
 
-  mtrack.sysex_len = ctx->len;
+  mtrack.sysex_loop_len = ctx->loop_len;
   mtrack.sysex_portid = (ctx->aseqport_ctx != NULL) ? ctx->aseqport_ctx->output_port : -1;
   write_midifile_track(fd, &mtrack);
 }
@@ -32,7 +32,7 @@ buf_node_t *_append_sysex_port(buf_node_t *tail, aseqport_ctx_t *aport)
   node = init_buf_node(buf, 6);
 
   node->next = sysex_buf_node_end((byte_t *) port_name, name_len);
-  tail = _append_sysex_header(tail, get_buf_list_size(node), MSQ_PORTNAME_SYSEX);
+  tail = _append_sysex_header(tail, get_buf_list_size(node), MSQ_SYSEX_PORTNAME);
   tail->next = node;
   return node->next;
 }

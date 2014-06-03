@@ -64,7 +64,7 @@ typedef struct
 
 typedef struct
 {
-  uint_t sysex_len;
+  uint_t sysex_loop_len;
   int    sysex_portid;
   track_t track;
 } midifile_track_t;
@@ -96,11 +96,11 @@ void free_buf_list(buf_node_t *buff);
 void write_buf_list(int fd, buf_node_t *buff);
 buf_node_t *get_midifile_trackhdr(size_t track_size);
 
-#define MSQ_TRACK_LEN_SYSEX 1   /* 4 byte track sequence length */
-#define MSQ_PORTNAME_SYSEX 2    /* 4 byte portid
-                                   2 byte namelen
-                                   etc. name data */
-#define MSQ_TRACK_PORTID 3      /* followed by 4 byte */
+#define MSQ_SYSEX_TRACK_LOOPLEN 1   /* 4 byte track sequence length */
+#define MSQ_SYSEX_PORTNAME 2        /* 4 byte portid
+                                       2 byte namelen
+                                       etc. name data */
+#define MSQ_TRACK_PORTID 3          /* followed by 4 byte */
 
 #define GETVLVSIZE(_tick) (_tick < 128) ? 1 :            \
   (((_tick >> 7) < 128) ? 2 :                            \

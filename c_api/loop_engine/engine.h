@@ -6,7 +6,7 @@
 /* #include "seqtool/seqtool.h" */
 #include "midi/midifile.h"
 #include "clock/clock.h"
-#include "asound/aseq.h"
+#include "asound/aseq_tool.h"
 
 typedef enum
   {
@@ -19,7 +19,7 @@ typedef struct
   aseqport_ctx_t   *aseqport_ctx;
   track_t          *track;
   uint_t           loop_start;
-  uint_t           len;
+  uint_t           loop_len;
   bool_t           mute;
   list_iterator_t  current_tickev;
   pthread_rwlock_t lock;
@@ -60,8 +60,11 @@ void            engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile);
 /* void            engine_copy_tracklist(engine_ctx_t *ctx, list_t *tracklist); */
 
 void            engine_save_project(engine_ctx_t *ctx, char *file_path);
-void            play_trackev(uint_t tick, track_ctx_t *track_ctx);
-void            play_track_pending_notes(track_ctx_t *track_ctx);
+void            play_trackctx(uint_t tick, track_ctx_t *track_ctx);
+
+#define play_track_pending_notes(track_ctx)                           \
+  alsa_play_pending_notes((track_ctx)->aseqport_ctx,                  \
+                          (track_ctx)->pending_notes)
 
 # include "ev_iterator.h"
 

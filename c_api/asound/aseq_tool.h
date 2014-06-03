@@ -1,6 +1,8 @@
 #ifndef ASEQ_TOOL_H
 #define ASEQ_TOOL_H
 
+#include "asound/aseq.h"
+
 #include "midi/midiev_inc.h"
 
 bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port);

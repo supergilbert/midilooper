@@ -41,7 +41,7 @@ void engine_free_trash(engine_ctx_t *ctx)
           && pthread_rwlock_trywrlock(&(track_ctx->lock)) == 0)
         {
           free_list_node(&(track_ctx->trash), _free_trash_ctn);
-          tick = ctx->looph.clocktick.number % track_ctx->len;
+          tick = ctx->looph.clocktick.number % track_ctx->loop_len;
           goto_next_available_tick(&(track_ctx->current_tickev), tick);
           pthread_rwlock_unlock(&(track_ctx->lock));
         }
@@ -50,7 +50,7 @@ void engine_free_trash(engine_ctx_t *ctx)
 
 void play_all_tracks_pending_notes(engine_ctx_t *ctx)
 {
-    track_ctx_t     *track_ctx = NULL;
+  track_ctx_t     *track_ctx = NULL;
   list_iterator_t trackit;
 
   for (iter_init(&trackit, &(ctx->track_list));
@@ -79,7 +79,7 @@ void play_all_tracks_ev(engine_ctx_t *ctx)
         track_ctx = iter_node_ptr(&trackit);
       else
         break;
-      play_trackev(looph->clocktick.number, track_ctx);
+      play_trackctx(looph->clocktick.number, track_ctx);
     }
 }
 
@@ -212,10 +212,10 @@ track_ctx_t  *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtra
   if (mtrack->track.name)
     trackctx->track->name = strdup(mtrack->track.name);
 
-  if (mtrack->sysex_len == 0)
-    trackctx->len = ctx->ppq * 4;
+  if (mtrack->sysex_loop_len == 0)
+    trackctx->loop_len = ctx->ppq * 4;
   else
-    trackctx->len = mtrack->sysex_len;
+    trackctx->loop_len = mtrack->sysex_loop_len;
   trackctx->mute = FALSE;
   trackctx->loop_start = 0;
   trackctx->is_handled = FALSE;
@@ -289,7 +289,7 @@ track_ctx_t  *engine_new_track(engine_ctx_t *ctx, char *name)
 
   track->name = strdup(name);
   trackctx->track = track;
-  trackctx->len = ctx->ppq * 4;
+  trackctx->loop_len = ctx->ppq * 4;
   trackctx->mute = FALSE;
   trackctx->loop_start = 0;
   if (ctx->isrunning == TRUE)

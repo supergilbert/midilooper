@@ -310,7 +310,7 @@ class MsqNGWEventHdl(object):
 
     def gen_note_at_pos(self, xpos, ypos):
         noteon_tick = self.quantify_tick(self.xpos2tick(xpos))
-        noteoff_tick = noteon_tick + self.tick_res
+        noteoff_tick = noteon_tick + self.tick_res - 1
         note = self.ypos2noteval(int(ypos))
 
         if self.note_collision(noteon_tick,
