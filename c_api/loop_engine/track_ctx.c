@@ -118,7 +118,8 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx)
 
           iter_next_available_tick(&(track_ctx->current_tickev));
         }
-      else if (iter_node(&(track_ctx->current_tickev)) == NULL)
+
+      if (iter_node(&(track_ctx->current_tickev)) == NULL)
         /* if no more event go to head */
         {
           if (track_ctx->current_tickev.list != NULL)

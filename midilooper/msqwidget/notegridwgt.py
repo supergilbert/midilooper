@@ -30,6 +30,9 @@ NO_LOGMODE   = 0
 UNDO_LOGMODE = 1
 HISTORY_MARK = 4242
 
+# Size of "note off" tick decrementation
+NOTEOFF_DEC = 1
+
 
 def evwr_to_repr_list(noteonoff_list):
     repr_list = []
@@ -122,6 +125,47 @@ class MsqNGWEventHdl(object):
         else:
             mintick = minev_on_off[1][0] - self.tick_res
         return (INC_RIGHT, ev_on_off_tick[1][0], mintick)
+
+
+    def note_collision(self, tick_on, tick_off, note, notelist, excl_list=None):
+        if tick_on < 0:
+            return True
+        for note_on, note_off in notelist:
+            if note_on[3] == note and not self.is_in_notelist(note_on, note_off, excl_list):
+                if tick_on >= note_on[0] and tick_on < note_off[0]:
+                    return True
+                elif tick_off > note_on[0] and tick_off <= note_off[0]:
+                    return True
+                elif note_on[0] >= tick_on and note_on[0] < tick_off:
+                    return True
+                elif note_off[0] > tick_on and note_off[0] <= tick_off:
+                    return True
+        return False
+
+
+    def gen_note_at_pos(self, xpos, ypos):
+        noteon_tick = self.quantify_tick(self.xpos2tick(xpos))
+        noteoff_tick = noteon_tick + self.tick_res - NOTEOFF_DEC
+        note = self.ypos2noteval(int(ypos))
+
+        if self.note_collision(noteon_tick,
+                               noteoff_tick,
+                               note,
+                               self.track.getall_noteonoff(self.chan_num)):
+            print "Can not add notes at this position"
+            return None
+
+        note_on = (noteon_tick,
+                   self.chan_num,
+                   MIDI_NOTEON_EVENT,
+                   note,
+                   self.note_val_on)
+        note_off = (noteoff_tick,
+                    self.chan_num,
+                    MIDI_NOTEOFF_EVENT,
+                    note,
+                    self.note_val_off)
+        return [(note_on, note_off)]
 
 
     def handle_button_press(self, widget, event):
@@ -257,22 +301,6 @@ class MsqNGWEventHdl(object):
         return False
 
 
-    def note_collision(self, tick_on, tick_off, note, notelist, excl_list=None):
-        if tick_on < 0:
-            return True
-        for note_on, note_off in notelist:
-            if note_on[3] == note and not self.is_in_notelist(note_on, note_off, excl_list):
-                if tick_on >= note_on[0] and tick_on < note_off[0]:
-                    return True
-                elif tick_off > note_on[0] and tick_off <= note_off[0]:
-                    return True
-                elif note_on[0] >= tick_on and note_on[0] < tick_off:
-                    return True
-                elif note_off[0] > tick_on and note_off[0] <= tick_off:
-                    return True
-        return False
-
-
     def notelist_collision(self, notelist, excl_list=None):
         track_notes = self.track.getall_noteonoff(self.chan_num)
         for note_on, note_off in notelist:
@@ -307,30 +335,6 @@ class MsqNGWEventHdl(object):
         else:
             return None
 
-
-    def gen_note_at_pos(self, xpos, ypos):
-        noteon_tick = self.quantify_tick(self.xpos2tick(xpos))
-        noteoff_tick = noteon_tick + self.tick_res - 1
-        note = self.ypos2noteval(int(ypos))
-
-        if self.note_collision(noteon_tick,
-                               noteoff_tick,
-                               note,
-                               self.track.getall_noteonoff(self.chan_num)):
-            print "Can not add notes at this position"
-            return None
-
-        note_on = (noteon_tick,
-                   self.chan_num,
-                   MIDI_NOTEON_EVENT,
-                   note,
-                   self.note_val_on)
-        note_off = (noteoff_tick,
-                    self.chan_num,
-                    MIDI_NOTEOFF_EVENT,
-                    note,
-                    self.note_val_off)
-        return [(note_on, note_off)]
 
     def _get_diff_paste_note(self, xpos, ypos):
         # TODO (optimisation)
@@ -633,7 +637,7 @@ class MsqNGWEventHdl(object):
         if mintick > qtick:
             tick_diff = mintick - current_noteoff_tick
         else:
-            tick_diff = qtick - current_noteoff_tick
+            tick_diff = qtick - current_noteoff_tick - NOTEOFF_DEC
         return tick_diff
 
 

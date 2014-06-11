@@ -157,9 +157,9 @@ class TrackList(gtk.Frame):
         if self.seq.isrunning():
             return
         treeselection = treeview.get_selection()
-        model, iter = treeselection.get_selected()
-        self.dnd_tedit = model.get_value(iter, 0)
-        model.remove(iter)
+        model, iterator = treeselection.get_selected()
+        self.dnd_tedit = model.get_value(iterator, 0)
+        model.remove(iterator)
 
     def drag_data_received_data(self, treeview, context, x, y, selection, info, etime):
         if self.seq.isrunning():
@@ -168,14 +168,30 @@ class TrackList(gtk.Frame):
         drop_info = treeview.get_dest_row_at_pos(x, y)
         if drop_info:
             path, position = drop_info
-            iter = model.get_iter(path)
-            tedit = model.get_value(iter, 0)
+            iterator = model.get_iter(path)
+            tedit = model.get_value(iterator, 0)
             if (position == gtk.TREE_VIEW_DROP_BEFORE or position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
-                self.seq.insert_before(tedit.track, self.dnd_tedit.track)
-                model.insert_before(iter, [self.dnd_tedit, repr(self.dnd_tedit.track), 0, 0])
+                self.seq.move_track_before(tedit.track, self.dnd_tedit.track)
+                model.insert_before(iterator, [self.dnd_tedit,
+                                               repr(self.dnd_tedit.track),
+                                               0,
+                                               self.dnd_tedit.track.get_mute_state()])
             else:
-                self.seq.insert_after(tedit.track, self.dnd_tedit.track)
-                model.insert_after(iter, [self.dnd_tedit, repr(self.dnd_tedit.track), 0, 0])
+                self.seq.move_track_after(tedit.track, self.dnd_tedit.track)
+                model.insert_after(iterator, [self.dnd_tedit,
+                                              repr(self.dnd_tedit.track),
+                                              0,
+                                              self.dnd_tedit.track.get_mute_state()])
+        else:
+            nchild = model.iter_n_children(None)
+            if nchild > 1:
+                iterator = model.get_iter("%d" % (nchild - 1))
+                tedit = model.get_value(iterator, 0)
+                self.seq.move_track_after(tedit.track, self.dnd_tedit.track)
+                model.insert_after(iterator, [self.dnd_tedit,
+                                              repr(self.dnd_tedit.track),
+                                              0,
+                                              self.dnd_tedit.track.get_mute_state()])
 
     def __init__(self, seq, portlist):
         gtk.Frame.__init__(self, "Track list")

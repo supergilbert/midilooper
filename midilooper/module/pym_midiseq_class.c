@@ -133,7 +133,7 @@ static PyObject *midiseq_setbpm(PyObject *obj,
 
 
 static PyObject *midiseq_setms(PyObject *obj,
-                                PyObject *args)
+                               PyObject *args)
 {
   midiseq_Object *self = (midiseq_Object *) obj;
   uint_t ms;
@@ -166,7 +166,7 @@ static PyObject *midiseq_start(PyObject *obj,
 
 
 static PyObject *midiseq_stop(PyObject *obj,
-                               PyObject *args)
+                              PyObject *args)
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
@@ -176,7 +176,7 @@ static PyObject *midiseq_stop(PyObject *obj,
 
 
 static PyObject *midiseq_wait(PyObject *obj,
-                               PyObject *args)
+                              PyObject *args)
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
@@ -272,7 +272,7 @@ static PyObject *midiseq_delport(PyObject *obj,
 }
 
 static PyObject *midiseq_getports(PyObject *obj,
-                                 PyObject *args)
+                                  PyObject *args)
 {
   midiseq_Object  *self = (midiseq_Object *) obj;
   list_iterator_t iter;
@@ -303,43 +303,87 @@ static PyObject *midiseq_import_msqfile_tracks(PyObject *obj,
   Py_RETURN_NONE;
 }
 
-static PyObject *midiseq_insert_before(PyObject *obj,
-                                       PyObject *args)
+/* Warning: Not thread safe */
+static PyObject *midiseq_move_track_before(PyObject *obj,
+                                           PyObject *args)
 {
   midiseq_Object      *self = (midiseq_Object *) obj;
-  midiseq_trackObject *track_sibling = NULL;
-  midiseq_trackObject *track_topaste = NULL;
+  midiseq_trackObject *target = NULL;
+  midiseq_trackObject *topaste = NULL;
   list_iterator_t     iterator;
 
-  if (!PyArg_ParseTuple(args , "OO", &track_sibling, &track_topaste))
+  if (!PyArg_ParseTuple(args , "OO", &target, &topaste))
     return NULL;
   iter_init(&iterator, &(self->engine_ctx->track_list));
-  if (!iter_move_to_addr(&iterator, track_topaste->trackctx))
+  if (!iter_move_to_addr(&iterator, topaste->trackctx))
     return NULL;
   iter_node_del(&iterator, NULL);
-  if (!iter_move_to_addr(&iterator, track_sibling->trackctx))
+  if (!iter_move_to_addr(&iterator, target->trackctx))
     return NULL;
-  iter_push_before(&iterator, track_topaste->trackctx);
+  iter_push_before(&iterator, topaste->trackctx);
   Py_RETURN_NONE;
 }
 
-static PyObject *midiseq_insert_after(PyObject *obj,
-                                      PyObject *args)
+/* Warning: Not thread safe */
+static PyObject *midiseq_move_track_after(PyObject *obj,
+                                          PyObject *args)
 {
   midiseq_Object      *self = (midiseq_Object *) obj;
-  midiseq_trackObject *track_sibling = NULL;
-  midiseq_trackObject *track_topaste = NULL;
+  midiseq_trackObject *target = NULL;
+  midiseq_trackObject *topaste = NULL;
   list_iterator_t     iterator;
 
-  if (!PyArg_ParseTuple(args , "OO", &track_sibling, &track_topaste))
+  if (!PyArg_ParseTuple(args , "OO", &target, &topaste))
     return NULL;
   iter_init(&iterator, &(self->engine_ctx->track_list));
-  if (!iter_move_to_addr(&iterator, track_topaste->trackctx))
+  if (!iter_move_to_addr(&iterator, topaste->trackctx))
     return NULL;
   iter_node_del(&iterator, NULL);
-  if (!iter_move_to_addr(&iterator, track_sibling->trackctx))
+  if (!iter_move_to_addr(&iterator, target->trackctx))
     return NULL;
-  iter_push_after(&iterator, track_topaste->trackctx);
+  iter_push_after(&iterator, topaste->trackctx);
+  Py_RETURN_NONE;
+}
+
+/* Warning: Not thread safe */
+static PyObject *midiseq_move_port_before(PyObject *obj,
+                                          PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_aportObject *target = NULL;
+  midiseq_aportObject *topaste = NULL;
+  list_iterator_t     iterator;
+
+  if (!PyArg_ParseTuple(args , "OO", &target, &topaste))
+    return NULL;
+  iter_init(&iterator, &(self->engine_ctx->aseqport_list));
+  if (!iter_move_to_addr(&iterator, topaste->aport))
+    return NULL;
+  iter_node_del(&iterator, NULL);
+  if (!iter_move_to_addr(&iterator, target->aport))
+    return NULL;
+  iter_push_before(&iterator, topaste->aport);
+  Py_RETURN_NONE;
+}
+
+/* Warning: Not thread safe */
+static PyObject *midiseq_move_port_after(PyObject *obj,
+                                         PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_aportObject *target = NULL;
+  midiseq_aportObject *topaste = NULL;
+  list_iterator_t     iterator;
+
+  if (!PyArg_ParseTuple(args , "OO", &target, &topaste))
+    return NULL;
+  iter_init(&iterator, &(self->engine_ctx->aseqport_list));
+  if (!iter_move_to_addr(&iterator, topaste->aport))
+    return NULL;
+  iter_node_del(&iterator, NULL);
+  if (!iter_move_to_addr(&iterator, target->aport))
+    return NULL;
+  iter_push_after(&iterator, topaste->aport);
   Py_RETURN_NONE;
 }
 
@@ -382,10 +426,14 @@ static PyMethodDef midiseq_methods[] = {
    "Delete a track"},
   {"gettracks", midiseq_gettracks, METH_NOARGS,
    "Create new sequencer track"},
-  {"insert_before", midiseq_insert_before, METH_VARARGS,
-   ""},
-  {"insert_after", midiseq_insert_after, METH_VARARGS,
-   ""},
+  {"move_track_before", midiseq_move_track_before, METH_VARARGS,
+   "Warning: Not thread safe"},
+  {"move_track_after", midiseq_move_track_after, METH_VARARGS,
+   "Warning: Not thread safe"},
+  {"move_port_before", midiseq_move_port_before, METH_VARARGS,
+   "Warning: Not thread safe"},
+  {"move_port_after", midiseq_move_port_after, METH_VARARGS,
+   "Warning: Not thread safe"},
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
   /* {"getname", midiseq_readtrack, METH_NOARGS, "get track name"}, */
   {NULL, NULL, 0, NULL}
