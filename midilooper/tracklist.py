@@ -1,4 +1,19 @@
-#!/usr/bin/python
+# Copyright 2012-2014 Gilbert Romer
+
+# This file is part of gmidilooper.
+
+# gmidilooper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# gmidilooper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU Gneneral Public License
+# along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>.
 
 import gobject
 gobject.threads_init()
@@ -67,13 +82,26 @@ class TrackListMenu(MsqListMenu):
 
     def rename_track(self, menuitem):
         if self.path:
-            new_trackname = prompt_gettext("Rename track")
+            tv_iter = self.tracklist.liststore.get_iter(self.path[0])
+            tedit = self.tracklist.liststore.get_value(tv_iter, 0)
+            new_trackname = prompt_gettext("Rename track", tedit.track.get_name())
             if new_trackname:
-                tv_iter = self.tracklist.liststore.get_iter(self.path[0])
-                tedit = self.tracklist.liststore.get_value(tv_iter, 0)
                 tedit.set_name(new_trackname)
                 self.tracklist.liststore.set_value(tv_iter, 1, repr(tedit.track))
             self.path = None
+
+    def copy_track(self, menuitem):
+        if self.path:
+            tv_iter = self.tracklist.liststore.get_iter(self.path[0])
+            tedit = self.tracklist.liststore.get_value(tv_iter, 0)
+            new_track = self.tracklist.seq.copy_track(tedit.track)
+            new_name = "%s (copy)" % new_track.get_name()
+            new_tedit = TrackEditor(new_track,
+                                    self.tracklist.seq,
+                                    self.tracklist.portlist)
+            new_tedit.set_name(new_name)
+            self.tracklist.liststore.append([new_tedit, repr(new_track), 0, 0])
+            new_tedit.show_all()
 
     def __init__(self, tracklist):
         MsqListMenu.__init__(self)
@@ -81,6 +109,7 @@ class TrackListMenu(MsqListMenu):
 
         self.mlm_add_item("Show track", self.show_track)
         self.mlm_add_item("Rename track", self.rename_track)
+        self.mlm_add_item("Copy track", self.copy_track)
         separator = gtk.SeparatorMenuItem()
         separator.show()
         self.append(separator)

@@ -1,32 +1,23 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #include "midi/midiev.h"
 #include "debug_tool/debug_tool.h"
-
-void dump_seqev(seqev_t *seqev)
-{
-  midicev_t *midicev = NULL;
-
-  output("\tseqev: addr=%p deleted=%s",
-         seqev,
-         seqev->deleted == TRUE ? "\033[31mTRUE\033[0m" : "FALSE");
-  if (seqev->type == MIDICEV)
-    {
-      output(" type=%s", "MIDICEV");
-      midicev = (midicev_t *) seqev->addr;
-      switch (midicev->type)
-        {
-        case NOTEON:
-          output(" | NOTEON  num=%hhd val=%hhd\n", midicev->event.note.num, midicev->event.note.val);
-          break;
-        case NOTEOFF:
-          output(" | NOTEOFF num=%hhd val=%hhd\n", midicev->event.note.num, midicev->event.note.val);
-          break;
-        default:
-          output(" | Unsupported event\n");
-        }
-    }
-  else
-    output("type=UNKNOWN\n");
-}
 
 void dump_tickev(tickev_t *tickev)
 {

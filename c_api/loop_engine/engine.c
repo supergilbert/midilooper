@@ -1,3 +1,21 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #include "./engine.h"
 /* #include "tool/tool.h" */
 #include "debug_tool/debug_tool.h"
@@ -21,6 +39,7 @@ void _free_trackctx(void *addr)
   pthread_rwlock_destroy(&(trackctx->lock));
   if (trackctx->trash.len)
     free_list_node(&(trackctx->trash), _free_trash_ctn);
+  free_trackreq(&(trackctx->req_list));
   free_track(trackctx->track);
   free(trackctx);
 }
@@ -40,8 +59,8 @@ void engine_free_trash(engine_ctx_t *ctx)
       if (track_ctx->trash.len
           && pthread_rwlock_trywrlock(&(track_ctx->lock)) == 0)
         {
-          free_list_node(&(track_ctx->trash), _free_trash_ctn);
           tick = ctx->looph.clocktick.number % track_ctx->loop_len;
+          free_list_node(&(track_ctx->trash), _free_trash_ctn);
           goto_next_available_tick(&(track_ctx->current_tickev), tick);
           pthread_rwlock_unlock(&(track_ctx->lock));
         }
@@ -52,21 +71,26 @@ void play_all_tracks_pending_notes(engine_ctx_t *ctx)
 {
   track_ctx_t     *track_ctx = NULL;
   list_iterator_t trackit;
+  bool_t          ev_to_drain = FALSE;
 
   for (iter_init(&trackit, &(ctx->track_list));
        iter_node(&trackit) != NULL;
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
-      play_track_pending_notes(track_ctx);
+      if (play_track_pending_notes(track_ctx))
+        ev_to_drain = TRUE;
     }
+  if (ev_to_drain)
+    alsa_drain_output(ctx);
 }
 
 void play_all_tracks_ev(engine_ctx_t *ctx)
 {
-  track_ctx_t     *track_ctx = NULL;
-  clockloop_t     *looph     = &(ctx->looph);
+  track_ctx_t     *track_ctx  = NULL;
+  clockloop_t     *looph      = &(ctx->looph);
   list_iterator_t trackit;
+  bool_t          ev_to_drain = FALSE;
 
   for (iter_init(&trackit, &(ctx->track_list));
        iter_node(&trackit) != NULL;
@@ -79,8 +103,10 @@ void play_all_tracks_ev(engine_ctx_t *ctx)
         track_ctx = iter_node_ptr(&trackit);
       else
         break;
-      play_trackctx(looph->clocktick.number, track_ctx);
+      play_trackctx(looph->clocktick.number, track_ctx, &ev_to_drain);
     }
+  if (ev_to_drain)
+    alsa_drain_output(ctx);
 }
 
 void set_engine_rq(engine_ctx_t *ctx, engine_rq rq)
@@ -104,16 +130,16 @@ engine_rq get_engine_rq(engine_ctx_t *ctx)
 clock_req_t engine_cb(void *arg)
 {
   engine_ctx_t    *ctx       = (engine_ctx_t *) arg;
-  /* track_ctx_t     *track_ctx = NULL; */
-  /* clockloop_t     *looph     = &(ctx->looph); */
-  /* list_iterator_t trackit; */
 
   if (get_engine_rq(ctx) == engine_stop)
     {
       debug("engine: Got stop request\n");
+      pthread_rwlock_wrlock(&(ctx->lock));
       engine_free_trash(ctx);
+      /* play_all_tracks_req(ctx); */
       play_all_tracks_pending_notes(ctx);
       ctx->isrunning = FALSE;
+      pthread_rwlock_unlock(&(ctx->lock));
       return STOP;
     }
   play_all_tracks_ev(ctx);
@@ -138,9 +164,9 @@ bool_t engine_isrunning(engine_ctx_t *ctx)
 {
   bool_t isrunning;
 
-  /* pthread_rwlock_rdlock(&(ctx->info.lock)); */
+  pthread_rwlock_rdlock(&(ctx->lock));
   isrunning = ctx->isrunning;
-  /* pthread_rwlock_unlock(&(ctx->info.lock)); */
+  pthread_rwlock_unlock(&(ctx->lock));
   return isrunning;
 }
 
@@ -183,7 +209,7 @@ aseqport_ctx_t *engine_create_aport(engine_ctx_t *ctx, char *name)
 bool_t engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx)
 {
   list_iterator_t trackit;
-  track_ctx_t *track_ctx = NULL;
+  track_ctx_t     *track_ctx = NULL;
 
   for (iter_init(&trackit, &(ctx->track_list));
        iter_node(&trackit) != NULL;
@@ -192,7 +218,7 @@ bool_t engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx)
       track_ctx = iter_node_ptr(&trackit);
       if (track_ctx == trackctx)
         {
-          if (track_ctx->is_handled == TRUE)
+          if (engine_isrunning(ctx) == TRUE)
             track_ctx->deleted = TRUE;
           else
             iter_node_del(&trackit, _free_trackctx);
@@ -203,37 +229,70 @@ bool_t engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx)
   return FALSE;
 }
 
-track_ctx_t  *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrack)
+track_ctx_t  *_engine_gen_trackctx(engine_ctx_t *ctx,
+                                   track_t *track,
+                                   uint_t loop_start,
+                                   uint_t loop_len)
 {
-  track_ctx_t       *trackctx = myalloc(sizeof (track_ctx_t));
+  track_ctx_t *trackctx = myalloc(sizeof (track_ctx_t));
 
-  trackctx->track = myalloc(sizeof (track_t));
-  copy_track(&(mtrack->track), trackctx->track);
-  if (mtrack->track.name)
-    trackctx->track->name = strdup(mtrack->track.name);
-
-  if (mtrack->sysex_loop_len == 0)
-    trackctx->loop_len = ctx->ppq * 4;
-  else
-    trackctx->loop_len = mtrack->sysex_loop_len;
+  trackctx->engine = ctx;
+  trackctx->track = track;
+  trackctx->loop_start = loop_start;
+  trackctx->loop_len = loop_len;
   trackctx->mute = FALSE;
-  trackctx->loop_start = 0;
-  trackctx->is_handled = FALSE;
   trackctx->deleted = FALSE;
-
   pthread_rwlock_init(&(trackctx->lock), NULL);
   iter_init(&(trackctx->current_tickev), &(trackctx->track->tickev_list));
-  push_to_list_tail(&(ctx->track_list), trackctx);
-
   return trackctx;
 }
+
+track_ctx_t  *engine_copy_trackctx(engine_ctx_t *ctx,
+                                   track_ctx_t *trackctx_src)
+{
+  track_t      *track = myalloc(sizeof (track_t));
+  track_ctx_t  *trackctx_dst = NULL;
+
+  copy_track_list(trackctx_src->track, track);
+  if (trackctx_src->track->name)
+    track->name = strdup(trackctx_src->track->name);
+  trackctx_dst = _engine_gen_trackctx(ctx,
+                                      track,
+                                      trackctx_src->loop_start,
+                                      trackctx_src->loop_len);
+  push_to_list_tail(&(ctx->track_list), trackctx_dst);
+  return trackctx_dst;
+}
+
+track_ctx_t  *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrack)
+{
+  track_ctx_t *trackctx = NULL;
+  track_t     *track = myalloc(sizeof (track_t));
+  uint_t      loop_start;
+  uint_t      loop_len;
+
+  copy_track_list(&(mtrack->track), track);
+  if (mtrack->track.name)
+    track->name = strdup(mtrack->track.name);
+  loop_start = mtrack->sysex_loop_start;
+  if (mtrack->sysex_loop_len == 0)
+    loop_len = ctx->ppq * 4;
+  else
+    loop_len = mtrack->sysex_loop_len;
+  trackctx = _engine_gen_trackctx(ctx,
+                                  track,
+                                  loop_start,
+                                  loop_len);
+  push_to_list_tail(&(ctx->track_list), trackctx);
+  return trackctx;
+}
+
 
 typedef struct
 {
   int            id;
   aseqport_ctx_t *aseq;
 } tmpport_cache_t;
-
 
 
 void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
@@ -284,21 +343,11 @@ void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
 
 track_ctx_t  *engine_new_track(engine_ctx_t *ctx, char *name)
 {
-  track_ctx_t *trackctx = myalloc(sizeof (track_ctx_t));
+  track_ctx_t *trackctx = NULL;
   track_t     *track = myalloc(sizeof (track_t));
 
   track->name = strdup(name);
-  trackctx->track = track;
-  trackctx->loop_len = ctx->ppq * 4;
-  trackctx->mute = FALSE;
-  trackctx->loop_start = 0;
-  if (ctx->isrunning == TRUE)
-    trackctx->is_handled = TRUE;
-  else
-    trackctx->is_handled = FALSE;
-  trackctx->deleted = FALSE;
-  pthread_rwlock_init(&(trackctx->lock), NULL);
-  iter_init(&(trackctx->current_tickev), &(trackctx->track->tickev_list));
+  trackctx = _engine_gen_trackctx(ctx, track, 0, ctx->ppq * 4);
   push_to_list_tail(&(ctx->track_list), trackctx);
   return trackctx;
 }
@@ -352,7 +401,6 @@ void init_engine_trackev(engine_ctx_t *ctx)
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
-      track_ctx->is_handled = TRUE;
       goto_next_available_tick(&(track_ctx->current_tickev),
                                track_ctx->loop_start);
       /* iter_head(&(track_ctx->current_tickev)); */
@@ -375,7 +423,6 @@ void unset_engine_trackev_handling(engine_ctx_t *ctx)
         track_ctx = iter_node_ptr(&trackit);
       else
         break;
-      track_ctx->is_handled = FALSE;
     }
 }
 

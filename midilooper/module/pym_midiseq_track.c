@@ -1,3 +1,21 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #include "./pym_midiseq_track.h"
 #include "./pym_midiseq_aport.h"
 #include "./pym_midiseq_tools.h"
@@ -35,6 +53,38 @@ static void midiseq_track_dealloc(PyObject *obj)
   self->ob_type->tp_free((PyObject*)self);
 }
 
+static PyObject *midiseq_track_play_note(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+  uint_t channel = 0, type = 0, num = 0, val = 0;
+  midicev_t mcev;
+
+  if (!PyArg_ParseTuple(args, "iiii", &channel, &type, &num, &val))
+    {
+      output_error("Problem with argument");
+      return NULL;
+    }
+
+  if (type != NOTEOFF && type != NOTEON)
+    {
+      output_error("unknown or unsupported type %s", type);
+      return NULL;
+    }
+
+  if (self->trackctx->aseqport_ctx != NULL)
+    {
+      mcev.chan = channel;
+      mcev.type = type;
+      mcev.event.note.num = num;
+      mcev.event.note.val = val;
+      if (self->trackctx->engine && engine_isrunning(self->trackctx->engine) == TRUE)
+        trackreq_play_midicev(self->trackctx, &mcev);
+      else
+        alsa_play_midicev(self->trackctx->aseqport_ctx, &mcev);
+    }
+  Py_RETURN_NONE;
+}
+
 static PyObject *midiseq_track_get_name(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
@@ -70,6 +120,26 @@ static PyObject *midiseq_track_get_len(PyObject *obj, PyObject *args)
   return Py_BuildValue("i", self->trackctx->loop_len);
 }
 
+static PyObject *midiseq_track_get_start(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  return Py_BuildValue("i", self->trackctx->loop_start);
+}
+
+static PyObject *midiseq_track_get_loop_pos(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+  unsigned int        tick;
+
+  if (!PyArg_ParseTuple(args, "i", &tick))
+    {
+      output_error("Problem with argument");
+      return NULL;
+    }
+  return Py_BuildValue("i", trackctx_loop_pos(self->trackctx, tick));
+}
+
 static PyObject *midiseq_track_set_len(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
@@ -77,10 +147,25 @@ static PyObject *midiseq_track_set_len(PyObject *obj, PyObject *args)
 
   if (!PyArg_ParseTuple(args, "i", &len))
     {
-      output_error("track_add_note_event: Problem with argument");
+      output_error("Problem with argument");
       return NULL;
     }
   self->trackctx->loop_len = len;
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_track_set_start(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+  unsigned int        start;
+
+  if (!PyArg_ParseTuple(args, "i", &start))
+    {
+      output_error("Problem with argument");
+      return NULL;
+    }
+  self->trackctx->loop_start = start;
+  self->trackctx->need_sync = TRUE;
   Py_RETURN_NONE;
 }
 
@@ -95,8 +180,9 @@ static PyObject *midiseq_toggle_mute(PyObject *obj, PyObject *args)
   else
     {
       self->trackctx->mute = TRUE;
-      if (self->trackctx->aseqport_ctx && self->trackctx->is_handled)
-        alsa_play_pending_notes(self->trackctx->aseqport_ctx, self->trackctx->pending_notes);
+      if (self->trackctx->aseqport_ctx)
+        if (self->trackctx->engine && engine_isrunning(self->trackctx->engine))
+          trackreq_play_pendings(self->trackctx);
     }
   Py_RETURN_NONE;
 }
@@ -139,7 +225,7 @@ static PyObject *midiseq_track_get_mute_state(PyObject *obj, PyObject *args)
 /*   Py_RETURN_NONE; */
 /* } */
 
-static PyObject *midiseq_track_add_note_list(PyObject *obj, PyObject *args)
+static PyObject *midiseq_track_add_evrepr_list(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
   PyObject *pylist = NULL, *ret = NULL;
@@ -232,7 +318,7 @@ static PyObject *midiseq_track_ishandled(PyObject *obj,
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  if (self->trackctx->is_handled == TRUE)
+  if (self->trackctx->engine && engine_isrunning(self->trackctx->engine) == TRUE)
     Py_RETURN_TRUE;
   Py_RETURN_FALSE;
 }
@@ -295,6 +381,26 @@ static PyObject *msq_track_getall_noteonoff(PyObject *obj,
   pthread_rwlock_rdlock(&(self->trackctx->lock));
   ret_obj = getall_noteonoff_repr(&(self->trackctx->track->tickev_list),
                                   (byte_t) channel);
+  pthread_rwlock_unlock(&(self->trackctx->lock));
+  return ret_obj;
+}
+
+static PyObject *msq_track_getall_midicev(PyObject *obj,
+                                          PyObject *args)
+{
+  midiseq_trackObject *self    = (midiseq_trackObject *) obj;
+  PyObject            *ret_obj = NULL;
+  int                 channel, tickmin, tickmax;
+
+  if (!PyArg_ParseTuple(args , "iii", &channel, &tickmin, &tickmax))
+    return NULL;
+  if (tickmin < 0)
+    tickmin = 0;
+  pthread_rwlock_rdlock(&(self->trackctx->lock));
+  ret_obj = getall_midicev_repr(&(self->trackctx->track->tickev_list),
+                                (byte_t) channel,
+                                (uint_t) tickmin,
+                                (uint_t) tickmax);
   pthread_rwlock_unlock(&(self->trackctx->lock));
   return ret_obj;
 }
@@ -369,6 +475,35 @@ static PyObject *msq_track_sel_noteonoff_evwr(PyObject *obj,
   return ret_obj;
 }
 
+static PyObject *msq_track_sel_ctrl_evwr(PyObject *obj,
+                                         PyObject *args)
+{
+  midiseq_trackObject *self    = (midiseq_trackObject *) obj;
+  PyObject            *ret_obj = NULL;
+  int                 channel, tick_min, tick_max, ctrl_num;
+
+  if (!PyArg_ParseTuple(args,
+                        "iiii",
+                        &channel,
+                        &tick_min,
+                        &tick_max,
+                        &ctrl_num))
+    return NULL;
+  if (channel < 0 ||
+      tick_min < 0 ||
+      tick_max < 0 ||
+      ctrl_num < 0)
+    return NULL;
+  pthread_rwlock_rdlock(&(self->trackctx->lock));
+  ret_obj = sel_ctrl_evwr(self->trackctx,
+                          (byte_t) channel,
+                          tick_min,
+                          tick_max,
+                          (byte_t) ctrl_num);
+  pthread_rwlock_unlock(&(self->trackctx->lock));
+  return ret_obj;
+}
+
 void dump_track(track_t *);
 
 static PyObject *midiseq_track_dump(PyObject *obj,
@@ -382,33 +517,31 @@ static PyObject *midiseq_track_dump(PyObject *obj,
 }
 
 static PyMethodDef midiseq_track_methods[] = {
-  {"get_name",            midiseq_track_get_name,           METH_NOARGS,  "Get track name"},
-  {"set_name",            midiseq_track_set_name,           METH_VARARGS, "Set track name"},
-  {"get_len",             midiseq_track_get_len,            METH_NOARGS,  "Get track len"},
-  {"get_mute_state",      midiseq_track_get_mute_state,     METH_NOARGS,  "Get mute state"},
-  {"set_len",             midiseq_track_set_len,            METH_VARARGS, "Set track len"},
-  {"get_port",            midiseq_track_get_port,           METH_NOARGS,  "Get track port"},
-  {"set_port",            midiseq_track_set_port,           METH_VARARGS, "Set track port"},
-  {"toggle_mute",         midiseq_toggle_mute,              METH_NOARGS,  "Toggle mute state"},
-  {"has_port",            midiseq_track_has_port,           METH_VARARGS, "Check if track has port"},
-  /* {"add_note_event",     midiseq_track_add_note_event,     METH_VARARGS, "Add a note event"}, */
-  {"add_evrepr_list",     midiseq_track_add_note_list,      METH_VARARGS, "Add a note list event representation"},
-  /* {"lock",               midiseq_track_lock,               METH_NOARGS,  "Lock track"}, */
-  /* {"unlock",             midiseq_track_unlock,             METH_NOARGS,  "Unlock track"}, */
-  /* {"event2trash",        midiseq_track_event2trash,        METH_VARARGS, "Put event to the trash"}, */
-  {"is_handled",          midiseq_track_ishandled,          METH_NOARGS,  "Get if the track is handled"},
-  /* {"get_events",         midiseq_track_get_events,         METH_NOARGS,  "Get event list representation in python"}, */
-  {"_delete_evwr_list",   msq_track_delete_evwr_list,       METH_VARARGS,
-   "Delete event wrapper list (Caution: never use event of other tracks)"},
-  {"_get_evwr_list",      msq_track_get_evwr_list,          METH_VARARGS,
-   "Delete event wrapper list (Caution: never use event of other tracks)"},
-  {"getall_noteonoff",    msq_track_getall_noteonoff,       METH_VARARGS, "Get note list representation in python"},
-  {"getall_event",        msq_track_getall_event,           METH_VARARGS, "Get event list representation in python"},
-  {"sel_noteonoff_evwr",  msq_track_sel_noteonoff_evwr,     METH_VARARGS, "select note (event wrapper list)"},
-  {"sel_noteonoff_repr",  msq_track_sel_noteonoff_repr,     METH_VARARGS, "select note (event repr list)"},
-  /* {"get_note_selection", midiseq_track_get_note_selection, METH_VARARGS, "Get event list representation in python"}, */
-  {"_dump",              midiseq_track_dump,               METH_NOARGS,  "Dump track event(s)"},
-  {NULL, NULL, 0, NULL}
+  {"get_name",           midiseq_track_get_name,        METH_NOARGS,  "Get track name"},
+  {"set_name",           midiseq_track_set_name,        METH_VARARGS, "Set track name"},
+  {"get_len",            midiseq_track_get_len,         METH_NOARGS,  "Get track len"},
+  {"get_start",          midiseq_track_get_start,       METH_NOARGS,  "Get track start"},
+  {"get_loop_pos",       midiseq_track_get_loop_pos,    METH_VARARGS, "Get track loop pos from a tick"},
+  {"get_mute_state",     midiseq_track_get_mute_state,  METH_NOARGS,  "Get mute state"},
+  {"set_len",            midiseq_track_set_len,         METH_VARARGS, "Set track len"},
+  {"set_start",          midiseq_track_set_start,       METH_VARARGS, "Set track start"},
+  {"get_port",           midiseq_track_get_port,        METH_NOARGS,  "Get track port"},
+  {"set_port",           midiseq_track_set_port,        METH_VARARGS, "Set track port"},
+  {"toggle_mute",        midiseq_toggle_mute,           METH_NOARGS,  "Toggle mute state"},
+  {"has_port",           midiseq_track_has_port,        METH_VARARGS, "Check if track has port"},
+  {"add_evrepr_list",    midiseq_track_add_evrepr_list, METH_VARARGS, "Add a note list event representation"},
+  {"is_handled",         midiseq_track_ishandled,       METH_NOARGS,  "Get if the track is handled"},
+  {"_delete_evwr_list",  msq_track_delete_evwr_list,    METH_VARARGS, "Delete event wrapper list (Caution: never use event of other tracks)"},
+  {"_get_evwr_list",     msq_track_get_evwr_list,       METH_VARARGS, "Delete event wrapper list (Caution: never use event of other tracks)"},
+  {"play_note",          midiseq_track_play_note,       METH_VARARGS, "Play note on port"},
+  {"getall_noteonoff",   msq_track_getall_noteonoff,    METH_VARARGS, "Get note list representation in python"},
+  {"getall_midicev",     msq_track_getall_midicev,      METH_VARARGS, "Get note list representation in python"},
+  {"getall_event",       msq_track_getall_event,        METH_VARARGS, "Get event list representation in python"},
+  {"sel_noteonoff_evwr", msq_track_sel_noteonoff_evwr,  METH_VARARGS, "select note (event wrapper list)"},
+  {"sel_noteonoff_repr", msq_track_sel_noteonoff_repr,  METH_VARARGS, "select note (event repr list)"},
+  {"sel_ctrl_evwr",      msq_track_sel_ctrl_evwr,       METH_VARARGS, "select control event number (event wrapper list)"},
+  {"_dump",              midiseq_track_dump,            METH_NOARGS,  "Dump track event(s)"},
+  {NULL,                 NULL,                          0,            NULL}
 };
 
 

@@ -1,3 +1,21 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #include <Python.h>
 
 #include "asound/aseq.h"
@@ -33,37 +51,6 @@ static PyObject *midiseq_aport_setname(PyObject *obj, PyObject *args)
   Py_RETURN_NONE;
 }
 
-static PyObject *midiseq_aport_send_note_event(PyObject *obj, PyObject *args)
-{
-  midiseq_aportObject *self = (midiseq_aportObject *) obj;
-  uint_t channel = 0, type = 0, num = 0, val = 0;
-  midicev_t mcev;
-  snd_seq_event_t aseqev;
-
-  if (!PyArg_ParseTuple(args, "iiii", &channel, &type, &num, &val))
-    {
-      output_error("Problem with argument");
-      return NULL;
-    }
-
-  if (type != NOTEOFF && type != NOTEON)
-    {
-      output_error("unknown or unsupported type %s", type);
-      return NULL;
-    }
-
-
-  mcev.chan = channel;
-  mcev.type = type;
-  mcev.event.note.num = num;
-  mcev.event.note.val = val;
-  set_aseqev(&mcev, &aseqev, self->aport->output_port);
-
-  snd_seq_event_output(self->aport->handle, &aseqev);
-  snd_seq_drain_output(self->aport->handle);
-  Py_RETURN_NONE;
-}
-
 static PyObject *midiseq_aport_repr(PyObject *obj)
 {
   midiseq_aportObject *self = (midiseq_aportObject *) obj;
@@ -78,8 +65,6 @@ static PyMethodDef midiseq_aport_methods[] = {
    "Return alsa seq port name"},
   {"set_name", midiseq_aport_setname, METH_VARARGS,
    "Set alsa seq port name"},
-  {"send_note", midiseq_aport_send_note_event, METH_VARARGS,
-   "Send a note on the port"},
   {NULL, NULL, 0, NULL}
 };
 

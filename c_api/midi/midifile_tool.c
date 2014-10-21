@@ -1,3 +1,21 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #include <string.h>
 
 #include "debug_tool/debug_tool.h"
@@ -278,7 +296,18 @@ void set_be16b_uint(byte_t *buf, uint_t val)
   buf[1] = val & 0xFF;
 }
 
-buf_node_t *_append_sysex_tracklen(buf_node_t *tail, uint_t len)
+buf_node_t *_append_sysex_loopstart(buf_node_t *tail, uint_t start)
+{
+  byte_t buf[5];
+
+  tail = _append_sysex_header(tail, 5, MSQ_SYSEX_TRACK_LOOPSTART);
+  set_be32b_uint(buf, start);
+  buf[4] = 0xF7;
+  tail->next = init_buf_node(buf, 5);
+  return tail->next;
+}
+
+buf_node_t *_append_sysex_looplen(buf_node_t *tail, uint_t len)
 {
   byte_t buf[5];
 
@@ -344,7 +373,8 @@ void write_midifile_track(int fd, midifile_track_t *mtrack)
 
   tail = _append_metaev_track_name(&head, name);
 
-  tail = _append_sysex_tracklen(tail, mtrack->sysex_loop_len);
+  tail = _append_sysex_loopstart(tail, mtrack->sysex_loop_start);
+  tail = _append_sysex_looplen(tail, mtrack->sysex_loop_len);
   if (mtrack->sysex_portid != -1)
     tail = _append_sysex_portid(tail, mtrack->sysex_portid);
 
@@ -359,4 +389,3 @@ void write_midifile_track(int fd, midifile_track_t *mtrack)
   write_buf_list(fd, header);
   free_buf_list(header);
 }
-

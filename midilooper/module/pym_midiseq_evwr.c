@@ -1,3 +1,21 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #include <Python.h>
 #include "seqtool/seqtool.h"
 #include "midi/midiev_inc.h"
@@ -8,21 +26,35 @@
 
 PyObject *build_evrepr(uint_t tick, midicev_t *midicev)
 {
-  if (midicev->type == NOTEOFF || midicev->type == NOTEON)
-    return Py_BuildValue("(iiiii)",
-                         tick,
-                         midicev->chan,
-                         midicev->type,
-                         midicev->event.note.num,
-                         midicev->event.note.val);
-  else
+  PyObject *ret = NULL;
+
+  switch (midicev->type)
     {
+    case NOTEOFF:
+    case NOTEON:
+      ret = Py_BuildValue("(iiiii)",
+                          tick,
+                          midicev->chan,
+                          midicev->type,
+                          midicev->event.note.num,
+                          midicev->event.note.val);
+      break;
+    case CONTROLCHANGE:
+      ret = Py_BuildValue("(iiiii)",
+                          tick,
+                          midicev->chan,
+                          midicev->type,
+                          midicev->event.ctrl.num,
+                          midicev->event.ctrl.val);
+      break;
+    default:
       output_error("Unsupported midi channel event type: %i\n", midicev->type);
-      return Py_BuildValue("(iii)",
-                           tick,
-                           midicev->chan,
-                           midicev->type);
+      ret = Py_BuildValue("(iii)",
+                          tick,
+                          midicev->chan,
+                          midicev->type);
     }
+  return ret;
 }
 
 static void midiseq_evwr_dealloc(PyObject *obj)
@@ -68,33 +100,39 @@ static PyObject *midiseq_evwr_getevent(PyObject *obj, PyObject *args)
   Py_RETURN_NONE;
 }
 
-/* static PyObject *midiseq_evwr_del_event(PyObject *obj, PyObject *args) */
-/* { */
-/*   midiseq_evwrObject *self = (midiseq_evwrObject *) obj; */
+static PyObject *midiseq_evwr_set_note_vel(PyObject *obj, PyObject *args)
+{
+  midiseq_evwrObject *self = (midiseq_evwrObject *) obj;
+  seqev_t            *seqev = NULL;
+  midicev_t          *midicev = NULL;
+  uint_t             value;
 
-/*   if (!evit_check(&(self->evit))) */
-/*     return NULL; */
+#ifndef __ROUGH
+  if (!evwr_check(self))
+    return NULL;
+#endif
 
-/*   iter_node_del(&(self->evit.seqevit), free_seqev); */
-/*   if (self->evit.seqevit.list->len <= 0) */
-/*     { */
-/*       iter_node_del(&(self->evit.tickit), free_tickev); */
-/*       evit_tick_head(&(self->evit)); */
-/*     } */
-/*   Py_RETURN_NONE; */
-/* } */
+  if (!PyArg_ParseTuple(args, "i", &value))
+    {
+      output_error("In %s (%s:%d) Problem with argument",
+                   __FUNCTION__, __FILE__, __LINE__);
+      return NULL;
+    }
 
-/* TODO */
-/* static PyObject *midiseq_evwr_repr(midiseq_evwrObject *self) */
-/* { */
-/*   return PyString_FromFormat("midiseq evwr type"); */
-/* } */
+  seqev = evit_get_seqev(&(self->evit));
+  midicev = (midicev_t *) seqev->addr;
+  if (midicev->type == NOTEON || midicev->type == NOTEOFF)
+    midicev->event.note.val = value;
+  Py_RETURN_NONE;
+}
 
 PyObject *midiseq_evwr_copy(PyObject *obj, PyObject *args);
 
 static PyMethodDef midiseq_evwr_methods[] = {
   {"get_event", midiseq_evwr_getevent, METH_NOARGS,
    "Get the event representation as a tuple of integer (tick, channel, note_type, note, val)"},
+  {"set_note_vel", midiseq_evwr_set_note_vel, METH_VARARGS,
+   "Change the note velocity"},
   /* {"_del_event", midiseq_evwr_del_event, METH_NOARGS, */
   /*  "Delete the current event of the track (/!\\ Never use this function when engine is running it is really not thread safe and will surely make memory corruption)"}, */
   {"_copy", midiseq_evwr_copy, METH_NOARGS,

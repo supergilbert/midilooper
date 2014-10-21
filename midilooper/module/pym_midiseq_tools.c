@@ -1,3 +1,21 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #include <Python.h>
 
 #include "asound/aseq.h"
@@ -10,17 +28,12 @@ PyObject *getall_event_repr(list_t *tickev_list)
 {
   PyObject      *ret_obj = NULL;
   ev_iterator_t evit;
-  seqev_t       *seqev   = NULL;
   midicev_t     *midicev = NULL;
 
   ret_obj = PyList_New(0);
   if (tickev_list->len > 0)
     {
-      seqev = evit_init(&evit, tickev_list);
-      if (seqev->type == MIDICEV)
-          midicev = seqev->addr;
-      else
-        midicev = evit_next_midiallchannel(&evit);
+      midicev = evit_init_midiallchannel(&evit, tickev_list);
       while (midicev)
         {
           PyList_Append(ret_obj, build_evrepr(evit.tick, midicev));
@@ -30,45 +43,57 @@ PyObject *getall_event_repr(list_t *tickev_list)
   return ret_obj;
 }
 
+PyObject *getall_midicev_repr(list_t *tickev_list,
+                              byte_t channel,
+                              uint_t tickmin,
+                              uint_t tickmax)
+{
+  PyObject      *ret_obj = NULL;
+  ev_iterator_t evit;
+  midicev_t     *midicev = NULL;
+
+  ret_obj = PyList_New(0);
+  if (tickev_list->len > 0)
+    {
+      midicev = evit_init_midicev(&evit, tickev_list, channel);
+      while (midicev && evit.tick < tickmin)
+        midicev = evit_next_midicev(&evit, channel);
+      while (midicev && evit.tick <= tickmax)
+        {
+          PyList_Append(ret_obj, build_evrepr(evit.tick, midicev));
+          midicev = evit_next_midicev(&evit, channel);
+        }
+    }
+  return ret_obj;
+}
 
 PyObject *getall_noteonoff_repr(list_t *tickev_list, byte_t channel)
 {
   ev_iterator_t evit_noteon, evit_noteoff;
   PyObject      *ret_obj = NULL;
   PyObject      *ev_repr = NULL;
-  seqev_t       *seqev   = NULL;
+  /* seqev_t       *seqev   = NULL; */
   midicev_t     *midicev_noteon = NULL, *midicev_noteoff = NULL;
 
   ret_obj = PyList_New(0);
 
   if (tickev_list)
     {
-      seqev = evit_init(&evit_noteon, tickev_list);
-      if (seqev)
+      midicev_noteon = evit_init_noteon(&evit_noteon, tickev_list, channel);
+      while (midicev_noteon)
         {
-          if (seqev->type == MIDICEV)
+          evit_copy(&evit_noteon, &evit_noteoff);
+          midicev_noteoff = evit_next_noteoff_num(&evit_noteoff,
+                                                  channel,
+                                                  midicev_noteon->event.note.num);
+          if (midicev_noteoff)
             {
-              midicev_noteon = seqev->addr;
-              if (midicev_noteon->type != NOTEON)
-                midicev_noteon = evit_next_noteon(&evit_noteon, channel);
+              ev_repr = PyList_New(0);
+              PyList_Append(ev_repr, build_evrepr(evit_noteon.tick, midicev_noteon));
+              PyList_Append(ev_repr, build_evrepr(evit_noteoff.tick, midicev_noteoff));
+              PyList_Append(ret_obj, ev_repr);
             }
-          else
-            midicev_noteon = evit_next_noteon(&evit_noteon, channel);
-          while (midicev_noteon)
-            {
-              evit_copy(&evit_noteon, &evit_noteoff);
-              midicev_noteoff = evit_next_noteoff_num(&evit_noteoff,
-                                                      channel,
-                                                      midicev_noteon->event.note.num);
-              if (midicev_noteoff)
-                {
-                  ev_repr = PyList_New(0);
-                  PyList_Append(ev_repr, build_evrepr(evit_noteon.tick, midicev_noteon));
-                  PyList_Append(ev_repr, build_evrepr(evit_noteoff.tick, midicev_noteoff));
-                  PyList_Append(ret_obj, ev_repr);
-                }
-              midicev_noteon = evit_next_noteon(&evit_noteon, channel);
-            }
+          midicev_noteon = evit_next_noteon(&evit_noteon, channel);
         }
     }
   return ret_obj;
@@ -209,43 +234,34 @@ PyObject *_sel_noteonoff(track_ctx_t *trackctx,
   ev_iterator_t evit_noteoff;
   PyObject      *ret_obj = PyList_New(0);
   PyObject      *ev_repr = NULL;
-  seqev_t       *seqev   = NULL;
   midicev_t     *midicev_noteon = NULL;
   midicev_t     *midicev_noteoff = NULL;
 
   if (trackctx)
     {
-      seqev = evit_init(&evit_noteon, &(trackctx->track->tickev_list));
-      if (seqev)
+      midicev_noteon = evit_init_noteon(&evit_noteon,
+                                        &(trackctx->track->tickev_list),
+                                        channel);
+
+      while (midicev_noteon)
         {
-          if (seqev->type == MIDICEV)
+          if (evit_noteon.tick <= tick_max &&
+              note_min <= midicev_noteon->event.note.num &&
+              midicev_noteon->event.note.num <= note_max)
             {
-              midicev_noteon = seqev->addr;
-              if (midicev_noteon->type != NOTEON)
-                midicev_noteon = evit_next_noteon(&evit_noteon, channel);
-            }
-          else
-            midicev_noteon = evit_next_noteon(&evit_noteon, channel);
-          while (midicev_noteon)
-            {
-              if (evit_noteon.tick <= tick_max &&
-                  note_min <= midicev_noteon->event.note.num &&
-                  midicev_noteon->event.note.num <= note_max)
+              evit_copy(&evit_noteon, &evit_noteoff);
+              midicev_noteoff = evit_next_noteoff_num(&evit_noteoff,
+                                                      midicev_noteon->chan,
+                                                      midicev_noteon->event.note.num);
+              if (midicev_noteoff != NULL && tick_min <= evit_noteoff.tick)
                 {
-                  evit_copy(&evit_noteon, &evit_noteoff);
-                  midicev_noteoff = evit_next_noteoff_num(&evit_noteoff,
-                                                          midicev_noteon->chan,
-                                                          midicev_noteon->event.note.num);
-                  if (midicev_noteoff != NULL && tick_min <= evit_noteoff.tick)
-                    {
-                      ev_repr = build_noteonoff(&evit_noteon, &evit_noteoff, trackctx);
-                      PyList_Append(ret_obj, ev_repr);
-                    }
-                  /* else */
-                  /*   msg; */
+                  ev_repr = build_noteonoff(&evit_noteon, &evit_noteoff, trackctx);
+                  PyList_Append(ret_obj, ev_repr);
                 }
-              midicev_noteon = evit_next_noteon(&evit_noteon, channel);
+              /* else */
+              /*   msg; */
             }
+          midicev_noteon = evit_next_noteon(&evit_noteon, channel);
         }
     }
   return ret_obj;
@@ -256,8 +272,8 @@ PyObject *sel_noteonoff_repr(track_ctx_t *trackctx,
                              byte_t channel,
                              uint_t tick_min,
                              uint_t tick_max,
-                             char note_min,
-                             char note_max)
+                             byte_t note_min,
+                             byte_t note_max)
 {
   return _sel_noteonoff(trackctx,
                         channel,
@@ -273,8 +289,8 @@ PyObject *sel_noteonoff_evwr(track_ctx_t *trackctx,
                              byte_t channel,
                              uint_t tick_min,
                              uint_t tick_max,
-                             char note_min,
-                             char note_max)
+                             byte_t note_min,
+                             byte_t note_max)
 {
   return _sel_noteonoff(trackctx,
                         channel,
@@ -283,6 +299,39 @@ PyObject *sel_noteonoff_evwr(track_ctx_t *trackctx,
                         note_min,
                         note_max,
                         _build_noteonoff_evwr);
+}
+
+
+PyObject *sel_ctrl_evwr(track_ctx_t *trackctx,
+                             byte_t channel,
+                             uint_t tick_min,
+                             uint_t tick_max,
+                             byte_t ctrl_num)
+{
+  ev_iterator_t evit_ctrl;
+  PyObject      *ret_obj = PyList_New(0);
+  PyObject      *ev_repr = NULL;
+  midicev_t     *midicev_ctrl = NULL;
+
+  if (trackctx)
+    {
+      midicev_ctrl = evit_init_ctrl_num(&evit_ctrl,
+                                        &(trackctx->track->tickev_list),
+                                        channel,
+                                        ctrl_num);
+
+      while (midicev_ctrl && evit_ctrl.tick <= tick_max)
+        {
+          if (tick_min <= evit_ctrl.tick)
+            {
+              ev_repr = build_evwr_from_evit(&evit_ctrl, trackctx);
+              PyList_Append(ret_obj, ev_repr);
+            }
+          midicev_ctrl = evit_next_ctrl_num(&evit_ctrl, channel, ctrl_num);
+        }
+    }
+
+  return ret_obj;
 }
 
 #include "loop_engine/engine.h"
@@ -301,7 +350,7 @@ void delete_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
 
   void (*del_func)(track_ctx_t *, ev_iterator_t *);
 
-  if (trackctx->is_handled == TRUE)
+  if (trackctx->engine && engine_isrunning(trackctx->engine) == TRUE)
     del_func = trackctx_event2trash;
   else
     del_func = trackctx_del_event;
@@ -358,7 +407,7 @@ PyObject *try_gen_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
         evrepr = (PyObject *) PyList_GetItem(pylist, idx);
         if (gen_mcev_from_evrepr(evrepr, &tick, &mcev) == TRUE)
           {
-            if (evit_searchev(&evit, tick, &mcev))
+            if (evit_searchev(&evit, tick, &mcev) != NULL)
               {
                 evwr = build_evwr_from_evit(&evit, trackctx);
                 PyList_Append(ret, evwr);
@@ -376,29 +425,11 @@ PyObject *try_gen_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
   return ret;
 }
 
-void _evit_add_midicev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev)
-{
-  node_t   *tick_node = search_or_add_ticknode(evit->tickit.list, tick);
-  tickev_t *tickev    = tick_node->addr;
-  seqev_t  *seqev     = alloc_seqev(mcev, MIDICEV);
-  node_t   *seq_node  = NULL;
-
-  if (mcev->type == NOTEOFF)
-    seq_node = push_to_list(&(tickev->seqev_list), (void *) seqev);
-  else
-    seq_node = push_to_list_tail(&(tickev->seqev_list), (void *) seqev);
-
-  evit->tickit.node  = tick_node;
-  evit->seqevit.list = &(tickev->seqev_list);
-  evit->seqevit.node = seq_node;
-  evit->tick         = tickev->tick;
-}
-
 PyObject *add_pyevrepr(track_ctx_t *trackctx, PyObject *pyevrepr)
 {
   uint_t        type, tick;
   Py_ssize_t    repr_sz;
-  midicev_t     *mcev;
+  midicev_t     mcev;
   PyObject      *obj = NULL;
   ev_iterator_t evit;
 
@@ -423,20 +454,30 @@ PyObject *add_pyevrepr(track_ctx_t *trackctx, PyObject *pyevrepr)
     {
     case NOTEON:
     case NOTEOFF:
-      mcev = myalloc(sizeof (midicev_t));
       obj = PyTuple_GetItem(pyevrepr, 1);
-      mcev->chan = PyInt_AS_LONG(obj);
-      mcev->type = type;
+      mcev.chan = PyInt_AS_LONG(obj);
+      mcev.type = type;
       obj = PyTuple_GetItem(pyevrepr, 3);
-      mcev->event.note.num = PyInt_AS_LONG(obj);
+      mcev.event.note.num = PyInt_AS_LONG(obj);
       obj = PyTuple_GetItem(pyevrepr, 4);
-      mcev->event.note.val = PyInt_AS_LONG(obj);
+      mcev.event.note.val = PyInt_AS_LONG(obj);
       obj = PyTuple_GetItem(pyevrepr, 0);
       tick = PyInt_AS_LONG(obj);
-      _evit_add_midicev(&evit, tick, mcev);
+      evit_add_midicev(&evit, tick, &mcev);
       obj = build_evwr_from_evit(&evit, trackctx);
-      /* build_evwr <------------------------------- avec evit_add_midicev */
-      /* add_new_midicev(track, tick, mcev); <------ on degage ca */
+      break;
+    case CONTROLCHANGE:
+      obj = PyTuple_GetItem(pyevrepr, 1);
+      mcev.chan = PyInt_AS_LONG(obj);
+      mcev.type = type;
+      obj = PyTuple_GetItem(pyevrepr, 3);
+      mcev.event.ctrl.num = PyInt_AS_LONG(obj);
+      obj = PyTuple_GetItem(pyevrepr, 4);
+      mcev.event.ctrl.val = PyInt_AS_LONG(obj);
+      obj = PyTuple_GetItem(pyevrepr, 0);
+      tick = PyInt_AS_LONG(obj);
+      evit_add_midicev(&evit, tick, &mcev);
+      obj = build_evwr_from_evit(&evit, trackctx);
       break;
     default:
       output_error("Unsupported event type");

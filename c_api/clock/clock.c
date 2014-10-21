@@ -1,3 +1,21 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "clock.h"
@@ -32,6 +50,14 @@ void next_tick(clocktick_t *tick, struct timespec *res, clockid_t clkid)
   add_time(&(tick->time), res);
   clock_nanosleep(clkid, TIMER_ABSTIME, &(tick->time), NULL);
   return;
+}
+
+void dump_clockres(clockid_t clkid)
+{
+  struct timespec res;
+
+  clock_getres(clkid, &res);
+  output("Clock resolution: %ds %dns\n", res.tv_sec, res.tv_nsec);
 }
 
 bool_t _clockloop(clocktick_t *tick, struct timespec *res, clockloop_cb cb_func, void *cb_arg)

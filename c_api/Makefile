@@ -6,6 +6,7 @@ SRC=asound/aseq.c\
 	midi/midifile_get_varlen.c\
 	midi/midifile_tool.c\
 	loop_engine/track_ctx.c\
+	loop_engine/track_req.c\
 	loop_engine/ev_iterator.c\
 	loop_engine/engine.c\
 	loop_engine/engine_midisave.c\

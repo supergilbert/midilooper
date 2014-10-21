@@ -1,4 +1,19 @@
-#!/usr/bin/python
+# Copyright 2012-2014 Gilbert Romer
+
+# This file is part of gmidilooper.
+
+# gmidilooper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# gmidilooper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU Gneneral Public License
+# along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>.
 
 import gobject
 gobject.threads_init()
@@ -12,16 +27,22 @@ from tool import prompt_gettext, MsqListMenu
 
 class PortListMenu(MsqListMenu):
     def rename_port(self, menuitem):
+        if self.portlist.seq.isrunning():
+            print "Can not rename port while running"
+            return
         if self.path:
             iter = self.portlist.liststore.get_iter(self.path[0])
             seqport = self.portlist.liststore.get_value(iter, 0)
-            name = prompt_gettext("Rename port")
+            name = prompt_gettext("Rename port", seqport.get_name())
             if name:
                 seqport.set_name(name)
                 self.portlist.liststore.set_value(iter, 1, repr(seqport))
             self.path = None
 
     def del_port(self, menuitem):
+        if self.portlist.seq.isrunning():
+            print "Can not delete port while running"
+            return
         if self.path:
             iter = self.portlist.liststore.get_iter(self.path[0])
             seqport = self.portlist.liststore.get_value(iter, 0)
@@ -55,6 +76,9 @@ class PortList(gtk.Window):
                 self.menu.popup(None, None, None, event.button, event.time)
 
     def button_add_port(self, button):
+        if self.seq.isrunning():
+            print "Can not add port while running"
+            return
         name = prompt_gettext("Enter new port name")
         if name:
             seqport = self.seq.newoutput(name)

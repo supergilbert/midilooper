@@ -1,3 +1,21 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #include "midi/midiev_inc.h"
 #include "debug_tool/debug_tool.h"
 
@@ -225,6 +243,42 @@ bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2)
 #include <stdlib.h>
 #include <strings.h>
 
+void dump_seqev(seqev_t *seqev)
+{
+  midicev_t *midicev = NULL;
+
+  output("\tseqev: addr=%p deleted=%s",
+         seqev,
+         seqev->deleted == TRUE ? "\033[31mTRUE\033[0m" : "FALSE");
+  if (seqev->type == MIDICEV)
+    {
+      midicev = (midicev_t *) seqev->addr;
+      output(" type=%s channel=%i", "MIDICEV", midicev->chan);
+      switch (midicev->type)
+        {
+        case NOTEON:
+          output(" | NOTEON  num=%hhd val=%hhd\n",
+                 midicev->event.note.num,
+                 midicev->event.note.val);
+          break;
+        case NOTEOFF:
+          output(" | NOTEOFF num=%hhd val=%hhd\n",
+                 midicev->event.note.num,
+                 midicev->event.note.val);
+          break;
+        case CONTROLCHANGE:
+          output(" | CONTROLCHANGE num=%hhd val=%hhd\n",
+                 midicev->event.ctrl.num,
+                 midicev->event.ctrl.val);
+          break;
+        default:
+          output(" | Unsupported event\n");
+        }
+    }
+  else
+    output("type=UNKNOWN\n");
+}
+
 void add_new_midicev(track_t *track, uint_t tick, midicev_t *mcev)
 {
   if (mcev->type == NOTEOFF)
@@ -272,7 +326,7 @@ void _list_copy_tickev(void *addr, void *track_addr)
   foreach_list_node(&(tickev->seqev_list), _list_copy_seqev, (void *) &list_arg);
 }
 
-void copy_track(track_t *track_src, track_t *track_dst)
+void copy_track_list(track_t *track_src, track_t *track_dst)
 {
   foreach_list_node(&(track_src->tickev_list), _list_copy_tickev, (void *) track_dst);
 }
@@ -282,7 +336,7 @@ void _list_copy_track(void *src_addr, void *dst_addr)
   track_t *track_src = (track_t *) src_addr;
   track_t *track_dst = (track_t *) dst_addr;
 
-  copy_track(track_src, track_dst);
+  copy_track_list(track_src, track_dst);
 }
 
 #include <string.h>
@@ -293,7 +347,6 @@ track_t *merge_all_track(char *name, list_t *track_list)
   if (LIST_HEAD(track_list) == NULL)
     return NULL;
   track = myalloc(sizeof (track_t));
-  bzero(track, sizeof (track_t));
   foreach_list_node(track_list, _list_copy_track, (void *) track);
   if (name != NULL)
     track->name = strdup(name);

@@ -1,3 +1,21 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #ifndef __MIDIFILE_H
 #define __MIDIFILE_H
 
@@ -64,6 +82,7 @@ typedef struct
 
 typedef struct
 {
+  uint_t sysex_loop_start;
   uint_t sysex_loop_len;
   int    sysex_portid;
   track_t track;
@@ -96,11 +115,12 @@ void free_buf_list(buf_node_t *buff);
 void write_buf_list(int fd, buf_node_t *buff);
 buf_node_t *get_midifile_trackhdr(size_t track_size);
 
-#define MSQ_SYSEX_TRACK_LOOPLEN 1   /* 4 byte track sequence length */
-#define MSQ_SYSEX_PORTNAME 2        /* 4 byte portid
+#define MSQ_SYSEX_TRACK_LOOPSTART 1 /* 4 byte track sequence length */
+#define MSQ_SYSEX_TRACK_LOOPLEN   2 /* 4 byte track sequence length */
+#define MSQ_SYSEX_PORTNAME        3 /* 4 byte portid
                                        2 byte namelen
                                        etc. name data */
-#define MSQ_TRACK_PORTID 3          /* followed by 4 byte */
+#define MSQ_TRACK_PORTID          4 /* followed by 4 byte */
 
 #define GETVLVSIZE(_tick) (_tick < 128) ? 1 :            \
   (((_tick >> 7) < 128) ? 2 :                            \

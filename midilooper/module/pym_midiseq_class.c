@@ -1,3 +1,21 @@
+/* Copyright 2012-2014 Gilbert Romer */
+
+/* This file is part of gmidilooper. */
+
+/* gmidilooper is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* gmidilooper is distributed in the hope that it will be useful, */
+/* but WITHOUT ANY WARRANTY; without even the implied warranty of */
+/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
+
+
 #include <Python.h>
 #include "debug_tool/debug_tool.h"
 #include "./loop_engine/engine.h"
@@ -224,6 +242,20 @@ static PyObject *midiseq_newtrack(PyObject *obj,
   return create_midiseq_track(trackctx);
 }
 
+static PyObject *midiseq_copy_track(PyObject *obj,
+                                    PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_trackObject *pytrack = NULL;
+  track_ctx_t    *trackctx = NULL;
+
+  if (!PyArg_ParseTuple(args , "O", &pytrack))
+    return NULL;
+
+  trackctx = engine_copy_trackctx(self->engine_ctx, pytrack->trackctx);
+  return create_midiseq_track(trackctx);
+}
+
 static PyObject *midiseq_gettracks(PyObject *obj,
                                    PyObject *args)
 {
@@ -422,6 +454,8 @@ static PyMethodDef midiseq_methods[] = {
    "Get output ports list"},
   {"newtrack", midiseq_newtrack, METH_VARARGS,
    "Create new track"},
+  {"copy_track", midiseq_copy_track, METH_VARARGS,
+   "Copy an existing track"},
   {"deltrack", midiseq_deltrack, METH_VARARGS,
    "Delete a track"},
   {"gettracks", midiseq_gettracks, METH_NOARGS,
