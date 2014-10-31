@@ -269,6 +269,23 @@ buf_node_t *_append_metaev_track_name(buf_node_t *tail, char *name)
   return tail->next;
 }
 
+buf_node_t *_append_metaev_set_tempo(buf_node_t *tail, uint_t tempo)
+{
+  byte_t me_name_type[3] = {0, 0xFF, 0x51};
+  byte_t bp_buf[4];
+
+  tail->next = init_buf_node(me_name_type, 3);
+  tail = tail->next;
+
+  bp_buf[0] = 3;
+  bp_buf[1] = (tempo >> 16) & 0xFF;
+  bp_buf[2] = (tempo >> 8) & 0xFF;
+  bp_buf[3] = tempo & 0xFF;
+
+  tail->next = init_buf_node(bp_buf, 4);
+  return tail->next;
+}
+
 buf_node_t *_append_sysex_header(buf_node_t *tail, size_t buflen, byte_t type)
 {
   byte_t hdr[2] = {0, 0xF0};

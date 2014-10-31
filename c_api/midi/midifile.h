@@ -115,12 +115,13 @@ void free_buf_list(buf_node_t *buff);
 void write_buf_list(int fd, buf_node_t *buff);
 buf_node_t *get_midifile_trackhdr(size_t track_size);
 
-#define MSQ_SYSEX_TRACK_LOOPSTART 1 /* 4 byte track sequence length */
-#define MSQ_SYSEX_TRACK_LOOPLEN   2 /* 4 byte track sequence length */
-#define MSQ_SYSEX_PORTNAME        3 /* 4 byte portid
-                                       2 byte namelen
-                                       etc. name data */
-#define MSQ_TRACK_PORTID          4 /* followed by 4 byte */
+#define MSQ_SYSEX_TRACK_LOOPSTART 0   /* 4 byte track sequence length */
+#define MSQ_SYSEX_TRACK_LOOPLEN   1   /* 4 byte track sequence length */
+
+#define MSQ_SYSEX_PORTNAME        128 /* 4 byte portid
+                                         2 byte namelen
+                                         etc. name data */
+#define MSQ_TRACK_PORTID          129 /* followed by 4 byte */
 
 #define GETVLVSIZE(_tick) (_tick < 128) ? 1 :            \
   (((_tick >> 7) < 128) ? 2 :                            \
@@ -141,7 +142,7 @@ void free_midifile(midifile_t *sequence);
 size_t midifile_trackev_size(track_t *track);
 
 track_t  *midifile_to_onetrack(char *filename);
-
+buf_node_t *_append_metaev_set_tempo(buf_node_t *tail, uint_t tempo);
 buf_node_t *_append_metaev_eot(buf_node_t *tail);
 
 void write_midifile_trackhdr(int fd, size_t track_size);

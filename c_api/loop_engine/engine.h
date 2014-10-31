@@ -34,16 +34,17 @@ typedef enum
 
 typedef struct
 {
-  pthread_t             thread_id;
-  bool_t                thread_ret;
-  pthread_rwlock_t      lock;
-  engine_rq             rq;
-  bool_t                isrunning;
-  list_t                track_list;
-  list_t                aseqport_list;
-  snd_seq_t             *aseqh;
-  clockloop_t           looph;
-  uint_t                ppq;
+  pthread_t        thread_id;
+  bool_t           thread_ret;
+  pthread_rwlock_t lock;
+  engine_rq        rq;
+  bool_t           isrunning;
+  list_t           track_list;
+  list_t           aseqport_list;
+  snd_seq_t        *aseqh;
+  clockloop_t      looph;
+  uint_t           ppq;
+  uint_t           tempo;       /* beat in micro seconde */
 }       engine_ctx_t;
 
 typedef enum
@@ -96,6 +97,9 @@ bool_t          engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx);
 track_ctx_t     *engine_new_track(engine_ctx_t *ctx, char *name);
 track_ctx_t     *engine_copy_trackctx(engine_ctx_t *ctx, track_ctx_t *trackctx);
 void            engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile);
+void            engine_set_bpm(engine_ctx_t *ctx, uint_t bpm);
+void            engine_set_tempo(engine_ctx_t *ctx, uint_t tempo);
+void            engine_reset_pulse(engine_ctx_t *ctx);
 
 void            engine_save_project(engine_ctx_t *ctx, char *file_path);
 

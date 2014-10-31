@@ -77,16 +77,13 @@ class MidiLooper(gtk.Window):
         else:
             self.file_save_as(menuitem)
 
-    def __init__(self, seq_name="MidiLooper", msq=None, filename=None):
+    def __init__(self, seq_name="MidiLooper", filename=None):
         gtk.Window.__init__(self)
         self.set_resizable(False)
         hbox = gtk.HBox()
         button_start =  gtk.Button("Start")
         button_stop =  gtk.Button("Stop")
-        if msq == None:
-            self.msq = midiseq.midiseq(seq_name)
-        else:
-            self.msq = msq
+        self.msq = midiseq.midiseq(seq_name)
 
         if filename:
             self.filename = filename
@@ -95,7 +92,7 @@ class MidiLooper(gtk.Window):
             except:
                 print "Unable to find file \"%s\"" % self.filename
                 import sys; sys.exit()
-            self.msq.import_msqfile(mfile)
+            self.msq.read_msqfile(mfile)
         else:
             self.filename = None
 
@@ -114,7 +111,7 @@ class MidiLooper(gtk.Window):
         def spincb(widget, msq):
             value = widget.get_value()
             msq.setbpm(int(value))
-        spinadj = gtk.Adjustment(120, 40, 300, 1)
+        spinadj = gtk.Adjustment(self.msq.getbpm(), 40, 300, 1)
         spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
         spinbut.set_numeric(True)
         spinadj.connect("value-changed", spincb, self.msq)

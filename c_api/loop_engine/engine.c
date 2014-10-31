@@ -294,6 +294,12 @@ typedef struct
   aseqport_ctx_t *aseq;
 } tmpport_cache_t;
 
+void engine_reset_pulse(engine_ctx_t *ctx)
+{
+  set_msnppq_to_timespec(&(ctx->looph.res),
+                         ctx->ppq,
+                         ctx->tempo);
+}
 
 void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
 {
@@ -304,6 +310,10 @@ void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
   midifile_portinfo_t *portinfo = NULL;
   tmpport_cache_t     *portcache = NULL;
   track_ctx_t         *trackctx = NULL;
+
+  ctx->tempo = midifile->info.tempo;
+  ctx->ppq = midifile->info.ppq;
+  engine_reset_pulse(ctx);
 
   for (iter_init(&portit, &(midifile->info.portinfo_list));
        iter_node(&portit) != NULL;
@@ -338,7 +348,6 @@ void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
         }
     }
   free_list_node(&tmpport, free);
-
 }
 
 track_ctx_t  *engine_new_track(engine_ctx_t *ctx, char *name)
@@ -367,11 +376,16 @@ void free_engine_ctx(engine_ctx_t *ctx)
   /* free_clockloop_struct(ctx->looph); */
 }
 
-void engine_setbpm(engine_ctx_t *ctx, uint_t bpm)
+void engine_set_bpm(engine_ctx_t *ctx, uint_t bpm)
 {
-  set_bpmnppq_to_timespec(&(ctx->looph.res),
-                          ctx->ppq,
-                          bpm);
+  ctx->tempo = 60000000 / bpm;
+  engine_reset_pulse(ctx);
+}
+
+void engine_set_tempo(engine_ctx_t *ctx, uint_t tempo)
+{
+  ctx->tempo = tempo;
+  engine_reset_pulse(ctx);
 }
 
 engine_ctx_t *init_engine_ctx(char *name)
@@ -384,7 +398,7 @@ engine_ctx_t *init_engine_ctx(char *name)
   ctx->isrunning = FALSE;
   ctx->rq = engine_stop;
   ctx->ppq = 192;
-  engine_setbpm(ctx, 120);
+  engine_set_bpm(ctx, 120);
   /* pthread_rwlock_init(&(ctx->info.lock), NULL); */
   pthread_rwlock_init(&(ctx->lock), NULL);
   /* pthread_attr_init(&(ctx->thread_attr)); */

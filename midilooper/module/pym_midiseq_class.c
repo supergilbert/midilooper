@@ -142,11 +142,19 @@ static PyObject *midiseq_setbpm(PyObject *obj,
     return NULL;
   if (bpm < 40 || bpm > 300)
     return NULL;
-  debug("midiseq_setbpm: %d bpm\n", bpm);
-  set_bpmnppq_to_timespec(&(self->engine_ctx->looph.res),
-                          self->engine_ctx->ppq,
-                          bpm);
+  engine_set_bpm(self->engine_ctx, bpm);
+  /* set_bpmnppq_to_timespec(&(self->engine_ctx->looph.res), */
+  /*                         self->engine_ctx->ppq, */
+  /*                         bpm); */
   Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_getbpm(PyObject *obj,
+                                PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  return Py_BuildValue("i", (60000000 / self->engine_ctx->tempo));
 }
 
 
@@ -162,10 +170,10 @@ static PyObject *midiseq_setms(PyObject *obj,
     return NULL;
   if (ms < 200000 || ms > 1500000)
     return NULL;
-  debug("midiseq_setms: %dms\n", ms);
-  set_msnppq_to_timespec(&(self->engine_ctx->looph.res),
-                         self->engine_ctx->ppq,
-                         ms);
+  engine_set_tempo(self->engine_ctx, ms);
+  /* set_msnppq_to_timespec(&(self->engine_ctx->looph.res), */
+  /*                        self->engine_ctx->ppq, */
+  /*                        ms); */
   Py_RETURN_NONE;
 }
 
@@ -322,7 +330,7 @@ static PyObject *midiseq_getports(PyObject *obj,
   return portlist;
 }
 
-static PyObject *midiseq_import_msqfile_tracks(PyObject *obj,
+static PyObject *midiseq_read_msqfile_tracks(PyObject *obj,
                                                PyObject *args)
 {
   midiseq_Object      *self = (midiseq_Object *) obj;
@@ -420,7 +428,7 @@ static PyObject *midiseq_move_port_after(PyObject *obj,
 }
 
 static PyMethodDef midiseq_methods[] = {
-  {"import_msqfile", midiseq_import_msqfile_tracks, METH_VARARGS,
+  {"read_msqfile", midiseq_read_msqfile_tracks, METH_VARARGS,
    "Copy the track of a midifile"},
   {"save", midiseq_save, METH_VARARGS,
    "Save the sequence information as a midifile"},
@@ -430,6 +438,8 @@ static PyMethodDef midiseq_methods[] = {
    "Get sequencer pulsation per quarter note"},
   {"setbpm", midiseq_setbpm, METH_VARARGS,
    "Set sequencer tempo in beat per minute"},
+  {"getbpm", midiseq_getbpm, METH_NOARGS,
+   "Get sequencer tempo in beat per minute"},
   {"settickpos", midiseq_settickpos, METH_VARARGS,
    "Set sequencer tick position"},
   {"gettickpos", midiseq_gettickpos, METH_NOARGS,

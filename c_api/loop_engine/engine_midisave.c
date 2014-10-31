@@ -72,6 +72,7 @@ void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
       node = _append_sysex_port(node, aport);
     }
 
+  node = _append_metaev_set_tempo(node, ctx->tempo);
   node = _append_metaev_eot(node);
 
   node = get_midifile_trackhdr(get_buf_list_size(head.next));

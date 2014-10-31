@@ -29,7 +29,9 @@ from wgttools import Xpos2Tick, Ypos2Note
 
 
 # Quater note x size
-DEFAULT_QNOTE_XSZ = 140
+MIN_QNOTE_XSZ = 10
+DEFAULT_QNOTE_XSZ = 70
+MAX_QNOTE_XSZ = 360
 
 DEFAULT_FONT_NAME = "-misc-fixed-medium-r-normal--10-70-100-100-c-60-iso8859-1"
 # DEFAULT_FONT_NAME = "-misc-fixed-medium-r-normal--6-60-75-75-c-40-iso8859-*"
@@ -348,7 +350,10 @@ NOTE_PX_SIZE = 8
 
 class ChannelEditorSetting(object):
     def getmaxwidth(self):
-        return self.qnxsz * (self.getlen() + self.getstart()) / self.getppq()
+        # The "+ 1" in the following operation is a tmp hack
+        # Need to display loop and to take the last note as a reference to set
+        # the width.
+        return self.qnxsz * (((self.getlen() + self.getstart()) / self.getppq()) + 1)
 
     def getppq(self):
         return self.sequencer.getppq()
@@ -478,6 +483,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
         # cr.device_to_user_distance(dx, dy)
         # cr.set_line_width(dx if dx > dy else dy)
 
+        # Detecting line(s) under quater note size
         xpos = area.x - (area.x % self.setting.qnxsz)
         if xpos < area.x:
             xpos = xpos + self.setting.qnxsz

@@ -25,7 +25,7 @@ if gtk.pygtk_version < (2, 8):
     print "PyGtk 2.8 or later required"
     raise SystemExit
 
-from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, DEFAULT_QNOTE_XSZ
+from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, MIN_QNOTE_XSZ, DEFAULT_QNOTE_XSZ, MAX_QNOTE_XSZ
 from msqwidget.midivaluewgt import MsqValueWidget
 from msqwidget.wgttools import MIDI_CTRL_EVENT
 
@@ -310,7 +310,11 @@ class ChannelEditor(gtk.VBox):
         vbar.clear_note()
 
     def handle_zoom_x(self, adj):
-        self.setting.qnxsz = int(DEFAULT_QNOTE_XSZ * adj.get_value() / 8)
+        val = adj.get_value()
+        if val <= 16.0:
+            self.setting.qnxsz = int(MIN_QNOTE_XSZ + ((DEFAULT_QNOTE_XSZ - MIN_QNOTE_XSZ) * val / 16.0))
+        else:
+            self.setting.qnxsz = int(DEFAULT_QNOTE_XSZ + ((MAX_QNOTE_XSZ - DEFAULT_QNOTE_XSZ) * (val - 16) / 16.0))
         self.resize_all()
         self.redraw()
 
@@ -377,21 +381,11 @@ class ChannelEditor(gtk.VBox):
         hsb = gtk.HScrollbar(hadj)
         vsb = gtk.VScrollbar(vadj)
 
-        zx_adj = gtk.Adjustment(8.0, 1.0, 32.0, 1.0, 1.0, 0.0)
-        zx_adj.connect("value_changed", self.handle_zoom_x)
-        zoom_x = gtk.HScale(zx_adj)
-        zoom_x.set_draw_value(False)
-        zoom_x.set_update_policy(gtk.UPDATE_DISCONTINUOUS)
-
         table = gtk.Table(3, 2)
         table.attach(self.hbar_vp, 1, 2, 0, 1, gtk.FILL, 0)
         table.attach(vbar_vp,      0, 1, 1, 2, 0, gtk.FILL)
         table.attach(evbox_grid,   1, 2, 1, 2, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
         table.attach(vsb,          2, 3, 1, 2, 0, gtk.FILL)
-
-        table2 = gtk.Table(3, 2)
-        table2.attach(zoom_x, 0, 1, 1, 2, gtk.FILL, 0)
-        table2.attach(hsb,    1, 2, 1, 2, gtk.FILL, 0)
 
         self.val_list = gtk.ListStore(int, str)
         chan_key = "%i" % self.setting.chan_num
@@ -410,7 +404,6 @@ class ChannelEditor(gtk.VBox):
         valuetype_cbbox.add_attribute(cell, 'text', 1)
         valuetype_cbbox.connect("changed", self.valuetype_changed)
         valuetype_cbbox.set_size_request(vbar.width, -1)
-        table2.attach(valuetype_cbbox, 0, 1, 0, 1, gtk.FILL, gtk.EXPAND|gtk.FILL)
 
         self.value_wgt = MsqValueWidget(self.setting)
         self.value_vp = gtk.Viewport()
@@ -424,9 +417,20 @@ class ChannelEditor(gtk.VBox):
         evbox_value.add(self.value_vp)
         # evbox_value.connect("leave-notify-event", self.handle_leave_notify, self.hbar, vbar)
 
-        table2.attach(evbox_value, 1, 2, 0, 1, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
         self.grid.value_wgt = self.value_wgt
         self.value_wgt.grid = self.grid
+
+        zx_adj = gtk.Adjustment(15.0, 0.0, 32.0, 1.0, 1.0, 0.0)
+        zx_adj.connect("value_changed", self.handle_zoom_x)
+        zoom_x = gtk.HScale(zx_adj)
+        zoom_x.set_draw_value(False)
+        zoom_x.set_update_policy(gtk.UPDATE_DISCONTINUOUS)
+
+        table2 = gtk.Table(3, 2)
+        table2.attach(zoom_x, 0, 1, 1, 2, gtk.FILL, 0)
+        table2.attach(hsb,    1, 2, 1, 2, gtk.FILL, 0)
+        table2.attach(valuetype_cbbox, 0, 1, 0, 1, gtk.FILL, gtk.EXPAND|gtk.FILL)
+        table2.attach(evbox_value, 1, 2, 0, 1, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
 
         paned_tables = gtk.VPaned()
         paned_tables.pack1(table, resize=False, shrink=False)
@@ -458,6 +462,7 @@ class ChannelEditor(gtk.VBox):
 
         # self.set_focus_child(table2)
         # self.set_focus_chain((table, table2))
+        self.resize_all()
 
 
 class TrackEditor(gtk.Window):
