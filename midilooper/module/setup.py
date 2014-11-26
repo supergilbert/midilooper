@@ -16,23 +16,26 @@
 # along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>.
 
 from distutils.core import setup, Extension
+import sys, os
+# print "/".join(sys.argv[0].split("/")[:-1])
+pym_path = os.path.dirname(sys.argv[0])
 
-mdsq_libc_path = '../../c_api/'
+mdsq_libc_path = "%s/../../c_api/" % pym_path
 
-module1 = Extension('midiseq',
+module1 = Extension("midiseq",
                     include_dirs = [mdsq_libc_path],
                     library_dirs = [mdsq_libc_path],
-                    libraries = ['midiseq', 'asound'],
+                    libraries = ["midiseq", "asound"],
                     # extra_link_args = "-fPIC",
                     extra_compile_args = ["-Werror"],
-                    sources = ['./pym_midiseq_class.c',
-                               './pym_midiseq_tools.c',
-                               './pym_midiseq_track.c',
-                               './pym_midiseq_aport.c',
-                               './pym_midiseq_file.c',
-                               './pym_midiseq_evwr.c',
-                               './pym_midiseq.c'])
+                    sources = ["%s/pym_midiseq_class.c" % pym_path,
+                               "%s/pym_midiseq_tools.c" % pym_path,
+                               "%s/pym_midiseq_track.c" % pym_path,
+                               "%s/pym_midiseq_aport.c" % pym_path,
+                               "%s/pym_midiseq_file.c" % pym_path,
+                               "%s/pym_midiseq_evwr.c" % pym_path,
+                               "%s/pym_midiseq.c" % pym_path])
 
-setup (name = 'midiseq',
-       description = 'sequencer midi',
+setup (name = "midiseq",
+       description = "sequencer midi",
        ext_modules = [module1])
