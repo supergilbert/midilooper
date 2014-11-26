@@ -20,7 +20,7 @@ PYMSQLIB_BUILD=$(PYMSQLIB_PATH)/$(PYMSQLIB_NAME)
 # No header dependencies
 $(PYMSQLIB_DEST) : $(MSQ_LIB) $(wildcard $(PYMSQLIB_PATH)/*.c)
 	python $(PYMSQLIB_PATH)/setup.py install --install-lib=$(PYMSQLIB_PATH) --home=$(PYMSQLIB_PATH)
-	cp $(PYMSQLIB_BUILD) $(PYMSQLIB_DEST)
+	cp -f $(PYMSQLIB_BUILD) $(PYMSQLIB_DEST)
 
 .PHONY : clean_pymsq
 clean_pymsq :
