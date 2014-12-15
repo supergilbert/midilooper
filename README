@@ -3,4 +3,4 @@ This code is in development.
 To test you need the following packages:
 "python-dev" "libasound2-dev" "make" "gcc"
 Launch "make" (solve dependencies problems)
-Launch "./dev_midilooper.sh"
+Launch "./test_midilooper.sh"

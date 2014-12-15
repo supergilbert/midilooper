@@ -1,11 +1,11 @@
-#!/bin/sh
+#!/bin/sh -e
 
-MIDILOOPER_PATH=$(dirname $0)/midilooper
-export PYTHONPATH=$MIDILOOPER_PATH
+MIDILOOPER=$(dirname $0)/midilooper/midilooper.py
+export PYTHONPATH=$(dirname $0)/python_midiseq
 
 if [ $# -lt 1 ]; then
 	ulimit -c unlimited
-	$MIDILOOPER_PATH/midilooper.py
+	$MIDILOOPER
 else
 	case $1 in
 	"ipython")
@@ -23,12 +23,12 @@ else
 	"gdb")
 		echo "\033[32mLanching midilooper with gdb.\033[0m"
 		shift 1
-		gdb --args python $MIDILOOPER_PATH/midilooper.py $@
+		gdb --args python $MIDILOOPER $@
 		;;
 	"gdbemacs")
 		echo "\033[32mLanching midilooper with gdb in emacs.\033[0m"
                 shift 1
-		emacs --eval "(gdb \"gdb -i=mi --args python $MIDILOOPER_PATH/midilooper.py $@\")"
+		emacs --eval "(gdb \"gdb -i=mi --args python $MIDILOOPER $@\")"
 		;;
 	"emacscore")
 		if [ $# -ne 2 ]; then
@@ -47,11 +47,11 @@ else
 	"valgrind")
 		echo "\033[32mLanching midilooper with valgrind.\033[0m"
 		shift 1
-		valgrind -v --track-origins=yes --log-file=/tmp/midilooper_valgrind.log --leak-check=full --show-reachable=yes python $MIDILOOPER_PATH/midilooper.py $@
+		valgrind -v --track-origins=yes --log-file=/tmp/midilooper_valgrind.log --leak-check=full --show-reachable=yes python $MIDILOOPER $@
 		;;
 	*)
 		ulimit -c unlimited
-		$MIDILOOPER_PATH/midilooper.py $@
+		$MIDILOOPER $@
 		;;
 	esac
 fi

@@ -1,42 +1,41 @@
-# C part
+# Trick to enable "make -f"
+current_dir := $(patsubst %/,%,$(dir $(firstword $(MAKEFILE_LIST))))
 
-MSQ_LIB_PATH=./c_api
-include $(MSQ_LIB_PATH)/Rules.mk
+### C part ###
 
-# end of C
-
-
-# Python part
+LIB_MSQ_DIR=$(current_dir)/lib_midiseq
+include $(LIB_MSQ_DIR)/Rules.mk
 
 
-PYMSQLIB_NAME=midiseq.so
+### Python part ###
 
-MIDILOOPER_PATH=./midilooper
-PYMSQLIB_DEST=$(MIDILOOPER_PATH)/$(PYMSQLIB_NAME)
+PY_MSQ_DIR=$(current_dir)/python_midiseq
+PY_MSQ=$(PY_MSQ_DIR)/midiseq.so
 
-PYMSQLIB_PATH=$(MIDILOOPER_PATH)/module
-PYMSQLIB_BUILD=$(PYMSQLIB_PATH)/$(PYMSQLIB_NAME)
+$(PY_MSQ) : $(LIB_MSQ) $(wildcard $(PY_MSQ_DIR)/*.c $(PY_MSQ_DIR)/*.h)
+	cd $(PY_MSQ_DIR) ; python ./setup.py clean -a ; python ./setup.py install --install-lib=./ ; cd -
 
-# No header dependencies
-$(PYMSQLIB_DEST) : $(MSQ_LIB) $(wildcard $(PYMSQLIB_PATH)/*.c)
-	python $(PYMSQLIB_PATH)/setup.py install --install-lib=$(PYMSQLIB_PATH) --home=$(PYMSQLIB_PATH)
-	cp -f $(PYMSQLIB_BUILD) $(PYMSQLIB_DEST)
-
-.PHONY : clean_pymsq
-clean_pymsq :
-	python $(PYMSQLIB_PATH)/setup.py clean
-	rm -rf $(PYMSQLIB_DEST) $(PYMSQLIB_BUILD) $(PYMSQLIB_PATH)/build $(PYMSQLIB_PATH)/midiseq-0.0.0.egg-info
-
-.PHONY : clean_pyc
-clean_pyc :
-	find ./ -iname '*pyc' -exec rm -rf {} \;
-
-# end of Python
+.PHONY : clean_py_msq
+clean_pym :
+	cd $(PY_MSQ_DIR) ; python ./setup.py clean -a ; cd -
+	rm -rf $(PY_MSQ) $(PY_MSQ_DIR)/midiseq-0.0.0.egg-info
 
 
-
-.PHONY : clean
-clean : clean_msq_lib clean_pymsq clean_pyc
+### Common part ###
 
 .DEFAULT_GOAL=all
-all : $(PYMSQLIB_DEST)
+all : pym
+
+pym : $(PY_MSQ)
+
+lib : $(LIB_MSQ)
+
+clean_lib : clean_lib_msq
+
+clean_pyc :
+	find $(current_dir)  -iname '*pyc' -exec rm -rf {} \;
+
+clean : clean_lib clean_pym clean_pyc
+
+.PHONY : lib_msq py_msq py_msq clean_pyc
+

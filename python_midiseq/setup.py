@@ -20,7 +20,7 @@ import sys, os
 # print "/".join(sys.argv[0].split("/")[:-1])
 pym_path = os.path.dirname(sys.argv[0])
 
-mdsq_libc_path = "%s/../../c_api/" % pym_path
+mdsq_libc_path = "%s/../lib_midiseq/" % pym_path
 
 module1 = Extension("midiseq",
                     include_dirs = [mdsq_libc_path],
