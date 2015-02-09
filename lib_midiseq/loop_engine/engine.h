@@ -21,31 +21,62 @@
 
 #include <pthread.h>
 
-/* #include "seqtool/seqtool.h" */
 #include "midi/midifile.h"
-#include "clock/clock.h"
-#include "asound/aseq_tool.h"
+
+typedef struct midioutput
+{
+  void        *hdl;
+  byte_t      notes_on_state[256];
+  uint32_t    (*get_id)(void *hdl);
+  const char  *(*get_name)(void *hdl);
+  void        (*set_name)(void *hdl, char *name);
+  bool_t      (*output_ev)(struct midioutput *output, midicev_t *midicev);
+  bool_t      (*output_evlist)(struct midioutput *output, list_t *seqevlist);
+  bool_t      (*output_pending_notes)(struct midioutput *output);
+} output_t;
+
+#define output_get_id(output)         (output)->get_id((output)->hdl)
+#define output_get_name(output)       (output)->get_name((output)->hdl)
+#define output_set_name(output, name) (output)->set_name((output)->hdl, name)
+#define output_ev(output, midicev)    (output)->output_ev(output, midicev)
+#define output_evlist(output, seqevlist)   \
+  (output)->output_evlist(output, seqevlist)
+#define output_pending_notes(output)       \
+  (output)->output_pending_notes(output)
 
 typedef enum
   {
-    engine_cont = 0,
-    engine_stop
-  }     engine_rq;
+    NANOSLEEP_ENGINE = 0        /* + Alsa */
+  } engine_type;
 
-typedef struct
+typedef struct engine_ctx
 {
-  pthread_t        thread_id;
-  bool_t           thread_ret;
-  pthread_rwlock_t lock;
-  engine_rq        rq;
-  bool_t           isrunning;
-  list_t           track_list;
-  list_t           aseqport_list;
-  snd_seq_t        *aseqh;
-  clockloop_t      looph;
-  uint_t           ppq;
-  uint_t           tempo;       /* beat in micro seconde */
-}       engine_ctx_t;
+  void     *hdl;
+  list_t   output_list;
+  list_t   track_list;
+  uint_t   ppq;                   /* Pulse per quater note (beat) */
+  uint_t   tempo;                 /* Quater note in micro second */
+  bool_t   (*is_running)(struct engine_ctx *engine);
+  void     (*destroy)(struct engine_ctx *engine);
+  bool_t   (*start)(struct engine_ctx *engine);
+  void     (*stop)(struct engine_ctx *engine);
+  output_t *(*create_output)(struct engine_ctx *engine, char *name);
+  bool_t   (*delete_output)(struct engine_ctx *engine, output_t *output);
+  uint_t   (*get_tick)(struct engine_ctx *engine);
+  uint_t   (*set_bpm)(struct engine_ctx *engine);
+  void     (*_drain_output)(struct engine_ctx *engine);
+  void     (*reset_pulse)(struct engine_ctx *engine);
+} engine_ctx_t;
+
+#define engine_is_running(eng)            (eng)->is_running(eng)
+#define engine_destroy(eng)               (eng)->destroy(eng)
+#define engine_start(eng)                 (eng)->start(eng)
+#define engine_stop(eng)                  (eng)->stop(eng)
+#define engine_create_output(eng, name)   (eng)->create_output(eng, name)
+#define engine_delete_output(eng, output) (eng)->delete_output(eng, output)
+#define engine_get_tick(eng)              (eng)->get_tick(eng)
+#define _engine_drain_output(eng)         (eng)->_drain_output(eng)
+#define engine_reset_pulse(eng)           (eng)->reset_pulse(eng)
 
 typedef enum
   {
@@ -62,7 +93,8 @@ typedef struct
 
 typedef struct
 {
-  aseqport_ctx_t   *aseqport_ctx;
+  engine_ctx_t     *engine;
+  output_t         *output;
   track_t          *track;
   uint_t           loop_start;
   uint_t           loop_len;
@@ -70,7 +102,6 @@ typedef struct
   list_iterator_t  current_tickev;
   pthread_rwlock_t lock;
   list_t           trash;
-  engine_ctx_t     *engine;
   bool_t           deleted;
   bool_t           need_sync;
   list_t           req_list;
@@ -82,33 +113,24 @@ void       trackreq_play_midicev(track_ctx_t *trackctx, midicev_t *midicev);
 void       trackreq_play_pendings(track_ctx_t *trackctx);
 trackreq_t *trackreq_getnext_req(list_t *req_list);
 #define    free_trackreq(reqlist) (free_list_node((reqlist), free))
+uint_t     trackctx_loop_pos(track_ctx_t *track_ctx, uint_t tick);
+void       play_trackctx(uint_t tick,
+                         track_ctx_t *track_ctx,
+                         bool_t *ev_to_drain);
 
-engine_ctx_t    *init_engine_ctx(char *aname);
-void            free_engine_ctx(engine_ctx_t *ctx);
-bool_t          start_engine(engine_ctx_t *ctx);
-void            stop_engine(engine_ctx_t *ctx);
-void            wait_engine(engine_ctx_t *ctx);
-clock_req_t     engine_cb(void *arg);
-bool_t          engine_isrunning(engine_ctx_t *ctx);
-aseqport_ctx_t  *engine_create_aport(engine_ctx_t *ctx, char *name);
-bool_t          engine_del_port(engine_ctx_t *ctx,
-                                aseqport_ctx_t *aseqportctx);
-bool_t          engine_del_track(engine_ctx_t *ctx, track_ctx_t *trackctx);
-track_ctx_t     *engine_new_track(engine_ctx_t *ctx, char *name);
-track_ctx_t     *engine_copy_trackctx(engine_ctx_t *ctx, track_ctx_t *trackctx);
-void            engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile);
-void            engine_set_bpm(engine_ctx_t *ctx, uint_t bpm);
-void            engine_set_tempo(engine_ctx_t *ctx, uint_t tempo);
-void            engine_reset_pulse(engine_ctx_t *ctx);
+track_ctx_t *engine_create_trackctx(engine_ctx_t *engine, char *name);
+bool_t      engine_delete_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
+track_ctx_t *engine_copy_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
+void        engine_read_midifile(engine_ctx_t *engine, midifile_t *midifile);
+void        engine_save_project(engine_ctx_t *engine, char *file_path);
+void        engine_prepare_tracklist(engine_ctx_t *ctx);
+void        engine_clean_tracklist(engine_ctx_t *ctx);
+void        _engine_free_trash(engine_ctx_t *ctx);
 
-void            engine_save_project(engine_ctx_t *ctx, char *file_path);
+void play_all_tracks_pending_notes(engine_ctx_t *ctx);
+void play_all_tracks_ev(engine_ctx_t *ctx);
 
-void            play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain);
-uint_t          trackctx_loop_pos(track_ctx_t *track_ctx, uint_t tick);
-
-#define play_track_pending_notes(track_ctx)                           \
-  alsa_output_pending_notes((track_ctx)->aseqport_ctx,                \
-                            (track_ctx)->pending_notes)
+void nns_init_engine(engine_ctx_t *ctx, char *name);
 
 # include "ev_iterator.h"
 

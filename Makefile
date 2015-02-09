@@ -13,11 +13,12 @@ PY_MSQ_DIR=$(current_dir)/python_midiseq
 PY_MSQ=$(PY_MSQ_DIR)/midiseq.so
 
 $(PY_MSQ) : $(LIB_MSQ) $(wildcard $(PY_MSQ_DIR)/*.c $(PY_MSQ_DIR)/*.h)
-	cd $(PY_MSQ_DIR) ; python ./setup.py clean -a ; python ./setup.py install --install-lib=./ ; cd -
+	python $(PY_MSQ_DIR)/setup.py clean -a
+	python $(PY_MSQ_DIR)/setup.py install --install-lib=$(PY_MSQ_DIR)/
 
-.PHONY : clean_py_msq
+.PHONY : clean_pym
 clean_pym :
-	cd $(PY_MSQ_DIR) ; python ./setup.py clean -a ; cd -
+	python $(PY_MSQ_DIR)/setup.py clean -a
 	rm -rf $(PY_MSQ) $(PY_MSQ_DIR)/midiseq-0.0.0.egg-info
 
 

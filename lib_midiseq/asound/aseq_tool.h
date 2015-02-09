@@ -20,18 +20,16 @@
 #define ASEQ_TOOL_H
 
 #include "asound/aseq.h"
-
 #include "midi/midiev_inc.h"
+#include "loop_engine/engine.h"
 
 #define alsa_drain_output(engine_ctx) (snd_seq_drain_output((engine_ctx)->aseqh))
 
 
 bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port);
-bool_t alsa_output_midicev(aseqport_ctx_t *aseq_ctx, midicev_t *midicev);
-bool_t alsa_output_seqevlist(aseqport_ctx_t *aseq_ctx,
-                             list_t *seqevlist,
-                             byte_t *noteon_state);
-bool_t alsa_output_pending_notes(aseqport_ctx_t *aseq_ctx, byte_t *pending_notes);
-bool_t alsa_play_midicev(aseqport_ctx_t *aseq_ctx, midicev_t *midicev);
+bool_t aseq_output_evlist(output_t *output,
+                          list_t *seqevlist);
+bool_t aseq_output_pending_notes(output_t *output);
+bool_t aseq_output_ev(output_t *output, midicev_t *midicev);
 
 #endif

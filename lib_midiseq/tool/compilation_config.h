@@ -20,5 +20,6 @@
 #define __CCONFIG_H
 
 /* #define DEBUG_MODE */
+/* #define DEBUG_MIDI_MODE */
 
 #endif

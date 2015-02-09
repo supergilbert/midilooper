@@ -23,7 +23,7 @@
 
 #include "loop_engine/engine.h"
 
-PyObject *create_midiseq_track(track_ctx_t *trackctx);
+PyObject *create_pym_track(track_ctx_t *trackctx);
 
 /* track header */
 typedef struct {

@@ -23,10 +23,10 @@
 
 typedef struct {
     PyObject_HEAD
-    aseqport_ctx_t *aport;
-} midiseq_aportObject;
+    output_t *output;
+} midiseq_outputObject;
 
-PyObject *create_midiseq_aport(aseqport_ctx_t *aport);
+PyObject *create_midiseq_output(output_t *output);
 
 
 #endif

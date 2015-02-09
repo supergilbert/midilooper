@@ -31,7 +31,7 @@ module1 = Extension("midiseq",
                     sources = ["%s/pym_midiseq_class.c" % pym_path,
                                "%s/pym_midiseq_tools.c" % pym_path,
                                "%s/pym_midiseq_track.c" % pym_path,
-                               "%s/pym_midiseq_aport.c" % pym_path,
+                               "%s/pym_midiseq_output.c" % pym_path,
                                "%s/pym_midiseq_file.c" % pym_path,
                                "%s/pym_midiseq_evwr.c" % pym_path,
                                "%s/pym_midiseq.c" % pym_path])

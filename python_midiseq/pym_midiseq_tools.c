@@ -350,7 +350,7 @@ void delete_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
 
   void (*del_func)(track_ctx_t *, ev_iterator_t *);
 
-  if (trackctx->engine && engine_isrunning(trackctx->engine) == TRUE)
+  if (trackctx->engine && engine_is_running(trackctx->engine) == TRUE)
     del_func = trackctx_event2trash;
   else
     del_func = trackctx_del_event;

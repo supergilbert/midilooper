@@ -17,7 +17,7 @@
 
 
 #include "./pym_midiseq_track.h"
-#include "./pym_midiseq_aport.h"
+#include "./pym_midiseq_output.h"
 #include "./pym_midiseq_tools.h"
 
 #include "debug_tool/debug_tool.h"
@@ -71,16 +71,17 @@ static PyObject *midiseq_track_play_note(PyObject *obj, PyObject *args)
       return NULL;
     }
 
-  if (self->trackctx->aseqport_ctx != NULL)
+  if (self->trackctx->output != NULL)
     {
       mcev.chan = channel;
       mcev.type = type;
       mcev.event.note.num = num;
       mcev.event.note.val = val;
-      if (self->trackctx->engine && engine_isrunning(self->trackctx->engine) == TRUE)
+      if (self->trackctx->engine &&
+          engine_is_running(self->trackctx->engine) == TRUE)
         trackreq_play_midicev(self->trackctx, &mcev);
       else
-        alsa_play_midicev(self->trackctx->aseqport_ctx, &mcev);
+        output_ev(self->trackctx->output, &mcev);
     }
   Py_RETURN_NONE;
 }
@@ -151,6 +152,7 @@ static PyObject *midiseq_track_set_len(PyObject *obj, PyObject *args)
       return NULL;
     }
   self->trackctx->loop_len = len;
+  self->trackctx->need_sync = TRUE;
   Py_RETURN_NONE;
 }
 
@@ -180,8 +182,8 @@ static PyObject *midiseq_toggle_mute(PyObject *obj, PyObject *args)
   else
     {
       self->trackctx->mute = TRUE;
-      if (self->trackctx->aseqport_ctx)
-        if (self->trackctx->engine && engine_isrunning(self->trackctx->engine))
+      if (self->trackctx->output)
+        if (self->trackctx->engine && engine_is_running(self->trackctx->engine))
           trackreq_play_pendings(self->trackctx);
     }
   Py_RETURN_NONE;
@@ -245,34 +247,34 @@ static PyObject *midiseq_track_get_port(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  if (self->trackctx->aseqport_ctx == NULL)
+  if (self->trackctx->output == NULL)
     Py_RETURN_NONE;
   else
-    return create_midiseq_aport(self->trackctx->aseqport_ctx);
+    return create_midiseq_output(self->trackctx->output);
 }
 
 static PyObject *midiseq_track_set_port(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
-  midiseq_aportObject *pyaport = NULL;
+  midiseq_outputObject *pyoutput = NULL;
 
-  if (!PyArg_ParseTuple(args , "O", &pyaport))
+  if (!PyArg_ParseTuple(args , "O", &pyoutput))
     return NULL;
-  if (Py_None == (PyObject *) pyaport)
-    self->trackctx->aseqport_ctx = NULL;
+  if (Py_None == (PyObject *) pyoutput)
+    self->trackctx->output = NULL;
   else
-    self->trackctx->aseqport_ctx = pyaport->aport;
+    self->trackctx->output = pyoutput->output;
   Py_RETURN_NONE;
 }
 
 static PyObject *midiseq_track_has_port(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
-  midiseq_aportObject *pyaport = NULL;
+  midiseq_outputObject *pyoutput = NULL;
 
-  if (!PyArg_ParseTuple(args , "O", &pyaport))
+  if (!PyArg_ParseTuple(args , "O", &pyoutput))
     return NULL;
-  if (self->trackctx->aseqport_ctx == pyaport->aport)
+  if (self->trackctx->output == pyoutput->output)
     Py_RETURN_TRUE;
   Py_RETURN_FALSE;
 }
@@ -318,7 +320,7 @@ static PyObject *midiseq_track_ishandled(PyObject *obj,
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  if (self->trackctx->engine && engine_isrunning(self->trackctx->engine) == TRUE)
+  if (self->trackctx->engine && engine_is_running(self->trackctx->engine) == TRUE)
     Py_RETURN_TRUE;
   Py_RETURN_FALSE;
 }
@@ -603,7 +605,7 @@ static PyTypeObject midiseq_trackType = {
     PyType_GenericNew,             /* tp_new */
 };
 
-PyObject *create_midiseq_track(track_ctx_t *trackctx)
+PyObject *create_pym_track(track_ctx_t *trackctx)
 {
   midiseq_trackObject *pytrack = PyObject_New(midiseq_trackObject,
                                               &midiseq_trackType);

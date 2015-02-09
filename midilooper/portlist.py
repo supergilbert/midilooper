@@ -77,7 +77,7 @@ class PortList(gtk.Window):
 
     def button_add_port(self, button):
         if self.seq.isrunning():
-            print "Can not add port while running"
+            print "Creating output while running is unavailable"
             return
         name = prompt_gettext("Enter new port name")
         if name:
@@ -123,7 +123,7 @@ class PortList(gtk.Window):
         self.seq = midiseq
         self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str)
         self.liststore.append([None, ""])
-        for seqport in self.seq.getports():
+        for seqport in self.seq.getoutputs():
             self.liststore.append([seqport, repr(seqport)])
         treev = gtk.TreeView(self.liststore)
         treev.set_enable_search(False)

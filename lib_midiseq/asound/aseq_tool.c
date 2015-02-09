@@ -80,27 +80,28 @@ bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
   return TRUE;
 }
 
-bool_t alsa_output_midicev(aseqport_ctx_t *aseq_ctx, midicev_t *midicev)
+bool_t aseq_output_ev(output_t *output, midicev_t *midicev)
 {
+  aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
   snd_seq_event_t aseqev;
 
-  if (set_aseqev(midicev, &aseqev, aseq_ctx->output_port))
+  if (set_aseqev(midicev, &aseqev, aseqoutput->port))
     {
-      snd_seq_event_output(aseq_ctx->handle, &aseqev);
+      snd_seq_event_output(aseqoutput->handle, &aseqev);
       return TRUE;
     }
   return FALSE;
 }
 
 
-bool_t alsa_output_seqevlist(aseqport_ctx_t *aseq_ctx, list_t *seqevlist, byte_t *pending_notes)
+bool_t aseq_output_evlist(output_t *output, list_t *seqevlist)
 {
   list_iterator_t iter;
   bool_t          ev_to_drain = FALSE;
   seqev_t         *seqev = NULL;
   midicev_t       *midicev = NULL;
 
-  if (aseq_ctx == NULL)
+  if (output == NULL)
     return FALSE;
   for (iter_init(&iter, seqevlist);
        iter_node(&iter);
@@ -110,9 +111,9 @@ bool_t alsa_output_seqevlist(aseqport_ctx_t *aseq_ctx, list_t *seqevlist, byte_t
       if (seqev->deleted == FALSE && seqev->type == MIDICEV)
         {
           midicev = (midicev_t *) seqev->addr;
-          if (alsa_output_midicev(aseq_ctx, midicev))
+          if (aseq_output_ev(output, midicev))
             {
-              update_pending_notes(pending_notes, midicev);
+              update_pending_notes(output->notes_on_state, midicev);
               ev_to_drain = TRUE;
             }
         }
@@ -120,8 +121,9 @@ bool_t alsa_output_seqevlist(aseqport_ctx_t *aseq_ctx, list_t *seqevlist, byte_t
   return ev_to_drain;
 }
 
-bool_t alsa_output_pending_notes(aseqport_ctx_t *aseq_ctx, byte_t *pending_notes)
+bool_t aseq_output_pending_notes(output_t *output)
 {
+  aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
   bool_t          ev_to_drain = FALSE;
   uint_t          note_idx, channel_idx;
   midicev_t       mcev;
@@ -137,30 +139,27 @@ bool_t alsa_output_pending_notes(aseqport_ctx_t *aseq_ctx, byte_t *pending_notes
          note_idx < 128;
          note_idx++)
       {
-        if (is_pending_notes(pending_notes, channel_idx, note_idx))
+        if (is_pending_notes(output->notes_on_state, channel_idx, note_idx))
           {
             mcev.chan      = channel_idx;
             mcev.event.note.num = note_idx;
-            set_aseqev(&mcev, &aseqev, aseq_ctx->output_port);
-            snd_seq_event_output(aseq_ctx->handle, &aseqev);
+            set_aseqev(&mcev, &aseqev, aseqoutput->port);
+            snd_seq_event_output(aseqoutput->handle, &aseqev);
             ev_to_drain = TRUE;
-            unset_pending_note(pending_notes, channel_idx, note_idx);
+            unset_pending_note(output->notes_on_state, channel_idx, note_idx);
           }
       }
   return ev_to_drain;
 }
 
-
-
-
-bool_t alsa_play_midicev(aseqport_ctx_t *aseq_ctx, midicev_t *midicev)
+bool_t alsa_play_midicev(aseq_output_t *output, midicev_t *midicev)
 {
   snd_seq_event_t aseqev;
 
-  if (set_aseqev(midicev, &aseqev, aseq_ctx->output_port))
+  if (set_aseqev(midicev, &aseqev, output->port))
     {
-      snd_seq_event_output(aseq_ctx->handle, &aseqev);
-      snd_seq_drain_output(aseq_ctx->handle);
+      snd_seq_event_output(output->handle, &aseqev);
+      snd_seq_drain_output(output->handle);
       return TRUE;
     }
   return FALSE;

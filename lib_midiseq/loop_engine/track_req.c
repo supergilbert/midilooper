@@ -46,6 +46,8 @@ trackreq_t *trackreq_getunused_req(list_t *req_list)
   return ret;
 }
 
+#include <strings.h>
+
 void       trackreq_play_midicev(track_ctx_t *trackctx, midicev_t *midicev)
 {
   trackreq_t *trackreq = NULL;

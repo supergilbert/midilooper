@@ -73,7 +73,7 @@ void trackctx_event2trash(track_ctx_t *trackctx,
 
   seqev->deleted = TRUE;
 
-  if (trackctx->aseqport_ctx != NULL)
+  if (trackctx->output != NULL)
     _play_if_noteoff(trackctx, seqev);
   bcopy(&(ev_iterator->seqevit), &(ctn->evit), sizeof (list_iterator_t));
   bcopy(&(ev_iterator->tickit), &(ctn->tickit), sizeof (list_iterator_t));
@@ -106,12 +106,13 @@ bool_t play_trackreq(track_ctx_t *track_ctx)
       switch (req->req)
         {
         case req_play_midicev:
-          if (alsa_output_midicev(track_ctx->aseqport_ctx,
-                                  &(req->midicev)))
+          if (output_ev(track_ctx->output,
+                             &(req->midicev)) == TRUE)
             ev_to_drain = TRUE;
           break;
         case req_pending_notes:
-          if (play_track_pending_notes(track_ctx))
+          if (output_pending_notes(track_ctx->output)
+              == TRUE)
             ev_to_drain = TRUE;
           break;
         default:
@@ -126,7 +127,10 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
 {
   tickev_t *tickev  = NULL;
   /* static bool_t   to_reload  = FALSE; */
-  uint_t   loop_end = track_ctx->loop_start + track_ctx->loop_len - 1;
+  uint_t   last_pulse = track_ctx->loop_start + track_ctx->loop_len - 1;
+
+  if (track_ctx->output == NULL)
+    return;
 
 #define trackctx_restart_loop(trackctx)                         \
   goto_next_available_tick(&((trackctx)->current_tickev),       \
@@ -146,8 +150,8 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
         track_ctx->need_sync = FALSE;
     }
 
-  if (tick == loop_end)
-    if (play_track_pending_notes(track_ctx))
+  if (tick == last_pulse)
+    if (output_pending_notes(track_ctx->output))
       *ev_to_drain = TRUE;
 
   if (iter_node(&(track_ctx->current_tickev)) == NULL)
@@ -163,9 +167,8 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
       if (tickev->tick == tick)
         {
           if (track_ctx->mute == FALSE)
-            if (alsa_output_seqevlist(track_ctx->aseqport_ctx,
-                                      &(tickev->seqev_list),
-                                      track_ctx->pending_notes))
+            if (output_evlist(track_ctx->output,
+                              &(tickev->seqev_list)) == TRUE)
               *ev_to_drain = TRUE;
           iter_next_available_tick(&(track_ctx->current_tickev));
         }
@@ -176,7 +179,7 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
           if (track_ctx->current_tickev.list != NULL)
             trackctx_restart_loop(track_ctx);
         }
-      else if (tickev->tick >= loop_end)
+      else if (tickev->tick >= last_pulse)
         /* if in loop end go to head */
         trackctx_restart_loop(track_ctx);
     }

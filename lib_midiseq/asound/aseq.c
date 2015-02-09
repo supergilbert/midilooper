@@ -34,18 +34,6 @@ snd_seq_t     *create_aseqh(char *name)
   return handle;
 }
 
-aseqport_ctx_t  *create_aseqport_ctx(snd_seq_t *handle, char *name)
-{
-  aseqport_ctx_t        *aseq = NULL;
-
-  aseq = myalloc(sizeof (aseqport_ctx_t));
-  aseq->handle = handle;
-  aseq->output_port = _create_aseq_port(aseq, name);
-  snd_seq_port_info_malloc(&(aseq->info));
-  snd_seq_get_port_info(handle, aseq->output_port, aseq->info);
-  return aseq;
-}
-
 void free_aseqh(snd_seq_t *handle)
 {
   int err = 0;
@@ -55,29 +43,54 @@ void free_aseqh(snd_seq_t *handle)
     output_error("problem while closing alsa seq handler\n%s\n", snd_strerror(err));
 }
 
-void free_aseqport(aseqport_ctx_t *aseq)
+aseq_output_t  *create_aseq_output(snd_seq_t *handle, char *name)
+{
+  aseq_output_t        *aseqoutput = NULL;
+
+  aseqoutput = myalloc(sizeof (aseq_output_t));
+  aseqoutput->handle = handle;
+  aseqoutput->port =
+    snd_seq_create_simple_port(aseqoutput->handle,
+                               name,
+                               SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
+                               SND_SEQ_PORT_TYPE_APPLICATION);
+  snd_seq_port_info_malloc(&(aseqoutput->info));
+  snd_seq_get_port_info(handle, aseqoutput->port, aseqoutput->info);
+  return aseqoutput;
+}
+
+void free_aseq_output(aseq_output_t *output)
 {
   int err = 0;
 
-  err = snd_seq_delete_port(aseq->handle, aseq->output_port);
+  err = snd_seq_delete_port(output->handle, output->port);
   if (0 != err)
     output_error("problem while deleting alsa port\n%s\n", snd_strerror(err));
-  snd_seq_port_info_free(aseq->info);
-  free(aseq);
+  snd_seq_port_info_free(output->info);
+  free(output);
 }
 
-const char *aseqport_get_name(aseqport_ctx_t *aseq)
+uint32_t aseq_output_get_id(void *addr)
 {
-  return snd_seq_port_info_get_name(aseq->info);
+  aseq_output_t *output = (aseq_output_t *) addr;
+
+  return output->port;
 }
 
-void aseqport_set_name(aseqport_ctx_t *aseq, char *name)
+const char *aseq_output_get_name(void *addr)
 {
+  aseq_output_t *output = (aseq_output_t *) addr;
+
+  return snd_seq_port_info_get_name(output->info);
+}
+
+void aseq_output_set_name(void *addr, char *name)
+{
+  aseq_output_t *output = (aseq_output_t *) addr;
   int err = 0;
 
-  snd_seq_port_info_set_name(aseq->info, name);
-  err = snd_seq_set_port_info(aseq->handle, aseq->output_port, aseq->info);
+  snd_seq_port_info_set_name(output->info, name);
+  err = snd_seq_set_port_info(output->handle, output->port, output->info);
   if (0 != err)
     output_error("problem while setting alsa port info\n%s\n", snd_strerror(err));
-
 }

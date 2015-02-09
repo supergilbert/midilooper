@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string.h>
 
 void write_trackctx2midifile(int fd, track_ctx_t *ctx)
 {
@@ -35,18 +36,18 @@ void write_trackctx2midifile(int fd, track_ctx_t *ctx)
 
   mtrack.sysex_loop_start = ctx->loop_start;
   mtrack.sysex_loop_len = ctx->loop_len;
-  mtrack.sysex_portid = (ctx->aseqport_ctx != NULL) ? ctx->aseqport_ctx->output_port : -1;
+  mtrack.sysex_portid = (ctx->output != NULL) ? output_get_id(ctx->output) : -1;
   write_midifile_track(fd, &mtrack);
 }
 
-buf_node_t *_append_sysex_port(buf_node_t *tail, aseqport_ctx_t *aport)
+buf_node_t *_append_sysex_port(buf_node_t *tail, output_t *output)
 {
   buf_node_t *node = NULL;
-  char       *port_name =  (char *)aseqport_get_name(aport);
+  char       *port_name = (char *) output_get_name(output);
   size_t     name_len = strlen(port_name);
   byte_t     buf[6];
 
-  set_be32b_uint(buf, (uint_t) aport->output_port);
+  set_be32b_uint(buf, output_get_id(output));
   set_be16b_uint(&(buf[4]), (uint_t) name_len);
   node = init_buf_node(buf, 6);
 
@@ -59,17 +60,17 @@ buf_node_t *_append_sysex_port(buf_node_t *tail, aseqport_ctx_t *aport)
 void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
 {
   list_iterator_t iter;
-  aseqport_ctx_t *aport;
+  output_t   *output;
   buf_node_t head = {NULL, 0, NULL};
   buf_node_t *node = &head;
 
-  for (iter_init(&iter, &(ctx->aseqport_list)),
+  for (iter_init(&iter, &(ctx->output_list)),
          node = &head;
        iter_node(&iter);
        iter_next(&iter))
     {
-      aport = iter_node_ptr(&iter);
-      node = _append_sysex_port(node, aport);
+      output = iter_node_ptr(&iter);
+      node = _append_sysex_port(node, output);
     }
 
   node = _append_metaev_set_tempo(node, ctx->tempo);
@@ -82,6 +83,7 @@ void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
   free_buf_list(node);
 }
 
+#include <errno.h>
 void engine_save_project(engine_ctx_t *ctx, char *file_path)
 {
   int             fd;

@@ -25,19 +25,12 @@
 /* #warning beaucoup de chose a reflechir voir meme a tester direct */
 /* #warning fonction de creation du handler alsa, du port + creation et envoi dev aseq */
 
-typedef struct  aseqport_ctx_s
+typedef struct
 {
   snd_seq_t           *handle;
-  int                 output_port;
+  int                 port;
   snd_seq_port_info_t *info;
-}               aseqport_ctx_t;
-
-#define _create_aseq_port(aseq, name)   snd_seq_create_simple_port((aseq)->handle, (name), \
-                                                                   SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ, \
-                                                                   SND_SEQ_PORT_TYPE_APPLICATION)
-/* SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE, */
-/*  SND_SEQ_PORT_TYPE_MIDI_GENERIC); */
-
+}               aseq_output_t;
 
 #define ASEQ_SETNOTEOFFEV(seqev, port, channel, note, velocity)         \
   (snd_seq_ev_clear(seqev),                                             \
@@ -88,11 +81,12 @@ typedef struct  aseqport_ctx_s
    snd_seq_ev_set_pitchbend((seqev), (channel), (value)),               \
    snd_seq_ev_set_direct(seqev))
 
-snd_seq_t      *create_aseqh(char *name);
-aseqport_ctx_t *create_aseqport_ctx(snd_seq_t *handle, char *name);
-void           free_aseqport(aseqport_ctx_t *aseq);
-void           free_aseqh(snd_seq_t *handle);
-const char     *aseqport_get_name(aseqport_ctx_t *aseq);
-void           aseqport_set_name(aseqport_ctx_t *aseq, char *name);
+snd_seq_t     *create_aseqh(char *name);
+aseq_output_t *create_aseq_output(snd_seq_t *handle, char *name);
+void          free_aseq_output(aseq_output_t *aseq);
+void          free_aseqh(snd_seq_t *handle);
+uint32_t      aseq_output_get_id(void *addr);
+const char    *aseq_output_get_name(void *output);
+void          aseq_output_set_name(void *output, char *name);
 
 #endif

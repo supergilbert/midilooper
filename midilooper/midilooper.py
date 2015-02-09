@@ -44,14 +44,12 @@ class MidiLooper(gtk.Window):
         if self.msq.isrunning():
             print "start_msq: sequencer already running"
             return True
-        self.msq.settickpos(0)
         self.msq.start()
         # gobject.timeout_add(50, self.run_progression)
         gobject.timeout_add(25, self.run_progression)
 
     def stop_msq(self, button):
         self.msq.stop()
-        self.msq.settickpos(0)
         return True
 
     def show_portlist(self, menuitem):
@@ -95,8 +93,7 @@ class MidiLooper(gtk.Window):
             self.msq.read_msqfile(mfile)
         else:
             self.filename = None
-
-        self.msq.settickpos(0)
+            self.msq.settempo(60000000/120)
 
         self.portlist_win = PortList(self.msq)
         self.tracklist_frame = TrackList(self.msq, self.portlist_win.liststore)
@@ -110,8 +107,9 @@ class MidiLooper(gtk.Window):
 
         def spincb(widget, msq):
             value = widget.get_value()
-            msq.setbpm(int(value))
-        spinadj = gtk.Adjustment(self.msq.getbpm(), 40, 300, 1)
+            msq.settempo(int(60000000/value))
+        bpm = int(60000000 / self.msq.gettempo())
+        spinadj = gtk.Adjustment(bpm, 40, 208, 1)
         spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
         spinbut.set_numeric(True)
         spinadj.connect("value-changed", spincb, self.msq)

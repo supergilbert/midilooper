@@ -121,7 +121,7 @@ void get_msq_sysex(midifile_info_t *info, midifile_track_t *track, byte_t *buffe
           track->sysex_portid = (track->sysex_portid << 8) + buffer[8];
           break;
         default:
-          output_error("Unexpected SYSEX");
+          output_error("Unexpected SYSEX 0x%X", buffer[4]);
         }
     }
 }

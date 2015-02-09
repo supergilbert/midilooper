@@ -10,6 +10,7 @@ LIB_MSQ_SRC=$(LIB_MSQ_DIR)/asound/aseq.c\
 	$(LIB_MSQ_DIR)/loop_engine/track_req.c\
 	$(LIB_MSQ_DIR)/loop_engine/ev_iterator.c\
 	$(LIB_MSQ_DIR)/loop_engine/engine.c\
+	$(LIB_MSQ_DIR)/loop_engine/engine_nanosleep.c\
 	$(LIB_MSQ_DIR)/loop_engine/engine_midisave.c\
 	$(LIB_MSQ_DIR)/seqtool/seqtool.c\
 	$(LIB_MSQ_DIR)/clock/clock.c\

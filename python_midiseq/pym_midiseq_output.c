@@ -21,25 +21,25 @@
 #include "asound/aseq.h"
 #include "asound/aseq_tool.h"
 #include "debug_tool/debug_tool.h"
-#include "./pym_midiseq_aport.h"
+#include "./pym_midiseq_output.h"
 
-static void midiseq_aport_dealloc(PyObject *obj)
+static void midiseq_output_dealloc(PyObject *obj)
 {
-  midiseq_aportObject *self = (midiseq_aportObject *) obj;
+  midiseq_outputObject *self = (midiseq_outputObject *) obj;
 
   self->ob_type->tp_free((PyObject*)self);
 }
 
-static PyObject *midiseq_aport_getname(PyObject *obj, PyObject *args)
+static PyObject *midiseq_output_getname(PyObject *obj, PyObject *args)
 {
-  midiseq_aportObject *self = (midiseq_aportObject *) obj;
+  midiseq_outputObject *self = (midiseq_outputObject *) obj;
 
-  return Py_BuildValue("s", aseqport_get_name(self->aport));
+  return Py_BuildValue("s", output_get_name(self->output));
 }
 
-static PyObject *midiseq_aport_setname(PyObject *obj, PyObject *args)
+static PyObject *midiseq_output_setname(PyObject *obj, PyObject *args)
 {
-  midiseq_aportObject *self = (midiseq_aportObject *) obj;
+  midiseq_outputObject *self = (midiseq_outputObject *) obj;
   char *name = NULL;
 
   if (!PyArg_ParseTuple(args, "s", &name))
@@ -47,39 +47,44 @@ static PyObject *midiseq_aport_setname(PyObject *obj, PyObject *args)
       output_error("Problem with argument");
       return NULL;
     }
-  aseqport_set_name(self->aport, name);
+  output_set_name(self->output, name);
   Py_RETURN_NONE;
 }
 
-static PyObject *midiseq_aport_repr(PyObject *obj)
+static PyObject *midiseq_output_repr(PyObject *obj)
 {
-  midiseq_aportObject *self = (midiseq_aportObject *) obj;
-  return PyString_FromFormat("%i:%i '%s'",
-                             snd_seq_port_info_get_client(self->aport->info),
-                             snd_seq_port_info_get_port(self->aport->info),
-                             snd_seq_port_info_get_name(self->aport->info));
+  midiseq_outputObject *self = (midiseq_outputObject *) obj;
+
+  return PyString_FromFormat("%d: %s",
+                             output_get_id(self->output),
+                             output_get_name(self->output));
+  /* midiseq_outputObject *self = (midiseq_outputObject *) obj; */
+  /* return PyString_FromFormat("%i:%i '%s'", */
+  /*                            snd_seq_port_info_get_client(self->output->info), */
+  /*                            snd_seq_port_info_get_port(self->output->info), */
+  /*                            snd_seq_port_info_get_name(self->output->info)); */
 }
 
-static PyMethodDef midiseq_aport_methods[] = {
-  {"get_name", midiseq_aport_getname, METH_NOARGS,
+static PyMethodDef midiseq_output_methods[] = {
+  {"get_name", midiseq_output_getname, METH_NOARGS,
    "Return alsa seq port name"},
-  {"set_name", midiseq_aport_setname, METH_VARARGS,
+  {"set_name", midiseq_output_setname, METH_VARARGS,
    "Set alsa seq port name"},
   {NULL, NULL, 0, NULL}
 };
 
-static PyTypeObject midiseq_aportType = {
+static PyTypeObject midiseq_outputType = {
     PyObject_HEAD_INIT(NULL)
     0,                           /* ob_size */
-    "midiseq.aport",             /* tp_name */
-    sizeof(midiseq_aportObject), /* tp_basicsize */
+    "midiseq.output",             /* tp_name */
+    sizeof(midiseq_outputObject), /* tp_basicsize */
     0,                           /* tp_itemsize */
-    midiseq_aport_dealloc,       /* tp_dealloc */
+    midiseq_output_dealloc,       /* tp_dealloc */
     0,                           /* tp_print */
     0,                           /* tp_getattr */
     0,                           /* tp_setattr */
     0,                           /* tp_compare */
-    midiseq_aport_repr,          /* tp_repr */
+    midiseq_output_repr,          /* tp_repr */
     0,                           /* tp_as_number */
     0,                           /* tp_as_sequence */
     0,                           /* tp_as_mapping */
@@ -97,7 +102,7 @@ static PyTypeObject midiseq_aportType = {
     0,                           /* tp_weaklistoffset */
     0,                           /* tp_iter */
     0,                           /* tp_iternext */
-    midiseq_aport_methods,       /* tp_methods */
+    midiseq_output_methods,       /* tp_methods */
     0,                           /* tp_members */
     0,                           /* tp_getset */
     0,                           /* tp_base */
@@ -110,21 +115,21 @@ static PyTypeObject midiseq_aportType = {
     0,                           /* tp_new */
 };
 
-PyObject *create_midiseq_aport(aseqport_ctx_t *aport)
+PyObject *create_midiseq_output(output_t *output)
 {
-  midiseq_aportObject *obj = NULL;
+  midiseq_outputObject *obj = NULL;
 
-  obj = (midiseq_aportObject *) PyObject_New(midiseq_aportObject,
-                                               &midiseq_aportType);
-  obj->aport = aport;
+  obj = (midiseq_outputObject *) PyObject_New(midiseq_outputObject,
+                                               &midiseq_outputType);
+  obj->output = output;
   /* Py_INCREF(obj); */
   return (PyObject *) obj;
 }
 
-PyTypeObject *init_midiseq_aportType(void)
+PyTypeObject *init_midiseq_outputType(void)
 {
-  if (PyType_Ready(&midiseq_aportType) < 0)
+  if (PyType_Ready(&midiseq_outputType) < 0)
     return NULL;
-  Py_INCREF(&midiseq_aportType);
-  return &midiseq_aportType;
+  Py_INCREF(&midiseq_outputType);
+  return &midiseq_outputType;
 }
