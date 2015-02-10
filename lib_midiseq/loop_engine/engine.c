@@ -51,6 +51,12 @@ void _engine_free_trash(engine_ctx_t *ctx)
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
+      if (track_ctx->deleted == TRUE)
+        iter_node_del(&trackit, _free_trackctx); /* /!\ Memory corruption while asking tracklist */
+      if (iter_node(&trackit) != NULL)
+        track_ctx = iter_node_ptr(&trackit);
+      else
+        break;
       if (track_ctx->trash.len &&
           pthread_rwlock_trywrlock(&(track_ctx->lock)) == 0)
         {
@@ -72,8 +78,10 @@ void play_all_tracks_pending_notes(engine_ctx_t *ctx)
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
-      if (track_ctx->output != NULL
-          && output_pending_notes(track_ctx->output))
+      if (track_ctx->deleted == FALSE
+          && track_ctx->output != NULL
+          && output_pending_notes(track_ctx->output,
+                                  track_ctx->notes_on_state))
         ev_to_drain = TRUE;
     }
   if (ev_to_drain)
@@ -83,7 +91,6 @@ void play_all_tracks_pending_notes(engine_ctx_t *ctx)
 void play_all_tracks_ev(engine_ctx_t *ctx)
 {
   track_ctx_t     *track_ctx  = NULL;
-  /* clockloop_t     *looph      = &(ctx->looph); */
   list_iterator_t trackit;
   bool_t          ev_to_drain = FALSE;
   uint_t          tick = engine_get_tick(ctx);
@@ -93,13 +100,8 @@ void play_all_tracks_ev(engine_ctx_t *ctx)
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
-      if (track_ctx->deleted == TRUE)
-        iter_node_del(&trackit, _free_trackctx); /* /!\ Memory corruption while asking tracklist */
-      if (iter_node(&trackit) != NULL)
-        track_ctx = iter_node_ptr(&trackit);
-      else
-        break;
-      play_trackctx(tick, track_ctx, &ev_to_drain);
+      if (track_ctx->deleted != TRUE)
+        play_trackctx(tick, track_ctx, &ev_to_drain);
     }
   if (ev_to_drain)
     _engine_drain_output(ctx);

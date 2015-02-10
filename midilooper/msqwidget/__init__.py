@@ -343,7 +343,7 @@ class MsqVBarNoteWidget(gtk.Widget, Ypos2Note):
 
 
 
-from notegridwgt import MsqNGWEventHdl, evwr_to_repr_list
+from notegridevt import MsqNGWEventHdl, evwr_to_repr_list
 
 NOTE_PX_SIZE = 8
 

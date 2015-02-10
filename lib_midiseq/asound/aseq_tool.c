@@ -94,7 +94,7 @@ bool_t aseq_output_ev(output_t *output, midicev_t *midicev)
 }
 
 
-bool_t aseq_output_evlist(output_t *output, list_t *seqevlist)
+bool_t aseq_output_evlist(output_t *output, list_t *seqevlist, byte_t *notes_on_state)
 {
   list_iterator_t iter;
   bool_t          ev_to_drain = FALSE;
@@ -113,7 +113,7 @@ bool_t aseq_output_evlist(output_t *output, list_t *seqevlist)
           midicev = (midicev_t *) seqev->addr;
           if (aseq_output_ev(output, midicev))
             {
-              update_pending_notes(output->notes_on_state, midicev);
+              update_pending_notes(notes_on_state, midicev);
               ev_to_drain = TRUE;
             }
         }
@@ -121,7 +121,7 @@ bool_t aseq_output_evlist(output_t *output, list_t *seqevlist)
   return ev_to_drain;
 }
 
-bool_t aseq_output_pending_notes(output_t *output)
+bool_t aseq_output_pending_notes(output_t *output, byte_t *notes_on_state)
 {
   aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
   bool_t          ev_to_drain = FALSE;
@@ -139,27 +139,28 @@ bool_t aseq_output_pending_notes(output_t *output)
          note_idx < 128;
          note_idx++)
       {
-        if (is_pending_notes(output->notes_on_state, channel_idx, note_idx))
+        if (is_pending_notes(notes_on_state, channel_idx, note_idx))
           {
             mcev.chan      = channel_idx;
             mcev.event.note.num = note_idx;
             set_aseqev(&mcev, &aseqev, aseqoutput->port);
             snd_seq_event_output(aseqoutput->handle, &aseqev);
             ev_to_drain = TRUE;
-            unset_pending_note(output->notes_on_state, channel_idx, note_idx);
+            unset_pending_note(notes_on_state, channel_idx, note_idx);
           }
       }
   return ev_to_drain;
 }
 
-bool_t alsa_play_midicev(aseq_output_t *output, midicev_t *midicev)
+bool_t aseq_output_play_ev(output_t *output, midicev_t *midicev)
 {
+	aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
   snd_seq_event_t aseqev;
 
-  if (set_aseqev(midicev, &aseqev, output->port))
+  if (set_aseqev(midicev, &aseqev, aseqoutput->port))
     {
-      snd_seq_event_output(output->handle, &aseqev);
-      snd_seq_drain_output(output->handle);
+      snd_seq_event_output(aseqoutput->handle, &aseqev);
+      snd_seq_drain_output(aseqoutput->handle);
       return TRUE;
     }
   return FALSE;

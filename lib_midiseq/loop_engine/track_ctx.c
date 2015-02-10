@@ -111,7 +111,7 @@ bool_t play_trackreq(track_ctx_t *track_ctx)
             ev_to_drain = TRUE;
           break;
         case req_pending_notes:
-          if (output_pending_notes(track_ctx->output)
+          if (output_pending_notes(track_ctx->output, track_ctx->notes_on_state)
               == TRUE)
             ev_to_drain = TRUE;
           break;
@@ -151,7 +151,7 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
     }
 
   if (tick == last_pulse)
-    if (output_pending_notes(track_ctx->output))
+    if (output_pending_notes(track_ctx->output, track_ctx->notes_on_state))
       *ev_to_drain = TRUE;
 
   if (iter_node(&(track_ctx->current_tickev)) == NULL)
@@ -168,7 +168,8 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
         {
           if (track_ctx->mute == FALSE)
             if (output_evlist(track_ctx->output,
-                              &(tickev->seqev_list)) == TRUE)
+                              &(tickev->seqev_list),
+                              track_ctx->notes_on_state) == TRUE)
               *ev_to_drain = TRUE;
           iter_next_available_tick(&(track_ctx->current_tickev));
         }

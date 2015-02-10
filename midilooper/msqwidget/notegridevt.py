@@ -121,13 +121,14 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         for note_on, note_off in repr_list:
             note_len = note_off[0] - note_on[0]
             if note_len < min_len:
+                minev_on_off = (note_on, note_off)
                 min_len = note_len
         return min_len, minev_on_off
 
 
     def leftinc_getdata(self, ev_on_off_tick):
         min_len, minev_on_off = self._getminlen_noteonoff()
-        evon_maxtick = self.setting.quantify_tick(minev_on_off[1][0] - self.setting.tick_res)
+        evon_maxtick = self.setting.quantify_tick(minev_on_off[1][0])
         if evon_maxtick != minev_on_off[1][0]:
             maxtick = ev_on_off_tick[0][0] + (evon_maxtick - minev_on_off[0][0])
         else:
@@ -589,7 +590,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
     def get_inc_left_tickdiff(self, tick, current_noteon_tick, maxtick):
         qtick = self.setting.quantify_tick(tick)
-        if maxtick < qtick:
+        if maxtick <= qtick:
             tick_diff = maxtick - current_noteon_tick
         else:
             tick_diff = qtick - current_noteon_tick
@@ -617,11 +618,11 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
 
     def get_inc_right_tickdiff(self, tick, current_noteoff_tick, mintick):
-        qtick = self.setting.quantify_tick(tick + self.setting.tick_res)
-        if mintick > qtick:
+        qtick = self.setting.quantify_tick(tick + self.setting.tick_res) - NOTEOFF_DEC
+        if mintick >= qtick:
             tick_diff = mintick - current_noteoff_tick
         else:
-            tick_diff = qtick - current_noteoff_tick - NOTEOFF_DEC
+            tick_diff = qtick - current_noteoff_tick
         return tick_diff
 
 

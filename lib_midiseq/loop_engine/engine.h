@@ -26,23 +26,26 @@
 typedef struct midioutput
 {
   void        *hdl;
-  byte_t      notes_on_state[256];
   uint32_t    (*get_id)(void *hdl);
   const char  *(*get_name)(void *hdl);
   void        (*set_name)(void *hdl, char *name);
+  bool_t      (*play_ev)(struct midioutput *output, midicev_t *midicev);
   bool_t      (*output_ev)(struct midioutput *output, midicev_t *midicev);
-  bool_t      (*output_evlist)(struct midioutput *output, list_t *seqevlist);
-  bool_t      (*output_pending_notes)(struct midioutput *output);
+  bool_t      (*output_evlist)(struct midioutput *output,
+                               list_t *seqevlist,
+                               byte_t *notes_on_state);
+  bool_t      (*output_pending_notes)(struct midioutput *output, byte_t *notes_on_state);
 } output_t;
 
 #define output_get_id(output)         (output)->get_id((output)->hdl)
 #define output_get_name(output)       (output)->get_name((output)->hdl)
 #define output_set_name(output, name) (output)->set_name((output)->hdl, name)
+#define play_ev(output, midicev)      (output)->play_ev(output, midicev)
 #define output_ev(output, midicev)    (output)->output_ev(output, midicev)
-#define output_evlist(output, seqevlist)   \
-  (output)->output_evlist(output, seqevlist)
-#define output_pending_notes(output)       \
-  (output)->output_pending_notes(output)
+#define output_evlist(output, seqevlist, notes_on_state)        \
+  (output)->output_evlist(output, seqevlist, notes_on_state)
+#define output_pending_notes(output, notes_on_state)    \
+  (output)->output_pending_notes(output, notes_on_state)
 
 typedef enum
   {
@@ -106,7 +109,7 @@ typedef struct
   bool_t           need_sync;
   list_t           req_list;
   pthread_mutex_t  req_lock;
-  byte_t           pending_notes[256];
+  byte_t           notes_on_state[256];
 } track_ctx_t;
 
 void       trackreq_play_midicev(track_ctx_t *trackctx, midicev_t *midicev);

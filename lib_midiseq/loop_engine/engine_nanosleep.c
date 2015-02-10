@@ -107,6 +107,7 @@ output_t *nns_create_output(engine_ctx_t *ctx, char *name)
   output->get_id               = aseq_output_get_id;
   output->get_name             = aseq_output_get_name;
   output->set_name             = aseq_output_set_name;
+  output->play_ev              = aseq_output_play_ev;
   output->output_ev            = aseq_output_ev;
   output->output_evlist        = aseq_output_evlist;
   output->output_pending_notes = aseq_output_pending_notes;
