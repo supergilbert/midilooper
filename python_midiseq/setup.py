@@ -17,10 +17,8 @@
 
 from distutils.core import setup, Extension
 import sys, os
-# print "/".join(sys.argv[0].split("/")[:-1])
-pym_path = os.path.dirname(sys.argv[0])
 
-mdsq_libc_path = "%s/../lib_midiseq/" % pym_path
+mdsq_libc_path = "../lib_midiseq/"
 
 module1 = Extension("midiseq",
                     include_dirs = [mdsq_libc_path],
@@ -28,13 +26,13 @@ module1 = Extension("midiseq",
                     libraries = ["midiseq", "asound"],
                     # extra_link_args = "-fPIC",
                     extra_compile_args = ["-Werror"],
-                    sources = ["%s/pym_midiseq_class.c" % pym_path,
-                               "%s/pym_midiseq_tools.c" % pym_path,
-                               "%s/pym_midiseq_track.c" % pym_path,
-                               "%s/pym_midiseq_output.c" % pym_path,
-                               "%s/pym_midiseq_file.c" % pym_path,
-                               "%s/pym_midiseq_evwr.c" % pym_path,
-                               "%s/pym_midiseq.c" % pym_path])
+                    sources = ["./pym_midiseq_class.c",
+                               "./pym_midiseq_tools.c",
+                               "./pym_midiseq_track.c",
+                               "./pym_midiseq_output.c",
+                               "./pym_midiseq_file.c",
+                               "./pym_midiseq_evwr.c",
+                               "./pym_midiseq.c"])
 
 setup (name = "midiseq",
        description = "sequencer midi",

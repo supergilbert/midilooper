@@ -25,49 +25,51 @@ import gtk
 from tool import prompt_gettext, MsqListMenu
 
 
-class PortListMenu(MsqListMenu):
-    def rename_port(self, menuitem):
-        if self.portlist.seq.isrunning():
-            print "Can not rename port while running"
+class OutputListMenu(MsqListMenu):
+    def rename_output(self, menuitem):
+        if self.outputlist.seq.isrunning():
+            print "Can not rename output while running"
             return
         if self.path:
-            iter = self.portlist.liststore.get_iter(self.path[0])
-            seqport = self.portlist.liststore.get_value(iter, 0)
-            name = prompt_gettext("Rename port", seqport.get_name())
+            iter = self.outputlist.listfilter.get_iter(self.path[0])
+            seqoutput = self.outputlist.listfilter.get_value(iter, 0)
+            name = prompt_gettext("Rename output", seqoutput.get_name())
             if name:
-                seqport.set_name(name)
-                self.portlist.liststore.set_value(iter, 1, repr(seqport))
+                seqoutput.set_name(name)
+                child_iter = self.outputlist.listfilter.convert_iter_to_child_iter(iter)
+                self.outputlist.liststore.set_value(child_iter, 1, seqoutput.get_name())
             self.path = None
 
-    def del_port(self, menuitem):
-        if self.portlist.seq.isrunning():
-            print "Can not delete port while running"
+    def del_output(self, menuitem):
+        if self.outputlist.seq.isrunning():
+            print "Can not delete output while running"
             return
         if self.path:
-            iter = self.portlist.liststore.get_iter(self.path[0])
-            seqport = self.portlist.liststore.get_value(iter, 0)
-            def check_port(model, path, iter):
+            iter = self.outputlist.listfilter.get_iter(self.path[0])
+            seqoutput = self.outputlist.listfilter.get_value(iter, 0)
+            def check_output(model, path, iter):
                 tedit = model.get_value(iter, 0)
-                if tedit.track.has_port(seqport):
-                    tedit.track.set_port(None)
-            self.portlist.tracklist.foreach(check_port)
+                if tedit.track.has_output(seqoutput):
+                    tedit.track.set_output(None)
+            self.outputlist.tracklist.foreach(check_output)
 
-            self.portlist.seq.delport(seqport)
-            self.portlist.liststore.remove(iter)
+            self.outputlist.seq.deloutput(seqoutput)
+            child_iter = self.outputlist.listfilter.convert_iter_to_child_iter(iter)
+            self.outputlist.liststore.remove(child_iter)
             self.path = None
 
-    def __init__(self, portlist):
+    def __init__(self, outputlist):
         MsqListMenu.__init__(self)
-        self.portlist = portlist
+        self.outputlist = outputlist
 
-        self.mlm_add_item("Rename port", self.rename_port)
+        self.mlm_add_item("Rename output", self.rename_output)
         separator = gtk.SeparatorMenuItem()
         separator.show()
         self.append(separator)
-        self.mlm_add_item("Delete port", self.del_port)
+        self.mlm_add_item("Delete output", self.del_output)
 
 
-class PortList(gtk.Window):
+class OutputList(gtk.Frame):
     def tvbutton_press_event(self, treeview, event):
         if event.button == 3:
             path = treeview.get_path_at_pos(int(event.x), int(event.y))
@@ -75,21 +77,21 @@ class PortList(gtk.Window):
                 self.menu.path = path
                 self.menu.popup(None, None, None, event.button, event.time)
 
-    def button_add_port(self, button):
+    def button_add_output(self, button):
         if self.seq.isrunning():
             print "Creating output while running is unavailable"
             return
-        name = prompt_gettext("Enter new port name")
+        name = prompt_gettext("Enter new output name")
         if name:
-            seqport = self.seq.newoutput(name)
-            self.liststore.append([seqport, repr(seqport)])
+            seqoutput = self.seq.newoutput(name)
+            self.liststore.append([seqoutput, seqoutput.get_name()])
 
     def drag_data_get_data(self, treeview, context, selection, target_id, etime):
         if self.seq.isrunning():
             return
         treeselection = treeview.get_selection()
         model, iter = treeselection.get_selected()
-        self.dnd_port = model.get_value(iter, 0)
+        self.dnd_output = model.get_value(iter, 0)
         model.remove(iter)
 
     def drag_data_received_data(self, treeview, context, x, y, selection, info, etime):
@@ -100,40 +102,51 @@ class PortList(gtk.Window):
         if drop_info:
             path, position = drop_info
             iter = model.get_iter(path)
-            port = model.get_value(iter, 0)
+            output = model.get_value(iter, 0)
             if (position == gtk.TREE_VIEW_DROP_BEFORE or position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
-                self.seq.move_port_before(port, self.dnd_port)
-                model.insert_before(iter, [self.dnd_port, repr(self.dnd_port)])
+                self.seq.move_output_before(output, self.dnd_output)
+                model.insert_before(iter, [self.dnd_output, self.dnd_output.get_name()])
             else:
-                self.seq.move_port_after(port, self.dnd_port)
-                model.insert_after(iter, [self.dnd_port, repr(self.dnd_port)])
+                self.seq.move_output_after(output, self.dnd_output)
+                model.insert_after(iter, [self.dnd_output, self.dnd_output.get_name()])
         else:
             nchild = model.iter_n_children(None)
             if nchild > 1:
                 iterator = model.get_iter("%d" % (nchild - 1))
-                port = model.get_value(iterator, 0)
-                self.seq.move_port_after(port, self.dnd_port)
-                model.insert_after(iterator, [self.dnd_port,
-                                              repr(self.dnd_port)])
+                output = model.get_value(iterator, 0)
+                self.seq.move_output_after(output, self.dnd_output)
+                model.insert_after(iterator, [self.dnd_output,
+                                              self.dnd_output.get_name()])
 
 
     def __init__(self, midiseq):
-        gtk.Window.__init__(self)
-        self.set_resizable(False)
+        gtk.Frame.__init__(self)
         self.seq = midiseq
         self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str)
-        self.liststore.append([None, ""])
-        for seqport in self.seq.getoutputs():
-            self.liststore.append([seqport, repr(seqport)])
-        treev = gtk.TreeView(self.liststore)
+        self.liststore.append([None, "No output"])
+        for seqoutput in self.seq.getoutputs():
+            self.liststore.append([seqoutput, seqoutput.get_name()])
+
+        self.listfilter = self.liststore.filter_new()
+        def visible_output_func(model, iter):
+            output = model.get_value(iter, 0)
+            if output:
+                return True
+            else:
+                return False
+        self.listfilter.set_visible_func(visible_output_func)
+
+        treev = gtk.TreeView(self.listfilter)
         treev.set_enable_search(False)
 
-        tvcolumn = gtk.TreeViewColumn('Sequencer Port')
+        tvcolumn = gtk.TreeViewColumn('Sequencer Output')
         cell = gtk.CellRendererText()
+        # import pango
+        # cell.set_property("alignment", pango.ALIGN_CENTER)
         tvcolumn.pack_start(cell, True)
         tvcolumn.add_attribute(cell, 'text', 1)
         treev.append_column(tvcolumn)
-        self.menu = PortListMenu(self)
+        self.menu = OutputListMenu(self)
 
         treev.connect('button-press-event', self.tvbutton_press_event)
 
@@ -151,7 +164,7 @@ class PortList(gtk.Window):
 
 
         button_add = gtk.Button(stock=gtk.STOCK_ADD)
-        button_add.connect("clicked", self.button_add_port)
+        button_add.connect("clicked", self.button_add_output)
 
         vbox = gtk.VBox()
         vbox.pack_start(treev)
@@ -159,9 +172,4 @@ class PortList(gtk.Window):
 
         self.add(vbox)
 
-        def hide_portlist(win, event):
-            win.hide()
-            return True
-
-        self.connect('delete_event', hide_portlist)
         self.tracklist = None

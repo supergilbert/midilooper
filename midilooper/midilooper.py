@@ -27,7 +27,7 @@ import gtk
 import sys
 
 import midiseq
-from portlist import PortList
+from outputlist import OutputList
 from tracklist import TrackList
 
 class MidiLooper(gtk.Window):
@@ -51,13 +51,6 @@ class MidiLooper(gtk.Window):
     def stop_msq(self, button):
         self.msq.stop()
         return True
-
-    def show_portlist(self, menuitem):
-        if self.portlist_win.get_mapped():
-            self.portlist_win.unmap()
-        else:
-            self.portlist_win.show_all()
-            self.portlist_win.map()
 
     def file_save_as(self, menuitem):
         fchooser = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_SAVE,
@@ -95,10 +88,10 @@ class MidiLooper(gtk.Window):
             self.filename = None
             self.msq.settempo(60000000/120)
 
-        self.portlist_win = PortList(self.msq)
-        self.tracklist_frame = TrackList(self.msq, self.portlist_win.liststore)
+        self.outputlist_frame = OutputList(self.msq)
+        self.tracklist_frame = TrackList(self.msq, self.outputlist_frame.liststore)
 
-        self.portlist_win.tracklist = self.tracklist_frame.liststore
+        self.outputlist_frame.tracklist = self.tracklist_frame.liststore
 
         button_start =  gtk.Button(stock=gtk.STOCK_MEDIA_PLAY)
         button_start.connect("clicked", self.start_msq)
@@ -119,14 +112,11 @@ class MidiLooper(gtk.Window):
         hbox.pack_start(button_stop)
         hbox.pack_start(spinbut)
 
-        pl_mi = gtk.MenuItem("Port list")
-        pl_mi.connect("activate", self.show_portlist)
         save_mi = gtk.MenuItem("Save (Experimental)")
         save_mi.connect("activate", self.file_save)
         save_as_mi = gtk.MenuItem("Save as (Experimental)")
         save_as_mi.connect("activate", self.file_save_as)
         menu = gtk.Menu()
-        menu.append(pl_mi)
         menu.append(save_mi)
         menu.append(save_as_mi)
         mi = gtk.MenuItem("Menu")
@@ -137,6 +127,7 @@ class MidiLooper(gtk.Window):
         vbox = gtk.VBox()
         vbox.pack_start(menubar)
         vbox.pack_start(hbox)
+        vbox.pack_start(self.outputlist_frame)
         vbox.pack_start(self.tracklist_frame)
         self.add(vbox)
         self.connect('delete_event', gtk.main_quit)
