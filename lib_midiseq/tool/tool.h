@@ -26,8 +26,8 @@ typedef enum {
   TRUE
 }	bool_t;
 
-typedef unsigned int	uint32_t;
-typedef uint32_t	uint_t;
+typedef unsigned int uint_t;
+typedef int          int_t;
 
 /* typedef uint_t		tick_t; */
 

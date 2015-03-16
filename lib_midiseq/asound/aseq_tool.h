@@ -31,7 +31,7 @@ bool_t aseq_output_evlist(output_t *output,
                           list_t *seqevlist,
                           byte_t *notes_on_state);
 bool_t aseq_output_pending_notes(output_t *output, byte_t *notes_on_state);
-bool_t aseq_output_ev(output_t *output, midicev_t *midicev);
-bool_t aseq_output_play_ev(output_t *output, midicev_t *midicev);
+bool_t aseq_output_buff_ev(output_t *output, midicev_t *midicev);
+bool_t aseq_output_send_ev(output_t *output, midicev_t *midicev);
 
 #endif

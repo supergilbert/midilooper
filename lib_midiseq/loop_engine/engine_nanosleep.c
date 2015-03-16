@@ -104,13 +104,10 @@ output_t *nns_create_output(engine_ctx_t *ctx, char *name)
   aseq_output_t *aseqoutput = create_aseq_output(hdl->aseqh, name);
 
   output->hdl                  = aseqoutput;
-  output->get_id               = aseq_output_get_id;
   output->get_name             = aseq_output_get_name;
   output->set_name             = aseq_output_set_name;
-  output->play_ev              = aseq_output_play_ev;
-  output->output_ev            = aseq_output_ev;
-  output->output_evlist        = aseq_output_evlist;
-  output->output_pending_notes = aseq_output_pending_notes;
+  output->send_ev              = aseq_output_send_ev;
+  output->buff_ev              = aseq_output_buff_ev;
   push_to_list_tail(&(ctx->output_list), output);
   return output;
 }
@@ -141,7 +138,7 @@ uint_t nns_get_tick(engine_ctx_t *ctx)
   return hdl->looph.clocktick.number;
 }
 
-void _nns_drain_output(engine_ctx_t *ctx)
+void _nns_send_buff(engine_ctx_t *ctx)
 {
   nns_hdl_t *hdl = (nns_hdl_t *) ctx->hdl;
 
@@ -178,9 +175,13 @@ clock_req_t _nns_engine_cb(void *arg)
   return CONTINUE;
 }
 
-void nns_init_engine(engine_ctx_t *ctx, char *name)
+bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
 {
   nns_hdl_t *hdl = NULL;
+  snd_seq_t *aseqh = create_aseqh(name);
+
+  if (aseqh == NULL)
+    return FALSE;
 
   ctx->destroy       = nns_destroy;
   ctx->is_running    = nns_is_running;
@@ -189,13 +190,12 @@ void nns_init_engine(engine_ctx_t *ctx, char *name)
   ctx->create_output = nns_create_output;
   ctx->delete_output = nns_delete_output;
   ctx->get_tick      = nns_get_tick;
-  ctx->_drain_output = _nns_drain_output;
+  ctx->_send_buff    = _nns_send_buff;
   ctx->reset_pulse   = nns_reset_pulse;
 
   hdl = myalloc(sizeof (nns_hdl_t));
   pthread_rwlock_init(&(hdl->lock), NULL);
-  hdl->aseqh = create_aseqh(name);
-  hdl->aseqh = create_aseqh(name);
+  hdl->aseqh = aseqh;
   hdl->looph.cb_func = _nns_engine_cb;
   hdl->looph.cb_arg = ctx;
   hdl->rq = engine_rq_stop;
@@ -205,38 +205,5 @@ void nns_init_engine(engine_ctx_t *ctx, char *name)
   ctx->tempo = 500;
   ctx->hdl   = hdl;
   engine_reset_pulse(ctx);
+  return TRUE;
 }
-
-
-/* void set_engine_rq(engine_ctx_t *ctx, engine_rq rq) */
-/* { */
-/*   /\* pthread_rwlock_rdlock(&(ctx->rq.lock)); *\/ */
-/*   ctx->rq = rq; */
-/*   /\* pthread_rwlock_unlock(&(ctx->rq.lock)); *\/ */
-/* } */
-
-/* engine_rq get_engine_rq(engine_ctx_t *ctx) */
-/* { */
-/*   return ctx->rq; */
-/*   /\* engine_rq rq; *\/ */
-
-/*   /\* pthread_rwlock_rdlock(&(ctx->rq.lock)); *\/ */
-/*   /\* rq = ctx->rq; *\/ */
-/*   /\* pthread_rwlock_unlock(&(ctx->rq.lock)); *\/ */
-/*   /\* return rq; *\/ */
-/* } */
-
-/* void wait_engine(engine_ctx_t *ctx) */
-/* { */
-/*   debug("waiting for engine thread end\n"); */
-/*   pthread_join(ctx->thread_id, NULL); */
-/* } */
-
-/* aseqport_ctx_t *engine_create_aport(engine_ctx_t *ctx, char *name) */
-/* { */
-/*   aseqport_ctx_t  *aseqport_ctx = myalloc(sizeof (aseqport_ctx_t)); */
-
-/*   aseqport_ctx = create_aseqport_ctx(ctx->aseqh, name); */
-/*   push_to_list_tail(&(ctx->aseqport_list), aseqport_ctx); */
-/*   return aseqport_ctx; */
-/* } */

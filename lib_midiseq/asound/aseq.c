@@ -27,7 +27,9 @@ snd_seq_t     *create_aseqh(char *name)
   err = snd_seq_open(&handle, "default", SND_SEQ_OPEN_OUTPUT, SND_SEQ_NONBLOCK);
   if (0 > err)
     {
-      output_error("problem while creating alsa handler:\n%s\n", snd_strerror(err));
+      output_error("Problem while creating alsa handler:\n%s",
+                   snd_strerror(err));
+      output_warning("(Is snd_seq module unabled ?)");
       return NULL;
     }
   snd_seq_set_client_name(handle, name);
@@ -40,7 +42,8 @@ void free_aseqh(snd_seq_t *handle)
 
   err = snd_seq_close(handle);
   if (0 != err)
-    output_error("problem while closing alsa seq handler\n%s\n", snd_strerror(err));
+    output_error("problem while closing alsa seq handler\n%s\n",
+                 snd_strerror(err));
 }
 
 aseq_output_t  *create_aseq_output(snd_seq_t *handle, char *name)
@@ -70,13 +73,6 @@ void free_aseq_output(aseq_output_t *output)
   free(output);
 }
 
-uint32_t aseq_output_get_id(void *addr)
-{
-  aseq_output_t *output = (aseq_output_t *) addr;
-
-  return output->port;
-}
-
 const char *aseq_output_get_name(void *addr)
 {
   aseq_output_t *output = (aseq_output_t *) addr;
@@ -92,5 +88,6 @@ void aseq_output_set_name(void *addr, char *name)
   snd_seq_port_info_set_name(output->info, name);
   err = snd_seq_set_port_info(output->handle, output->port, output->info);
   if (0 != err)
-    output_error("problem while setting alsa port info\n%s\n", snd_strerror(err));
+    output_error("problem while setting alsa port info\n%s\n",
+                 snd_strerror(err));
 }

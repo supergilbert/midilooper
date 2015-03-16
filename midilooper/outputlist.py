@@ -150,17 +150,18 @@ class OutputList(gtk.Frame):
 
         treev.connect('button-press-event', self.tvbutton_press_event)
 
-        treev.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
-                                       [("MIDILOOPER_TRACK_LIST",
-                                         gtk.TARGET_SAME_WIDGET,
-                                         0)],
-                                       gtk.gdk.ACTION_DEFAULT|gtk.gdk.ACTION_MOVE)
-        treev.enable_model_drag_dest([("MIDILOOPER_TRACK_LIST",
-                                       gtk.TARGET_SAME_WIDGET,
-                                       0)],
-                                     gtk.gdk.ACTION_DEFAULT)
-        treev.connect("drag_data_get", self.drag_data_get_data)
-        treev.connect("drag_data_received", self.drag_data_received_data)
+        # Temporarily unavailable
+        # treev.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
+        #                                [("MIDILOOPER_OUTPUT_LIST",
+        #                                  gtk.TARGET_SAME_WIDGET,
+        #                                  0)],
+        #                                gtk.gdk.ACTION_DEFAULT|gtk.gdk.ACTION_MOVE)
+        # treev.enable_model_drag_dest([("MIDILOOPER_OUTPUT_LIST",
+        #                                gtk.TARGET_SAME_WIDGET,
+        #                                0)],
+        #                              gtk.gdk.ACTION_DEFAULT)
+        # treev.connect("drag_data_get", self.drag_data_get_data)
+        # treev.connect("drag_data_received", self.drag_data_received_data)
 
 
         button_add = gtk.Button(stock=gtk.STOCK_ADD)

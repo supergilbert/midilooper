@@ -85,7 +85,6 @@ snd_seq_t     *create_aseqh(char *name);
 aseq_output_t *create_aseq_output(snd_seq_t *handle, char *name);
 void          free_aseq_output(aseq_output_t *aseq);
 void          free_aseqh(snd_seq_t *handle);
-uint32_t      aseq_output_get_id(void *addr);
 const char    *aseq_output_get_name(void *output);
 void          aseq_output_set_name(void *output, char *name);
 

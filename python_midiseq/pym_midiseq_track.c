@@ -81,7 +81,7 @@ static PyObject *midiseq_track_play_note(PyObject *obj, PyObject *args)
           engine_is_running(self->trackctx->engine) == TRUE)
         trackreq_play_midicev(self->trackctx, &mcev);
       else
-        play_ev(self->trackctx->output, &mcev);
+        send_ev(self->trackctx->output, &mcev);
     }
   Py_RETURN_NONE;
 }

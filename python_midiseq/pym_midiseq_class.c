@@ -32,14 +32,13 @@ typedef struct {
 
 static void midiseq_dealloc(PyObject *obj)
 {
-  trace_func;
   midiseq_Object *self = (midiseq_Object *) obj;
 
-  engine_destroy(&(self->engine_ctx));
+  if (self->engine_ctx.hdl != NULL)
+    engine_destroy(&(self->engine_ctx));
   /* if (self->pytrack != NULL) */
   /*   Py_DECREF(self->pytrack); */
   self->ob_type->tp_free((PyObject*)self);
-  trace_func;
 }
 
 
@@ -47,7 +46,6 @@ static int midiseq_init(midiseq_Object *self,
                         PyObject *args,
                         PyObject *kwds)
 {
-  trace_func;
   char *aport_name = "midiseq_output";
   char *tmp = NULL;
 
@@ -58,8 +56,11 @@ static int midiseq_init(midiseq_Object *self,
       if (tmp != NULL)
         aport_name = tmp;
     }
-  nns_init_engine(&(self->engine_ctx), aport_name);
-  return 0;
+  self->engine_ctx.hdl = NULL;
+  if (nns_init_engine(&(self->engine_ctx), aport_name))
+    return 0;
+  else
+    return -1;
 }
 
 

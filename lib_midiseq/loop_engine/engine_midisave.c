@@ -25,34 +25,21 @@
 #include <fcntl.h>
 #include <string.h>
 
-void write_trackctx2midifile(int fd, track_ctx_t *ctx)
-{
-  midifile_track_t mtrack;
-
-  bzero(&mtrack, sizeof (midifile_track_t));
-
-  COPY_LIST_NODE(&(ctx->track->tickev_list), &(mtrack.track.tickev_list));
-  mtrack.track.name = ctx->track->name;
-
-  mtrack.sysex_loop_start = ctx->loop_start;
-  mtrack.sysex_loop_len = ctx->loop_len;
-  mtrack.sysex_portid = (ctx->output != NULL) ? output_get_id(ctx->output) : -1;
-  write_midifile_track(fd, &mtrack);
-}
-
-buf_node_t *_append_sysex_port(buf_node_t *tail, output_t *output)
+buf_node_t *_append_sysex_port(buf_node_t *tail, output_t *output, uint_t idx)
 {
   buf_node_t *node = NULL;
   char       *port_name = (char *) output_get_name(output);
   size_t     name_len = strlen(port_name);
   byte_t     buf[6];
 
-  set_be32b_uint(buf, output_get_id(output));
+  set_be32b_uint(buf, idx);
   set_be16b_uint(&(buf[4]), (uint_t) name_len);
   node = init_buf_node(buf, 6);
 
   node->next = sysex_buf_node_end((byte_t *) port_name, name_len);
-  tail = _append_sysex_header(tail, get_buf_list_size(node), MSQ_SYSEX_PORTNAME);
+  tail = _append_sysex_header(tail,
+                              get_buf_list_size(node),
+                              MSQ_SYSEX_PORTNAME);
   tail->next = node;
   return node->next;
 }
@@ -60,17 +47,20 @@ buf_node_t *_append_sysex_port(buf_node_t *tail, output_t *output)
 void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
 {
   list_iterator_t iter;
-  output_t   *output;
-  buf_node_t head = {NULL, 0, NULL};
-  buf_node_t *node = &head;
+  output_t        *output;
+  buf_node_t      head = {NULL, 0, NULL};
+  buf_node_t      *node = &head;
+  uint_t          idx = 0;
 
   for (iter_init(&iter, &(ctx->output_list)),
-         node = &head;
+         node = &head,
+         idx = 0;
        iter_node(&iter);
-       iter_next(&iter))
+       iter_next(&iter),
+         idx++)
     {
       output = iter_node_ptr(&iter);
-      node = _append_sysex_port(node, output);
+      node = _append_sysex_port(node, output, idx);
     }
 
   node = _append_metaev_set_tempo(node, ctx->tempo);
@@ -81,6 +71,41 @@ void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
 
   write_buf_list(fd, node);
   free_buf_list(node);
+}
+
+
+void write_trackctx2midifile(int fd, track_ctx_t *ctx, int_t portidx)
+{
+  midifile_track_t mtrack;
+
+  bzero(&mtrack, sizeof (midifile_track_t));
+
+  COPY_LIST_NODE(&(ctx->track->tickev_list), &(mtrack.track.tickev_list));
+  mtrack.track.name = ctx->track->name;
+
+  mtrack.sysex_loop_start = ctx->loop_start;
+  mtrack.sysex_loop_len = ctx->loop_len;
+  mtrack.sysex_portid = portidx;
+  write_midifile_track(fd, &mtrack);
+}
+
+int_t get_outputid(list_t *output_list, output_t *output)
+{
+   list_iterator_t iter;
+   output_t        *tmp;
+   int_t           idx;
+
+   for (iter_init(&iter, output_list),
+          idx = 0;
+        iter_node(&iter);
+        iter_next(&iter),
+          idx++)
+     {
+       tmp = iter_node_ptr(&iter);
+       if (tmp == output)
+         return idx;
+     }
+   return -1;
 }
 
 #include <errno.h>
@@ -100,7 +125,8 @@ void engine_save_project(engine_ctx_t *ctx, char *file_path)
                                               | S_IROTH|S_IWOTH));
       if (fd == -1)
         {
-          output_error("problem while open file to save (%s)\n", strerror(errno));
+          output_error("problem while open file to save (%s)\n",
+                       strerror(errno));
           return;
         }
 
@@ -113,7 +139,12 @@ void engine_save_project(engine_ctx_t *ctx, char *file_path)
            iter_next(&iter))
         {
           trackctx = iter_node_ptr(&iter);
-          write_trackctx2midifile(fd, trackctx);
+          write_trackctx2midifile(fd,
+                                  trackctx,
+                                  trackctx->output != NULL ?
+                                  get_outputid(&(ctx->output_list),
+                                               trackctx->output) :
+                                  -1);
         }
       close(fd);
     }

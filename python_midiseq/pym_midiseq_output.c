@@ -55,8 +55,7 @@ static PyObject *midiseq_output_repr(PyObject *obj)
 {
   midiseq_outputObject *self = (midiseq_outputObject *) obj;
 
-  return PyString_FromFormat("%d: %s",
-                             output_get_id(self->output),
+  return PyString_FromFormat("%s",
                              output_get_name(self->output));
   /* midiseq_outputObject *self = (midiseq_outputObject *) obj; */
   /* return PyString_FromFormat("%i:%i '%s'", */

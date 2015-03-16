@@ -252,9 +252,13 @@ class TrackList(gtk.Frame):
         tvcolumn.connect('clicked', self.toggle_mute_all)
         self.treev.append_column(tvcolumn)
         self.treev.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
-                                            [("MIDILOOPER_TRACK_LIST", gtk.TARGET_SAME_WIDGET, 0)],
+                                            [("MIDILOOPER_TRACK_LIST",
+                                              gtk.TARGET_SAME_WIDGET,
+                                              0)],
                                             gtk.gdk.ACTION_DEFAULT|gtk.gdk.ACTION_MOVE)
-        self.treev.enable_model_drag_dest([("MIDILOOPER_TRACK_LIST", gtk.TARGET_SAME_WIDGET, 0)],
+        self.treev.enable_model_drag_dest([("MIDILOOPER_TRACK_LIST",
+                                            gtk.TARGET_SAME_WIDGET,
+                                            0)],
                                           gtk.gdk.ACTION_DEFAULT)
         self.treev.connect("drag_data_get", self.drag_data_get_data)
         self.treev.connect("drag_data_received", self.drag_data_received_data)

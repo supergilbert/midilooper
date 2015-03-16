@@ -71,7 +71,7 @@ void play_all_tracks_pending_notes(engine_ctx_t *ctx)
 {
   track_ctx_t     *track_ctx = NULL;
   list_iterator_t trackit;
-  bool_t          ev_to_drain = FALSE;
+  bool_t          ev_to_output = FALSE;
 
   for (iter_init(&trackit, &(ctx->track_list));
        iter_node(&trackit) != NULL;
@@ -82,17 +82,17 @@ void play_all_tracks_pending_notes(engine_ctx_t *ctx)
           && track_ctx->output != NULL
           && output_pending_notes(track_ctx->output,
                                   track_ctx->notes_on_state))
-        ev_to_drain = TRUE;
+        ev_to_output = TRUE;
     }
-  if (ev_to_drain)
-    _engine_drain_output(ctx);
+  if (ev_to_output)
+    _engine_send_buff(ctx);
 }
 
 void play_all_tracks_ev(engine_ctx_t *ctx)
 {
   track_ctx_t     *track_ctx  = NULL;
   list_iterator_t trackit;
-  bool_t          ev_to_drain = FALSE;
+  bool_t          ev_to_output = FALSE;
   uint_t          tick = engine_get_tick(ctx);
 
   for (iter_init(&trackit, &(ctx->track_list));
@@ -101,10 +101,10 @@ void play_all_tracks_ev(engine_ctx_t *ctx)
     {
       track_ctx = iter_node_ptr(&trackit);
       if (track_ctx->deleted != TRUE)
-        play_trackctx(tick, track_ctx, &ev_to_drain);
+        play_trackctx(tick, track_ctx, &ev_to_output);
     }
-  if (ev_to_drain)
-    _engine_drain_output(ctx);
+  if (ev_to_output)
+    _engine_send_buff(ctx);
 }
 
 bool_t engine_delete_trackctx(engine_ctx_t *ctx, track_ctx_t *trackctx)
@@ -305,13 +305,60 @@ void uninit_engine(engine_ctx_t *ctx)
   free_list_node(&(ctx->track_list), _free_trackctx);
 }
 
-/* void init_engine(engine_ctx_t *ctx, engine_type etype) */
-/* { */
-/*   bzero(ctx, sizeof (engine_ctx_t)); */
-/*   /\* if (etype == NNS) *\/ */
-/*   nns_init_engine(ctx, "midilooper"); */
+bool_t output_evlist(output_t *output,
+                     list_t *seqevlist,
+                     byte_t *notes_on_state)
+{
+  list_iterator_t iter;
+  bool_t          ev_to_output = FALSE;
+  seqev_t         *seqev = NULL;
+  midicev_t       *midicev = NULL;
 
-/*   ctx->isrunning = FALSE; */
-/*   ctx->ppq = 192; */
-/*   engine_set_bpm(ctx, 120); */
-/* } */
+  if (output == NULL)
+    return FALSE;
+  for (iter_init(&iter, seqevlist);
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      seqev = (seqev_t *) iter_node_ptr(&(iter));
+      if (seqev->deleted == FALSE && seqev->type == MIDICEV)
+        {
+          midicev = (midicev_t *) seqev->addr;
+          if (buff_ev(output, midicev))
+            {
+              update_pending_notes(notes_on_state, midicev);
+              ev_to_output = TRUE;
+            }
+        }
+    }
+  return ev_to_output;
+}
+
+
+bool_t output_pending_notes(output_t *output, byte_t *notes_on_state)
+{
+  bool_t          ev_to_output = FALSE;
+  uint_t          note_idx, channel_idx;
+  midicev_t       mcev;
+
+  mcev.type = NOTEOFF;
+  mcev.event.note.val = 0;
+
+  for (channel_idx = 0;
+       channel_idx < 16;
+       channel_idx++)
+    for (note_idx = 0;
+         note_idx < 128;
+         note_idx++)
+      {
+        if (is_pending_notes(notes_on_state, channel_idx, note_idx))
+          {
+            mcev.chan      = channel_idx;
+            mcev.event.note.num = note_idx;
+            buff_ev(output, &mcev);
+            ev_to_output = TRUE;
+            unset_pending_note(notes_on_state, channel_idx, note_idx);
+          }
+      }
+  return ev_to_output;
+}

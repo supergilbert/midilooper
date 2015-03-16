@@ -31,16 +31,24 @@ void _debug_midi(char *fmt, ...);
 void _output_warning(char *fmt, ...);
 /* void debug_wait(char *fmt, ...); */
 
+#define output_warning(format, ...) _output_warning(format "\n",        \
+                                                    ##__VA_ARGS__)
+
 #define TRACE_FMT "(%s %s:%d) "
 #define TRACE_ARG __FUNCTION__, __FILE__, __LINE__
 
 #define ERROR_FMT "ERROR "TRACE_FMT
 #define ERROR_ARG TRACE_ARG
 
-#define debug(format, ...)          _debug(TRACE_FMT format "\n", TRACE_ARG, ##__VA_ARGS__)
-#define debug_midi(format, ...)     _debug_midi(TRACE_FMT format "\n", TRACE_ARG, ##__VA_ARGS__)
-#define output_error(format, ...)   _output_error(TRACE_FMT format "\n", TRACE_ARG, ##__VA_ARGS__)
-#define output_warning(format, ...) _output_warning(TRACE_FMT format "\n", TRACE_ARG, ##__VA_ARGS__)
+#define debug(format, ...)          _debug(TRACE_FMT format "\n",       \
+                                           TRACE_ARG,                   \
+                                           ##__VA_ARGS__)
+#define debug_midi(format, ...)     _debug_midi(TRACE_FMT format "\n",  \
+                                                TRACE_ARG,              \
+                                                ##__VA_ARGS__)
+#define output_error(format, ...)   _output_error(TRACE_FMT format "\n", \
+                                                  TRACE_ARG,            \
+                                                  ##__VA_ARGS__)
 
 #define trace_func debug(TRACE_FMT "\n", TRACE_ARG)
 

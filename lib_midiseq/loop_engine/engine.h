@@ -26,26 +26,16 @@
 typedef struct midioutput
 {
   void        *hdl;
-  uint32_t    (*get_id)(void *hdl);
   const char  *(*get_name)(void *hdl);
   void        (*set_name)(void *hdl, char *name);
-  bool_t      (*play_ev)(struct midioutput *output, midicev_t *midicev);
-  bool_t      (*output_ev)(struct midioutput *output, midicev_t *midicev);
-  bool_t      (*output_evlist)(struct midioutput *output,
-                               list_t *seqevlist,
-                               byte_t *notes_on_state);
-  bool_t      (*output_pending_notes)(struct midioutput *output, byte_t *notes_on_state);
+  bool_t      (*send_ev)(struct midioutput *output, midicev_t *midicev);
+  bool_t      (*buff_ev)(struct midioutput *output, midicev_t *midicev);
 } output_t;
 
-#define output_get_id(output)         (output)->get_id((output)->hdl)
 #define output_get_name(output)       (output)->get_name((output)->hdl)
 #define output_set_name(output, name) (output)->set_name((output)->hdl, name)
-#define play_ev(output, midicev)      (output)->play_ev(output, midicev)
-#define output_ev(output, midicev)    (output)->output_ev(output, midicev)
-#define output_evlist(output, seqevlist, notes_on_state)        \
-  (output)->output_evlist(output, seqevlist, notes_on_state)
-#define output_pending_notes(output, notes_on_state)    \
-  (output)->output_pending_notes(output, notes_on_state)
+#define send_ev(output, midicev)      (output)->send_ev(output, midicev)
+#define buff_ev(output, midicev)      (output)->buff_ev(output, midicev)
 
 typedef enum
   {
@@ -67,7 +57,7 @@ typedef struct engine_ctx
   bool_t   (*delete_output)(struct engine_ctx *engine, output_t *output);
   uint_t   (*get_tick)(struct engine_ctx *engine);
   uint_t   (*set_bpm)(struct engine_ctx *engine);
-  void     (*_drain_output)(struct engine_ctx *engine);
+  void     (*_send_buff)(struct engine_ctx *engine);
   void     (*reset_pulse)(struct engine_ctx *engine);
 } engine_ctx_t;
 
@@ -78,7 +68,7 @@ typedef struct engine_ctx
 #define engine_create_output(eng, name)   (eng)->create_output(eng, name)
 #define engine_delete_output(eng, output) (eng)->delete_output(eng, output)
 #define engine_get_tick(eng)              (eng)->get_tick(eng)
-#define _engine_drain_output(eng)         (eng)->_drain_output(eng)
+#define _engine_send_buff(eng)            (eng)->_send_buff(eng)
 #define engine_reset_pulse(eng)           (eng)->reset_pulse(eng)
 
 typedef enum
@@ -130,10 +120,14 @@ void        engine_prepare_tracklist(engine_ctx_t *ctx);
 void        engine_clean_tracklist(engine_ctx_t *ctx);
 void        _engine_free_trash(engine_ctx_t *ctx);
 
-void play_all_tracks_pending_notes(engine_ctx_t *ctx);
-void play_all_tracks_ev(engine_ctx_t *ctx);
+void   play_all_tracks_pending_notes(engine_ctx_t *ctx);
+void   play_all_tracks_ev(engine_ctx_t *ctx);
+bool_t output_evlist(output_t *output,
+                     list_t *seqevlist,
+                     byte_t *notes_on_state);
+bool_t output_pending_notes(output_t *output, byte_t *notes_on_state);
 
-void nns_init_engine(engine_ctx_t *ctx, char *name);
+bool_t nns_init_engine(engine_ctx_t *ctx, char *name);
 
 # include "ev_iterator.h"
 

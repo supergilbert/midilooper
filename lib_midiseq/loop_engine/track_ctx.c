@@ -106,8 +106,8 @@ bool_t play_trackreq(track_ctx_t *track_ctx)
       switch (req->req)
         {
         case req_play_midicev:
-          if (output_ev(track_ctx->output,
-                             &(req->midicev)) == TRUE)
+          if (buff_ev(track_ctx->output,
+                      &(req->midicev)) == TRUE)
             ev_to_drain = TRUE;
           break;
         case req_pending_notes:
