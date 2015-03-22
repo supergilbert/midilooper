@@ -135,11 +135,11 @@ bool_t          get_midifile_track(midifile_info_t *info,
                                    size_t size)
 {
   midifile_track_t *midifile_track = myalloc(sizeof (midifile_track_t));
-  byte_t        *end;
-  uint_t        tick;//, smallest = (uint_t) -1, biggest = 0;
-  uint_t        offset;
-  midicev_t             chan_ev;
-  midimev_t             meta_ev;
+  byte_t           *end = NULL;
+  uint_t           tick;//, smallest = (uint_t) -1, biggest = 0;
+  uint_t           offset;
+  midicev_t        chan_ev;
+  midimev_t        meta_ev;
 
   midifile_track->sysex_portid = -1;
   debug_midi("!!! start=%p end=%p\n", buffer, &(buffer[size]));

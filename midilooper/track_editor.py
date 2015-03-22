@@ -87,7 +87,7 @@ class TrackSettingTable(gtk.Table):
 
 
 
-class NoteSettingTable(gtk.Table):
+class GridSettingTable(gtk.Table):
 
     def set_note_value_cb(self, widget):
         self.chaned.setting.note_val_on = int(widget.get_value())
@@ -437,13 +437,13 @@ class ChannelEditor(gtk.VBox):
         paned_tables.pack2(table2, resize=False, shrink=False)
 
         chan_list = track_info[2]
-        note_setting_frame = gtk.Frame("Note setting")
-        note_setting_frame.add(NoteSettingTable(self, chan_list))
+        grid_setting_frame = gtk.Frame("Grid setting")
+        grid_setting_frame.add(GridSettingTable(self, chan_list))
 
-        setting_hbox = gtk.HBox()
-        setting_hbox.pack_start(note_setting_frame, expand=False)
+        setting_box = gtk.HBox()
+        setting_box.pack_start(grid_setting_frame, expand=False)
 
-        self.pack_start(setting_hbox, expand=False)
+        self.pack_start(setting_box, expand=False)
         self.pack_start(paned_tables)
 
         debug_hbox = gtk.HBox()

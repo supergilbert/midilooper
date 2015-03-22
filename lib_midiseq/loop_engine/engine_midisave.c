@@ -49,7 +49,7 @@ void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
   list_iterator_t iter;
   output_t        *output;
   buf_node_t      head = {NULL, 0, NULL};
-  buf_node_t      *node = &head;
+  buf_node_t      *node;
   uint_t          idx = 0;
 
   for (iter_init(&iter, &(ctx->output_list)),
@@ -64,7 +64,8 @@ void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
     }
 
   node = _append_metaev_set_tempo(node, ctx->tempo);
-  node = _append_metaev_eot(node);
+  /* node = _append_metaev_eot(node); */
+  _append_metaev_eot(node);
 
   node = get_midifile_trackhdr(get_buf_list_size(head.next));
   node->next = head.next;

@@ -396,7 +396,8 @@ void write_midifile_track(int fd, midifile_track_t *mtrack)
     tail = _append_sysex_portid(tail, mtrack->sysex_portid);
 
   tail = _append_tickev_list(tail, &(mtrack->track.tickev_list));
-  tail = _append_metaev_eot(tail);
+  /* tail = _append_metaev_eot(tail); */
+  _append_metaev_eot(tail);
 
 
   header = get_midifile_trackhdr(get_buf_list_size(head.next));

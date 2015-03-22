@@ -201,6 +201,8 @@ void _del_list_node(list_t *list, node_t *node, free_list_func func)
         }
       else
         {
+          msq_assert(node->next != NULL,
+                     "node->next can not be null if it is not the tail node");
           node->next->prev = NULL;
           list->head = node->next;
         }
@@ -214,6 +216,8 @@ void _del_list_node(list_t *list, node_t *node, free_list_func func)
         }
       else
         {
+          msq_assert(node->next != NULL,
+                     "node->next can not be null if it is not the tail node");
           node->prev->next = node->next;
           node->next->prev = node->prev;
         }

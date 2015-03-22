@@ -104,13 +104,31 @@ void		_output_warning(char *fmt, ...)
   va_end(ap);
 }
 
+void vaoutput_error(char *fmt, va_list ap)
+{
+  fprintf(ERROUT, "\033[31m");
+  vfprintf(ERROUT, fmt, ap);
+  fprintf(ERROUT, "\033[0m");
+}
+
 void		_output_error(char *fmt, ...)
 {
   va_list	ap;
 
   va_start(ap, fmt);
-  fprintf(ERROUT, "\033[31m");
-  vfprintf(ERROUT, fmt, ap);
-  fprintf(ERROUT, "\033[0m");
+  vaoutput_error(fmt, ap);
   va_end(ap);
+}
+
+void _msq_assert(bool_t bool, char *format, ...)
+{
+  va_list	ap;
+
+  if (bool == FALSE)
+    {
+      va_start(ap, format);
+      vaoutput_error(format, ap);
+      va_end(ap);
+      exit(1);
+    }
 }

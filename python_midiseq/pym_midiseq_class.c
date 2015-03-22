@@ -16,7 +16,6 @@
 /* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#include <Python.h>
 #include "debug_tool/debug_tool.h"
 #include "./loop_engine/engine.h"
 #include "./pym_midiseq_track.h"

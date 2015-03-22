@@ -74,7 +74,12 @@ class MidiLooper(gtk.Window):
         hbox = gtk.HBox()
         button_start =  gtk.Button("Start")
         button_stop =  gtk.Button("Stop")
-        self.msq = midiseq.midiseq(seq_name)
+        try:
+            self.msq = midiseq.midiseq(seq_name)
+        except:
+            print "Error initialising midi sequencer"
+            import sys
+            sys.exit(-1)
 
         if filename:
             self.filename = filename
