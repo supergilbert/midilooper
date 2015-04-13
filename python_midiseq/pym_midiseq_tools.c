@@ -303,32 +303,56 @@ PyObject *sel_noteonoff_evwr(track_ctx_t *trackctx,
 
 
 PyObject *sel_ctrl_evwr(track_ctx_t *trackctx,
-                             byte_t channel,
-                             uint_t tick_min,
-                             uint_t tick_max,
-                             byte_t ctrl_num)
+                        byte_t channel,
+                        uint_t tick_min,
+                        uint_t tick_max,
+                        byte_t ctrl_num)
 {
-  ev_iterator_t evit_ctrl;
+  ev_iterator_t evit;
   PyObject      *ret_obj = PyList_New(0);
-  PyObject      *ev_repr = NULL;
-  midicev_t     *midicev_ctrl = NULL;
+  PyObject      *evwr = NULL;
+  midicev_t     *midicev = NULL;
 
   if (trackctx)
     {
-      midicev_ctrl = evit_init_ctrl_num(&evit_ctrl,
-                                        &(trackctx->track->tickev_list),
-                                        channel,
-                                        ctrl_num);
+      for (midicev = evit_init_ctrl_num(&evit,
+                                             &(trackctx->track->tickev_list),
+                                             channel,
+                                             ctrl_num);
+           midicev && evit.tick <= tick_max;
+           midicev = evit_next_ctrl_num(&evit, channel, ctrl_num))
+        if (tick_min <= evit.tick)
+          {
+            evwr = build_evwr_from_evit(&evit, trackctx);
+            PyList_Append(ret_obj, evwr);
+          }
+    }
 
-      while (midicev_ctrl && evit_ctrl.tick <= tick_max)
-        {
-          if (tick_min <= evit_ctrl.tick)
-            {
-              ev_repr = build_evwr_from_evit(&evit_ctrl, trackctx);
-              PyList_Append(ret_obj, ev_repr);
-            }
-          midicev_ctrl = evit_next_ctrl_num(&evit_ctrl, channel, ctrl_num);
-        }
+  return ret_obj;
+}
+
+PyObject *sel_pitch_evwr(track_ctx_t *trackctx,
+                         byte_t channel,
+                         uint_t tick_min,
+                         uint_t tick_max)
+{
+  ev_iterator_t evit;
+  PyObject      *ret_obj = PyList_New(0);
+  PyObject      *evwr    = NULL;
+  midicev_t     *midicev = NULL;
+
+  if (trackctx)
+    {
+      for (midicev = evit_init_pitch(&evit,
+                                     &(trackctx->track->tickev_list),
+                                     channel);
+           midicev && evit.tick <= tick_max;
+           midicev = evit_next_pitch(&evit, channel))
+        if (tick_min <= evit.tick)
+          {
+            evwr = build_evwr_from_evit(&evit, trackctx);
+            PyList_Append(ret_obj, evwr);
+          }
     }
 
   return ret_obj;
@@ -474,6 +498,19 @@ PyObject *add_pyevrepr(track_ctx_t *trackctx, PyObject *pyevrepr)
       mcev.event.ctrl.num = PyInt_AS_LONG(obj);
       obj = PyTuple_GetItem(pyevrepr, 4);
       mcev.event.ctrl.val = PyInt_AS_LONG(obj);
+      obj = PyTuple_GetItem(pyevrepr, 0);
+      tick = PyInt_AS_LONG(obj);
+      evit_add_midicev(&evit, tick, &mcev);
+      obj = build_evwr_from_evit(&evit, trackctx);
+      break;
+    case PITCHWHEELCHANGE:
+      obj = PyTuple_GetItem(pyevrepr, 1);
+      mcev.chan = PyInt_AS_LONG(obj);
+      mcev.type = type;
+      obj = PyTuple_GetItem(pyevrepr, 3);
+      mcev.event.pitchbend.Lval = PyInt_AS_LONG(obj);
+      obj = PyTuple_GetItem(pyevrepr, 4);
+      mcev.event.pitchbend.Hval = PyInt_AS_LONG(obj);
       obj = PyTuple_GetItem(pyevrepr, 0);
       tick = PyInt_AS_LONG(obj);
       evit_add_midicev(&evit, tick, &mcev);

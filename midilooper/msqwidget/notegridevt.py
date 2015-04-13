@@ -332,8 +332,8 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         tick_diff, note_diff = self._get_diff_paste_note(xpos, ypos)
         new_list = []
         for note_on, note_off in self.paste_cache:
-            diff_note_on = self.diff_note(note_on, tick_diff, note_diff)
-            diff_note_off = self.diff_note(note_off, tick_diff, note_diff)
+            diff_note_on = self.copy_note_at(note_on, tick_diff, note_diff)
+            diff_note_off = self.copy_note_at(note_off, tick_diff, note_diff)
             new_list.append((diff_note_on, diff_note_off))
         if self.notelist_collision(new_list):
             return None
@@ -506,9 +506,9 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         return None
 
 
-    def diff_note(self, note, tick_diff, note_diff):
+    def copy_note_at(self, note, tick_diff, note_diff):
         note = (note[0] + tick_diff,
-                note[1],
+                self.setting.chan_num,
                 note[2],
                 note[3] + note_diff,
                 note[4])
@@ -548,8 +548,8 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         note_max = note_list[0][0][3] + note_diff
         diff_note_list = []
         for note_on, note_off in note_list:
-            diff_note_on = self.diff_note(note_on, tick_diff, note_diff)
-            diff_note_off = self.diff_note(note_off, tick_diff, note_diff)
+            diff_note_on = self.copy_note_at(note_on, tick_diff, note_diff)
+            diff_note_off = self.copy_note_at(note_off, tick_diff, note_diff)
             diff_note_list.append((diff_note_on, diff_note_off))
         return diff_note_list
 

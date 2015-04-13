@@ -16,8 +16,6 @@
 /* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#include "debug_tool/debug_tool.h"
-#include "./loop_engine/engine.h"
 #include "./pym_midiseq_track.h"
 #include "./pym_midiseq_file.h"
 
@@ -34,7 +32,7 @@ static void midiseq_dealloc(PyObject *obj)
   midiseq_Object *self = (midiseq_Object *) obj;
 
   if (self->engine_ctx.hdl != NULL)
-    engine_destroy(&(self->engine_ctx));
+    uninit_engine(&(self->engine_ctx));
   /* if (self->pytrack != NULL) */
   /*   Py_DECREF(self->pytrack); */
   self->ob_type->tp_free((PyObject*)self);
@@ -47,19 +45,19 @@ static int midiseq_init(midiseq_Object *self,
 {
   char *aport_name = "midiseq_output";
   char *tmp = NULL;
+  int  type = 0;
 
   if (args != NULL)
     {
-      if (!PyArg_ParseTuple(args, "s", &tmp))
+      if (!PyArg_ParseTuple(args, "si", &tmp, &type))
         return -1;
       if (tmp != NULL)
         aport_name = tmp;
     }
   self->engine_ctx.hdl = NULL;
-  if (nns_init_engine(&(self->engine_ctx), aport_name))
+  if (init_engine(&(self->engine_ctx), aport_name, type) == TRUE)
     return 0;
-  else
-    return -1;
+  return -1;
 }
 
 
@@ -115,8 +113,7 @@ static PyObject *midiseq_settempo(PyObject *obj,
     return NULL;
   if (ms < 288461 || ms > 1500000)
     return NULL;
-  self->engine_ctx.tempo = ms;
-  engine_reset_pulse(&(self->engine_ctx));
+  engine_set_tempo(&(self->engine_ctx), ms);
   Py_RETURN_NONE;
 }
 
@@ -195,6 +192,8 @@ static PyObject *midiseq_copy_track(PyObject *obj,
     return NULL;
 
   trackctx = engine_copy_trackctx(&(self->engine_ctx), pytrack->trackctx);
+  trackctx->mute = TRUE;
+  trackctx->output =  pytrack->trackctx->output;
   return create_pym_track(trackctx);
 }
 

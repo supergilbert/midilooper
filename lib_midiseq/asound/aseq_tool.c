@@ -24,6 +24,8 @@
 
 bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
 {
+  int value = 0;
+
   bzero(ev, sizeof (snd_seq_event_t));
   switch (chnev->type)
     {
@@ -68,10 +70,12 @@ bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
                                   chnev->event.chan_aftertouch);
       break;
     case PITCHWHEELCHANGE:
+      value = chnev->event.pitchbend.Hval << 7;
+      value += chnev->event.pitchbend.Lval;
       ASEQ_SETPITCHWHEELCHANGEEV(ev,
                                  port,
                                  chnev->chan,
-                                 chnev->event.pitchbend.Lval);
+                                 value);
       break;
     default:
       fprintf(stderr, "Unsuported event\n");
@@ -80,7 +84,7 @@ bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
   return TRUE;
 }
 
-bool_t aseq_output_buff_ev(output_t *output, midicev_t *midicev)
+bool_t _aseq_output_write(output_t *output, midicev_t *midicev)
 {
   aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
   snd_seq_event_t aseqev;
@@ -88,14 +92,15 @@ bool_t aseq_output_buff_ev(output_t *output, midicev_t *midicev)
   if (set_aseqev(midicev, &aseqev, aseqoutput->port))
     {
       snd_seq_event_output(aseqoutput->handle, &aseqev);
+      *(aseqoutput->ev_to_drain) = TRUE;
       return TRUE;
     }
   return FALSE;
 }
 
-bool_t aseq_output_send_ev(output_t *output, midicev_t *midicev)
+bool_t aseq_output_ev_n_drain(output_t *output, midicev_t *midicev)
 {
-	aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
+  aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
   snd_seq_event_t aseqev;
 
   if (set_aseqev(midicev, &aseqev, aseqoutput->port))
@@ -105,4 +110,16 @@ bool_t aseq_output_send_ev(output_t *output, midicev_t *midicev)
       return TRUE;
     }
   return FALSE;
+}
+
+bool_t aseq_output_write(output_t *output,
+                         midicev_t *midicev)
+{
+  aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
+
+  if (*(aseqoutput->is_running) == TRUE)
+    output_add_req(output, midicev);
+  else
+    return aseq_output_ev_n_drain(output, midicev);
+  return TRUE;
 }

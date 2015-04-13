@@ -34,6 +34,7 @@ current_cursor = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
 MIDI_NOTEOFF_EVENT = 8
 MIDI_NOTEON_EVENT  = 9
 MIDI_CTRL_EVENT    = 11
+MIDI_PITCH_EVENT   = 14
 
 class Xpos2Tick(object):
     def xpos2tick(self, xpos):
@@ -87,4 +88,4 @@ def is_in_notelist(noteon, noteoff, notelist):
 
 
 
-__all__ = ["Xpos2Tick", "Ypos2Note", "MIDI_NOTEOFF_EVENT", "MIDI_NOTEON_EVENT", "MIDI_CTRL_EVENT", "cursor_pencil", "cursor_inc_l", "cursor_inc_r", "cursor_move", "current_cursor", "cursor_inc", "evwr_to_repr_list", "evrepr_is_in_notelist", "is_in_notelist"]
+__all__ = ["Xpos2Tick", "Ypos2Note", "MIDI_NOTEOFF_EVENT", "MIDI_NOTEON_EVENT", "MIDI_CTRL_EVENT", "MIDI_PITCH_EVENT", "cursor_pencil", "cursor_inc_l", "cursor_inc_r", "cursor_move", "current_cursor", "cursor_inc", "evwr_to_repr_list", "evrepr_is_in_notelist", "is_in_notelist"]

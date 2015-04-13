@@ -28,7 +28,6 @@ typedef struct {
 } ev_iterator_t;
 
 
-
 void    dump_evit(ev_iterator_t *evit);
 seqev_t *evit_init(ev_iterator_t *, list_t *tickev_list);
 midicev_t *evit_init_midiallchannel(ev_iterator_t *ev_iterator,
@@ -61,10 +60,12 @@ bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list);
 #define evit_next_noteon(evit, chan)  (evit_next_midicev_type((evit), (chan), NOTEON))
 #define evit_next_noteoff(evit, chan) (evit_next_midicev_type((evit), (chan), NOTEOFF))
 #define evit_next_ctrl(evit, chan)    (evit_next_midicev_type((evit), (chan), CONTROLCHANGE))
+#define evit_next_pitch(evit, chan)   (evit_next_midicev_type((evit), (chan), PITCHWHEELCHANGE))
 
 midicev_t *evit_next_noteoff_num(ev_iterator_t *ev_iterator, byte_t channel, byte_t num);
 midicev_t *evit_next_ctrl_num(ev_iterator_t *ev_iterator, byte_t channel, byte_t ctrl_num);
 midicev_t *evit_init_ctrl_num(ev_iterator_t *ev_iterator, list_t *tickev_list, byte_t channel, byte_t ctrl_num);
+midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator, list_t *tickev_list, byte_t channel);
 
 
 #endif

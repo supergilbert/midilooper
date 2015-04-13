@@ -44,7 +44,7 @@ void _play_if_noteoff(track_ctx_t *trackctx,
       mcev = (midicev_t *) seqev->addr;
       if (mcev->type == NOTEOFF)
         {
-          trackreq_play_midicev(trackctx, mcev);
+          output_add_req(trackctx->output, mcev);
           /* set_aseqev(mcev, */
           /*            &aseqev, */
           /*            aseqport_ctx->output_port); */
@@ -94,36 +94,7 @@ uint_t trackctx_loop_pos(track_ctx_t *track_ctx, uint_t tick)
   return tick;
 }
 
-bool_t play_trackreq(track_ctx_t *track_ctx)
-{
-  trackreq_t *req = NULL;
-  bool_t     ev_to_drain = FALSE;
-
-  for (req = trackreq_getnext_req(&(track_ctx->req_list));
-       req;
-       req = trackreq_getnext_req(&(track_ctx->req_list)))
-    {
-      switch (req->req)
-        {
-        case req_play_midicev:
-          if (buff_ev(track_ctx->output,
-                      &(req->midicev)) == TRUE)
-            ev_to_drain = TRUE;
-          break;
-        case req_pending_notes:
-          if (output_pending_notes(track_ctx->output, track_ctx->notes_on_state)
-              == TRUE)
-            ev_to_drain = TRUE;
-          break;
-        default:
-          fprintf(stderr, "Unknown track request:%d\n", req->req);
-        }
-      req->used = FALSE;
-    }
-  return ev_to_drain;
-}
-
-void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
+void play_trackctx(uint_t tick, track_ctx_t *track_ctx)
 {
   tickev_t *tickev  = NULL;
   /* static bool_t   to_reload  = FALSE; */
@@ -136,9 +107,6 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
   goto_next_available_tick(&((trackctx)->current_tickev),       \
                            (trackctx)->loop_start)
 
-  if (play_trackreq(track_ctx))
-    *ev_to_drain = TRUE;
-
   tick = trackctx_loop_pos(track_ctx, tick);
 
   if (track_ctx->need_sync == TRUE)
@@ -150,9 +118,11 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
         track_ctx->need_sync = FALSE;
     }
 
-  if (tick == last_pulse)
-    if (output_pending_notes(track_ctx->output, track_ctx->notes_on_state))
-      *ev_to_drain = TRUE;
+  if (tick == last_pulse || track_ctx->play_pending_notes)
+    {
+      output_pending_notes(track_ctx->output, track_ctx->notes_on_state);
+      track_ctx->play_pending_notes = FALSE;
+    }
 
   if (iter_node(&(track_ctx->current_tickev)) == NULL)
     {
@@ -167,10 +137,9 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
       if (tickev->tick == tick)
         {
           if (track_ctx->mute == FALSE)
-            if (output_evlist(track_ctx->output,
-                              &(tickev->seqev_list),
-                              track_ctx->notes_on_state) == TRUE)
-              *ev_to_drain = TRUE;
+            output_evlist(track_ctx->output,
+                          &(tickev->seqev_list),
+                          track_ctx->notes_on_state);
           iter_next_available_tick(&(track_ctx->current_tickev));
         }
 
@@ -184,5 +153,4 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx, bool_t *ev_to_drain)
         /* if in loop end go to head */
         trackctx_restart_loop(track_ctx);
     }
-  return;
 }

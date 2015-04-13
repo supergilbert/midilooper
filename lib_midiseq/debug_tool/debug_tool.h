@@ -34,7 +34,7 @@ void _output_warning(char *fmt, ...);
 #define output_warning(format, ...) _output_warning(format "\n",        \
                                                     ##__VA_ARGS__)
 
-#define TRACE_FMT "(%s %s:%d) "
+#define TRACE_FMT "(%s %s:%d)\n"
 #define TRACE_ARG __FUNCTION__, __FILE__, __LINE__
 
 #define ERROR_FMT "ERROR "TRACE_FMT

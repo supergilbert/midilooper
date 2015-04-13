@@ -37,37 +37,39 @@ typedef struct
   byte_t	type, chan;
   union
   {
-    struct { byte_t num,val; }		note;
-    struct { byte_t num,val; }		aftertouch;
-    struct { byte_t num,val; }		ctrl;
-    byte_t				prg_chg;
-    byte_t				chan_aftertouch;
-    struct { byte_t Lval,Hval; }	pitchbend;
-  }		event;
+    struct { byte_t num,val; }   note;
+    struct { byte_t num,val; }   aftertouch;
+    struct { byte_t num,val; }   ctrl;
+    byte_t                       prg_chg;
+    byte_t                       chan_aftertouch;
+    struct { byte_t Lval,Hval; } pitchbend;
+  }  event;
 
   /* raw midi value without deltatime
      /!\ caution with one param or two param event */
   /* byte_t	raw[3]; */
 }		midicev_t;
 
-#define midicmd_to_str(cmd) ((cmd) == NOTEOFF ? "NOTEOFF" :		\
-			     (cmd) == NOTEON ? "NOTEON" :		\
-			     (cmd) == KEYAFTERTOUCH ? "KEYAFTERTOUCH" :	\
-			     (cmd) == CONTROLCHANGE ? "CONTROLCHANGE" :	\
-			     (cmd) == PROGRAMCHANGE ? "PROGRAMCHANGE" :	\
-			     (cmd) == CHANNELAFTERTOUCH ? "CHANNELAFTERTOUCH" :	\
-			     (cmd) == PITCHWHEELCHANGE ? "PITCHWHEELCHANGE" : \
-			     "UNKNOWN")
+#define midicmd_to_str(cmd)                                             \
+  ((cmd) == NOTEOFF ? "NOTEOFF" :                                       \
+   (cmd) == NOTEON ? "NOTEON" :                                         \
+   (cmd) == KEYAFTERTOUCH ? "KEYAFTERTOUCH" :                           \
+   (cmd) == CONTROLCHANGE ? "CONTROLCHANGE" :                           \
+   (cmd) == PROGRAMCHANGE ? "PROGRAMCHANGE" :                           \
+   (cmd) == CHANNELAFTERTOUCH ? "CHANNELAFTERTOUCH" :                   \
+   (cmd) == PITCHWHEELCHANGE ? "PITCHWHEELCHANGE" :                     \
+   "UNKNOWN")
 
-/* #define midievtype_to_str(buf) ((buf) >> 4 == NOTEOFF ? "NOTEOFF" :	\ */
-/* 				(buf) >> 4 == NOTEON ? "NOTEON" :	\ */
-/* 				(buf) >> 4 == KEYAFTERTOUCH ? "KEYAFTERTOUCH" :	\ */
-/* 				(buf) >> 4 == CONTROLCHANGE ? "CONTROLCHANGE" :	\ */
-/* 				(buf) >> 4 == PROGRAMCHANGE ? "PROGRAMCHANGE" :	\ */
-/* 				(buf) >> 4 == CHANNELAFTERTOUCH ? "CHANNELAFTERTOUCH" :	\ */
-/* 				(buf) >> 4 == PITCHWHEELCHANGE ? "PITCHWHEELCHANGE" : \ */
-/* 				(buf) == 0xFF ? "META-EVENT" :		\ */
-/* 				"UNKNOWN")d */
+/* #define midievtype_to_str(buf)                                          \ */
+/*   ((buf) >> 4 == NOTEOFF ? "NOTEOFF" :                                  \ */
+/*    (buf) >> 4 == NOTEON ? "NOTEON" :                                    \ */
+/*    (buf) >> 4 == KEYAFTERTOUCH ? "KEYAFTERTOUCH" :                      \ */
+/*    (buf) >> 4 == CONTROLCHANGE ? "CONTROLCHANGE" :                      \ */
+/*    (buf) >> 4 == PROGRAMCHANGE ? "PROGRAMCHANGE" :                      \ */
+/*    (buf) >> 4 == CHANNELAFTERTOUCH ? "CHANNELAFTERTOUCH" :              \ */
+/*    (buf) >> 4 == PITCHWHEELCHANGE ? "PITCHWHEELCHANGE" :                \ */
+/*    (buf) == 0xFF ? "META-EVENT" :                                       \ */
+/*    "UNKNOWN")d */
 
 
 /* Meta event list */

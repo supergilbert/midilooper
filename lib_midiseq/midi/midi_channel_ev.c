@@ -271,6 +271,11 @@ void dump_seqev(seqev_t *seqev)
                  midicev->event.ctrl.num,
                  midicev->event.ctrl.val);
           break;
+        case PITCHWHEELCHANGE:
+          output(" | PITCHWHEELCHANGE Hval=%hhd Lval=%hhd\n",
+                 midicev->event.pitchbend.Hval,
+                 midicev->event.pitchbend.Lval);
+          break;
         default:
           output(" | Unsupported event\n");
         }

@@ -35,10 +35,19 @@ class MidiLooper(gtk.Window):
         if self.msq.isrunning():
             tickpos = self.msq.gettickpos()
             self.tracklist_frame.update_pos(tickpos)
+            self.progress_running = True
             return True
         else:
             self.tracklist_frame.clear_progress()
+            self.progress_running = False
             return False
+
+
+    def check_if_running(self):
+        if self.progress_running == False:
+            if self.msq.isrunning():
+                gobject.timeout_add(25, self.run_progression)
+        return True
 
     def start_msq(self, button):
         if self.msq.isrunning():
@@ -68,18 +77,20 @@ class MidiLooper(gtk.Window):
         else:
             self.file_save_as(menuitem)
 
-    def __init__(self, seq_name="MidiLooper", filename=None):
+    def __init__(self, seq_name="MidiLooper", filename=None, engine_type=0):
         gtk.Window.__init__(self)
         self.set_resizable(False)
         hbox = gtk.HBox()
         button_start =  gtk.Button("Start")
         button_stop =  gtk.Button("Stop")
+        self.progress_running = False
         try:
-            self.msq = midiseq.midiseq(seq_name)
+            self.msq = midiseq.midiseq(seq_name, engine_type)
         except:
-            print "Error initialising midi sequencer"
+            print "Error initialising midi sequencer", "alsa" if engine_type == 0 else "jack"
             import sys
             sys.exit(-1)
+        gobject.timeout_add(200, self.check_if_running)
 
         if filename:
             self.filename = filename
@@ -139,8 +150,9 @@ class MidiLooper(gtk.Window):
 
         self.show_all()
 
-if __name__ == "__main__":
+import getopt
 
+if __name__ == "__main__":
 #     gtk.rc_parse_string("""
 # style "midiseq_default_style"
 # {
@@ -169,9 +181,68 @@ if __name__ == "__main__":
 # """)
 #    gtk.rc_parse("")
 
-    mlooper = None
-    if len(sys.argv) == 2:
-        mlooper = MidiLooper(filename=sys.argv[1])
-    else:
-        mlooper = MidiLooper()
+    def usage():
+        print """\
+Usage: %s [OPTION]... [FILENAME]
+help    Display this help
+jack    Enable jack backend
+alsa    Enable alsa backend
+file    Load the specified file
+name    Set sequencer backend name
+
+OPTION:
+-h, --help
+  Display this help
+-j, --jack
+  Enable jack backend
+-a, --alsa
+  Enable alsa sequencer backend
+-n, --name
+  Set sequencer backend name
+""" % sys.argv[0]
+
+    engine_type = None
+    engine_name = "MidiLooper"
+    file_name = None
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hjan:", ["help", "jack", "alsa", "name"])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(1)
+    if len(args) > 1:
+        usage()
+        sys.exit(1)
+    elif len(args) == 1:
+        file_name = args[0]
+
+    for opt, arg in opts:
+        if opt in ["-h", "--help"]:
+            usage()
+            sys.exit()
+        elif opt in ["-a", "--alsa"]:
+            if engine_type:
+                usage()
+                sys.exit(1)
+            engine_type = 0
+        elif opt in ["-j", "--jack"]:
+            if engine_type:
+                usage()
+                sys.exit(1)
+            engine_type = 1
+        elif opt in ["-f", "--file"]:
+            if file_name:
+                usage()
+                sys.exit(1)
+            file_name = arg
+        elif opt in ["-n", "--name"]:
+            engine_name = arg
+        else:
+            assert False, "Unhandled option"
+
+    if not engine_type:
+        engine_type = 0
+
+    mlooper = MidiLooper(seq_name=engine_name, filename=file_name, engine_type=engine_type)
     gtk.main()

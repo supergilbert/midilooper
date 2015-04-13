@@ -192,6 +192,17 @@ midicev_t *evit_init_ctrl_num(ev_iterator_t *ev_iterator,
   return midicev;
 }
 
+midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator,
+                           list_t *tickev_list,
+                           byte_t channel)
+{
+  midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
+
+  if (midicev && midicev->type != PITCHWHEELCHANGE)
+    midicev = evit_next_pitch(ev_iterator, channel);
+  return midicev;
+}
+
 bool_t compare_midicev_type(midicev_t *mcev1, midicev_t *mcev2)
 {
   if (mcev1->type == mcev2->type && mcev1->chan == mcev2->chan)

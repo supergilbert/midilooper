@@ -1,16 +1,19 @@
 LIB_MSQ=$(LIB_MSQ_DIR)/libmidiseq.a
 LIB_MSQ_SRC=$(LIB_MSQ_DIR)/asound/aseq.c\
 	$(LIB_MSQ_DIR)/asound/aseq_tool.c\
+	$(LIB_MSQ_DIR)/jack/jack_backend.c\
 	$(LIB_MSQ_DIR)/midi/midi_meta_ev.c\
 	$(LIB_MSQ_DIR)/midi/midi_channel_ev.c\
 	$(LIB_MSQ_DIR)/midi/midifile.c\
 	$(LIB_MSQ_DIR)/midi/midifile_get_varlen.c\
+	$(LIB_MSQ_DIR)/midi/midi_tool.c\
 	$(LIB_MSQ_DIR)/midi/midifile_tool.c\
 	$(LIB_MSQ_DIR)/loop_engine/track_ctx.c\
-	$(LIB_MSQ_DIR)/loop_engine/track_req.c\
+	$(LIB_MSQ_DIR)/loop_engine/output_req.c\
 	$(LIB_MSQ_DIR)/loop_engine/ev_iterator.c\
 	$(LIB_MSQ_DIR)/loop_engine/engine.c\
 	$(LIB_MSQ_DIR)/loop_engine/engine_nanosleep.c\
+	$(LIB_MSQ_DIR)/loop_engine/engine_jack.c\
 	$(LIB_MSQ_DIR)/loop_engine/engine_midisave.c\
 	$(LIB_MSQ_DIR)/seqtool/seqtool.c\
 	$(LIB_MSQ_DIR)/clock/clock.c\

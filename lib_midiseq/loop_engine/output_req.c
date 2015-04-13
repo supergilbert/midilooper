@@ -19,71 +19,72 @@
 #include "engine.h"
 
 /* @brief Search backward for the first unused request or create new one */
-trackreq_t *trackreq_getunused_req(list_t *req_list)
+midireq_t *output_getunused_req(output_t *output)
 {
   node_t     *node = NULL;
-  trackreq_t *trackreq = NULL;
-  trackreq_t *ret = NULL;
+  midireq_t *midireq = NULL;
+  midireq_t *ret = NULL;
 
-  if (req_list->head)
+  if (output->req_list.head)
     {
-      node = req_list->tail;
+      node = output->req_list.tail;
       do
         {
-          trackreq = (trackreq_t *) node->addr;
-          if (trackreq->used == TRUE)
+          midireq = (midireq_t *) node->addr;
+          if (midireq->used == TRUE)
             break;
           else
-            ret = trackreq;
+            ret = midireq;
           node = node->prev;
         } while (node != NULL);
       if (ret != NULL)
         return ret;
     }
-  ret = myalloc(sizeof (trackreq_t));
+  ret = myalloc(sizeof (midireq_t));
   ret->used = FALSE;
-  push_to_list_tail(req_list, ret);
+  push_to_list_tail(&(output->req_list), ret);
   return ret;
 }
 
 #include <strings.h>
 
-void       trackreq_play_midicev(track_ctx_t *trackctx, midicev_t *midicev)
+void output_add_req(output_t *output, midicev_t *midicev)
 {
-  trackreq_t *trackreq = NULL;
+  midireq_t *midireq = NULL;
 
-  pthread_mutex_lock(&(trackctx->req_lock));
-  trackreq = trackreq_getunused_req(&(trackctx->req_list));
-  bcopy(midicev, &(trackreq->midicev), sizeof(midicev_t));
-  trackreq->req = req_play_midicev;
-  trackreq->used = TRUE;
-  pthread_mutex_unlock(&(trackctx->req_lock));
-}
-
-void       trackreq_play_pendings(track_ctx_t *trackctx)
-{
-  trackreq_t *trackreq = NULL;
-
-  pthread_mutex_lock(&(trackctx->req_lock));
-  trackreq = trackreq_getunused_req(&(trackctx->req_list));
-  trackreq->req = req_pending_notes;
-  trackreq->used = TRUE;
-  pthread_mutex_unlock(&(trackctx->req_lock));
+  pthread_mutex_lock(&(output->req_lock));
+  midireq = output_getunused_req(output);
+  bcopy(midicev, &(midireq->midicev), sizeof(midicev_t));
+  midireq->used = TRUE;
+  pthread_mutex_unlock(&(output->req_lock));
 }
 
 /* @brief Search forward the first request used */
-trackreq_t *trackreq_getnext_req(list_t *req_list)
+midireq_t *output_getnext_req(output_t *output)
 {
   node_t     *node = NULL;
-  trackreq_t *trackreq = NULL;
+  midireq_t *midireq = NULL;
 
-  for (node = req_list->head;
+  for (node = output->req_list.head;
        node;
        node = node->next)
     {
-      trackreq = (trackreq_t *) node->addr;
-      if (trackreq->used == TRUE)
-        return trackreq;
+      midireq = (midireq_t *) node->addr;
+      if (midireq->used == TRUE)
+        return midireq;
     }
   return NULL;
+}
+
+void output_play_reqlist(output_t *output)
+{
+  midireq_t *req = NULL;
+
+  for (req = output_getnext_req(output);
+       req;
+       req = output_getnext_req(output))
+    {
+      _output_write(output, &(req->midicev));
+      req->used = FALSE;
+    }
 }

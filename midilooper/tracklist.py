@@ -100,7 +100,10 @@ class TrackListMenu(MsqListMenu):
                                     self.tracklist.seq,
                                     self.tracklist.portlist)
             new_tedit.set_name(new_name)
-            self.tracklist.liststore.append([new_tedit, repr(new_track), 0, 0])
+            self.tracklist.liststore.append([new_tedit,
+                                             repr(new_track),
+                                             0,
+                                             new_tedit.track.get_mute_state()])
             new_tedit.show_all()
 
     def __init__(self, tracklist):
@@ -163,7 +166,7 @@ class TrackList(gtk.Frame):
     def add_track(self, track_name):
         track = self.seq.newtrack(track_name);
         tedit = TrackEditor(track, self.seq, self.portlist)
-        self.liststore.append([tedit, repr(track), 0, 0])
+        self.liststore.append([tedit, repr(track), 0, tedit.track.get_mute_state()])
         tedit.show_all()
 
     def button_add_track(self, button):
@@ -235,18 +238,18 @@ class TrackList(gtk.Frame):
         self.treev.set_enable_search(False)
         self.menu = TrackListMenu(self)
 
-        cell = gtk.CellRendererProgress()
-        tvcolumn = gtk.TreeViewColumn('Track', cell, text=1, value=2)
+        cell_rdrr = gtk.CellRendererProgress()
+        tvcolumn = gtk.TreeViewColumn('Track', cell_rdrr, text=1, value=2)
         tvcolumn.set_expand(True)
         self.track_col = tvcolumn
         self.treev.append_column(tvcolumn)
         self.treev.connect('button-press-event', self.tvbutton_press_event)
         self.treev.connect('row-activated', self.tvbutton_row_activated)
 
-        cell = gtk.CellRendererToggle()
-        # cell.set_property('activatable', True)
-        cell.connect('toggled', self.toggle_mute, self.liststore)
-        tvcolumn = gtk.TreeViewColumn('M', cell, active=3)
+        cell_rdrr = gtk.CellRendererToggle()
+        # cell_rdrr.set_property('activatable', True)
+        cell_rdrr.connect('toggled', self.toggle_mute, self.liststore)
+        tvcolumn = gtk.TreeViewColumn('M', cell_rdrr, active=3)
         tvcolumn.set_expand(False)
         tvcolumn.set_clickable(True)
         tvcolumn.connect('clicked', self.toggle_mute_all)

@@ -88,6 +88,6 @@ bool_t iter_move_to_addr(list_iterator_t *iterator, void *addr);
 
 node_t *iter_push_before(list_iterator_t *iterator, void *addr);
 node_t *iter_push_after(list_iterator_t *iterator, void *addr);
-void iter_node_del(list_iterator_t *iterator, free_list_func func);
+void   iter_node_del(list_iterator_t *iterator, free_list_func func);
 
 #endif

@@ -71,17 +71,15 @@ static PyObject *midiseq_track_play_note(PyObject *obj, PyObject *args)
       return NULL;
     }
 
-  if (self->trackctx->output != NULL)
+  if (self->trackctx->engine &&
+      self->trackctx->output != NULL)
     {
       mcev.chan = channel;
       mcev.type = type;
       mcev.event.note.num = num;
       mcev.event.note.val = val;
-      if (self->trackctx->engine &&
-          engine_is_running(self->trackctx->engine) == TRUE)
-        trackreq_play_midicev(self->trackctx, &mcev);
-      else
-        send_ev(self->trackctx->output, &mcev);
+      output_write(self->trackctx->output,
+                   &mcev);
     }
   Py_RETURN_NONE;
 }
@@ -184,7 +182,7 @@ static PyObject *midiseq_toggle_mute(PyObject *obj, PyObject *args)
       self->trackctx->mute = TRUE;
       if (self->trackctx->output)
         if (self->trackctx->engine && engine_is_running(self->trackctx->engine))
-          trackreq_play_pendings(self->trackctx);
+          self->trackctx->play_pending_notes = TRUE;
     }
   Py_RETURN_NONE;
 }
@@ -506,6 +504,32 @@ static PyObject *msq_track_sel_ctrl_evwr(PyObject *obj,
   return ret_obj;
 }
 
+static PyObject *msq_track_sel_pitch_evwr(PyObject *obj,
+                                          PyObject *args)
+{
+  midiseq_trackObject *self    = (midiseq_trackObject *) obj;
+  PyObject            *ret_obj = NULL;
+  int                 channel, tick_min, tick_max;
+
+  if (!PyArg_ParseTuple(args,
+                        "iiii",
+                        &channel,
+                        &tick_min,
+                        &tick_max))
+    return NULL;
+  if (channel < 0 ||
+      tick_min < 0 ||
+      tick_max < 0)
+    return NULL;
+  pthread_rwlock_rdlock(&(self->trackctx->lock));
+  ret_obj = sel_pitch_evwr(self->trackctx,
+                          (byte_t) channel,
+                          tick_min,
+                          tick_max);
+  pthread_rwlock_unlock(&(self->trackctx->lock));
+  return ret_obj;
+}
+
 void dump_track(track_t *);
 
 static PyObject *midiseq_track_dump(PyObject *obj,
@@ -542,6 +566,7 @@ static PyMethodDef midiseq_track_methods[] = {
   {"sel_noteonoff_evwr", msq_track_sel_noteonoff_evwr,  METH_VARARGS, "select note (event wrapper list)"},
   {"sel_noteonoff_repr", msq_track_sel_noteonoff_repr,  METH_VARARGS, "select note (event repr list)"},
   {"sel_ctrl_evwr",      msq_track_sel_ctrl_evwr,       METH_VARARGS, "select control event number (event wrapper list)"},
+  {"sel_pitch_evwr",     msq_track_sel_pitch_evwr,      METH_VARARGS, "select pitch bend event (event wrapper list)"},
   {"_dump",              midiseq_track_dump,            METH_NOARGS,  "Dump track event(s)"},
   {NULL,                 NULL,                          0,            NULL}
 };

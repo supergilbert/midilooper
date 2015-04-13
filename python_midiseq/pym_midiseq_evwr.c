@@ -47,6 +47,14 @@ PyObject *build_evrepr(uint_t tick, midicev_t *midicev)
                           midicev->event.ctrl.num,
                           midicev->event.ctrl.val);
       break;
+    case PITCHWHEELCHANGE:
+      ret = Py_BuildValue("(iiiii)",
+                          tick,
+                          midicev->chan,
+                          midicev->type,
+                          midicev->event.pitchbend.Lval,
+                          midicev->event.pitchbend.Hval);
+      break;
     default:
       output_error("Unsupported midi channel event type: %i\n", midicev->type);
       ret = Py_BuildValue("(iii)",

@@ -12,7 +12,7 @@ include $(LIB_MSQ_DIR)/Rules.mk
 PY_MSQ_DIR=$(current_dir)/python_midiseq
 PY_MSQ=$(PY_MSQ_DIR)/build/midiseq.so
 
-$(PY_MSQ) : $(LIB_MSQ) $(wildcard $(PY_MSQ_DIR)/*.c $(PY_MSQ_DIR)/*.h)
+$(PY_MSQ) : $(LIB_MSQ) $(wildcard $(PY_MSQ_DIR)/*.c $(PY_MSQ_DIR)/*.h) $(PY_MSQ_DIR)/setup.py
 	cd $(PY_MSQ_DIR) ;\
 python ./setup.py clean -a --build-lib=./build --build-temp=./build ;\
 python ./setup.py build --build-lib=./build --build-temp=./build ; cd -

@@ -324,9 +324,11 @@ class ChannelEditor(gtk.VBox):
         if list_idx >= 0:
             value = value_list[list_idx][0]
             if list_idx == 0:
-                self.value_wgt.set_note_mode(value)
+                self.value_wgt.set_note_mode()
+            elif list_idx == 1:
+                self.value_wgt.set_pitch_mode()
             else:
-                self.value_wgt.set_ctrl_mode(value)
+                self.value_wgt.set_ctrl_mode()
             self.value_wgt.draw_area(self.get_vp_area(self.value_vp))
 
 
@@ -394,6 +396,7 @@ class ChannelEditor(gtk.VBox):
         else:
             ctrl_list = []
         self.val_list.append([9, "Note on"])
+        self.val_list.append([14, "Pitch Bend"])
         for idx in range(128):
             self.val_list.append([idx,
                                   "Ctrl %i *" % idx if idx in ctrl_list else "Ctrl %i" % idx])

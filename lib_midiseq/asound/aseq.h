@@ -30,6 +30,8 @@ typedef struct
   snd_seq_t           *handle;
   int                 port;
   snd_seq_port_info_t *info;
+  bool_t              *ev_to_drain;
+  bool_t              *is_running;
 }               aseq_output_t;
 
 #define ASEQ_SETNOTEOFFEV(seqev, port, channel, note, velocity)         \
@@ -82,10 +84,13 @@ typedef struct
    snd_seq_ev_set_direct(seqev))
 
 snd_seq_t     *create_aseqh(char *name);
-aseq_output_t *create_aseq_output(snd_seq_t *handle, char *name);
+aseq_output_t *create_aseq_output(snd_seq_t *handle,
+                                  const char *name,
+                                  bool_t *ev_to_drain,
+                                  bool_t *is_running);
 void          free_aseq_output(aseq_output_t *aseq);
 void          free_aseqh(snd_seq_t *handle);
 const char    *aseq_output_get_name(void *output);
-void          aseq_output_set_name(void *output, char *name);
+void          aseq_output_set_name(void *output, const char *name);
 
 #endif

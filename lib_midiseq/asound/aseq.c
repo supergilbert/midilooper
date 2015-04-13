@@ -46,11 +46,15 @@ void free_aseqh(snd_seq_t *handle)
                  snd_strerror(err));
 }
 
-aseq_output_t  *create_aseq_output(snd_seq_t *handle, char *name)
+aseq_output_t  *create_aseq_output(snd_seq_t *handle,
+                                   const char *name,
+                                   bool_t *ev_to_drain,
+                                   bool_t *is_running)
 {
-  aseq_output_t        *aseqoutput = NULL;
+  aseq_output_t        *aseqoutput = myalloc(sizeof (aseq_output_t));
 
-  aseqoutput = myalloc(sizeof (aseq_output_t));
+  aseqoutput->ev_to_drain = ev_to_drain;
+  aseqoutput->is_running = is_running;
   aseqoutput->handle = handle;
   aseqoutput->port =
     snd_seq_create_simple_port(aseqoutput->handle,
@@ -80,7 +84,7 @@ const char *aseq_output_get_name(void *addr)
   return snd_seq_port_info_get_name(output->info);
 }
 
-void aseq_output_set_name(void *addr, char *name)
+void aseq_output_set_name(void *addr, const char *name)
 {
   aseq_output_t *output = (aseq_output_t *) addr;
   int err = 0;

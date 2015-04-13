@@ -65,6 +65,10 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         if ev[2] == MIDI_CTRL_EVENT and ev[3] == self.param:
             self.draw_bar_area(ev[0], ev[4], maxheight, area)
 
+    def _draw_pitch_area(self, ev, maxheight, area):
+        if ev[2] == MIDI_PITCH_EVENT and ev[3] == self.param:
+            self.draw_bar_area(ev[0], ev[4], maxheight, area)
+
     def _get_note_tick(self, tick_min, ev_list):
         if self.setting.note_widget.selection and len(ev_list) != 0:
             notelist = evwr_to_repr_list(self.setting.note_widget.selection)
@@ -74,13 +78,19 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
                     return ev[0]
         return None
 
-    def _get_ctrl_tick(self, tick_min, ev_list):
+    def _get_notnote_tick(self, evtype, tick_min, ev_list):
         if len(ev_list) != 0:
             ev_list.reverse()
             for ev in ev_list:
-                if ev[2] == MIDI_CTRL_EVENT and ev[3] == self.param:
+                if ev[2] == evtype and ev[3] == self.param:
                     return ev[0]
         return tick_min
+
+    def _get_ctrl_tick(self, tick_min, ev_list):
+        return self._get_notnote_tick(MIDI_CTRL_EVENT, tick_min, ev_list)
+
+    def _get_pitch_tick(self, tick_min, ev_list):
+        return self._get_notnote_tick(MIDI_PITCH_EVENT, tick_min, ev_list)
 
     def ypos_to_val(self, ypos, maxheight):
         return (maxheight - ypos) * 127 / maxheight
@@ -112,6 +122,18 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         if len(ev_list): # tmp
             self.setting.track.add_evrepr_list(ev_list)
 
+    def _write_pitchbar(self):
+        maxheight = self.window.get_size()[1]
+        ev_list = []
+        for bar in self.data_cache:
+            ev_list.append((bar[0],
+                            self.setting.chan_num,
+                            MIDI_PITCH_EVENT,
+                            self.param,
+                            self.ypos_to_val(bar[1], maxheight)))
+        if len(ev_list): # tmp
+            self.setting.track.add_evrepr_list(ev_list)
+
     def __init__(self, setting):
         gtk.Widget.__init__(self)
         setting.value_widget = self
@@ -126,17 +148,23 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         self.select_area = None
         self.selection = None
 
-    def set_note_mode(self, value):
+    def set_note_mode(self):
         self._draw_val_func  = self._draw_note_area
         self._get_tick_func  = self._get_note_tick
         self._write_bar_func = self._write_notebar
-        self.param = value
+        self.param = MIDI_NOTEON_EVENT
 
-    def set_ctrl_mode(self, value):
+    def set_ctrl_mode(self):
         self._draw_val_func  = self._draw_ctrl_area
         self._get_tick_func  = self._get_ctrl_tick
         self._write_bar_func = self._write_ctrlbar
-        self.param = value
+        self.param = MIDI_CTRL_EVENT
+
+    def set_pitch_mode(self):
+        self._draw_val_func  = self._draw_pitch_area
+        self._get_tick_func  = self._get_pitch_tick
+        self._write_bar_func = self._write_pitchbar
+        self.param = MIDI_PITCH_EVENT
 
     def draw_bar(self, tick, ypos):
         winsize = self.window.get_size()
@@ -275,7 +303,7 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
 
     def handle_key_release(self, widget, event):
         # Deleting control event
-        if (not self.is_in_note_mode()) and self.selection:
+        if (not self.is_in_note_mode()) and self.selection and (event.keyval == gtk.keysyms.Delete or event.keyval == gtk.keysyms.BackSpace):
             xmin = self.selection[0]
             xmax = self.selection[1]
             self.selection = None
@@ -285,10 +313,16 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
             if tick_min < 0:
                 tick_min = 0
 
-            evwr_list = self.setting.track.sel_ctrl_evwr(self.setting.chan_num,
-                                                         tick_min,
-                                                         tick_max,
-                                                         self.param)
+            if self.param == MIDI_CTRL_EVENT:
+                evwr_list = self.setting.track.sel_ctrl_evwr(self.setting.chan_num,
+                                                             tick_min,
+                                                             tick_max,
+                                                             self.param)
+            else:
+                evwr_list = self.setting.track.sel_pitch_evwr(self.setting.chan_num,
+                                                              tick_min,
+                                                              tick_max,
+                                                              self.param)
             self.setting.track._delete_evwr_list(evwr_list)
 
             self.draw_value_area(int(xmin), int(xmax - xmin))

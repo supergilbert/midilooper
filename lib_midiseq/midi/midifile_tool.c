@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "debug_tool/debug_tool.h"
+#include "midi/midi_tool.h"
 #include "midi/midifile.h"
 
 void write_midifile_header(int fd, uint_t track_list_len, uint_t ppq)
@@ -138,47 +139,6 @@ buf_node_t *get_var_len_buf(uint_t tick)
       return NULL;
     }
   return init_buf_node(buffer, size);
-}
-
-void write_midicev(byte_t *buf, midicev_t *midicev)
-{
-  switch (midicev->type)
-    {
-    case NOTEOFF:
-    case NOTEON:
-      buf[0] = (midicev->type << 4) + midicev->chan;
-      buf[1] = midicev->event.note.num & 0xFF;
-      buf[2] = midicev->event.note.val & 0xFF;
-      break;
-    case KEYAFTERTOUCH:
-      buf[0] = (midicev->type << 4) + midicev->chan;
-      buf[1] = midicev->event.aftertouch.num & 0xFF;
-      buf[2] = midicev->event.aftertouch.val & 0xFF;
-      break;
-    case CONTROLCHANGE:
-      buf[0] = (midicev->type << 4) + midicev->chan;
-      buf[1] = midicev->event.ctrl.num & 0xFF;
-      buf[2] = midicev->event.ctrl.val & 0xFF;
-      break;
-    case PROGRAMCHANGE:
-      buf[0] = (midicev->type << 4) + midicev->chan;
-      buf[1] = midicev->event.prg_chg;
-      buf[2] = 0;
-      break;
-    case CHANNELAFTERTOUCH:
-      buf[0] = (midicev->type << 4) + midicev->chan;
-      buf[1] = midicev->event.chan_aftertouch;
-      buf[2] = 0;
-      break;
-    case PITCHWHEELCHANGE:
-      buf[0] = (midicev->type << 4) + midicev->chan;
-      buf[1] = midicev->event.ctrl.num & 0xFF;
-      buf[2] = midicev->event.ctrl.val & 0xFF;
-      break;
-    default:
-      output_error("Unexpected channel event type\n");
-      break;
-    }
 }
 
 buf_node_t *get_midicev_buf(midicev_t *midicev)

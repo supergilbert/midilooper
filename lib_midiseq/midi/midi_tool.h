@@ -15,23 +15,6 @@
 /* You should have received a copy of the GNU General Public License */
 /* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
 
-
-#ifndef ASEQ_TOOL_H
-#define ASEQ_TOOL_H
-
-#include "asound/aseq.h"
 #include "midi/midiev_inc.h"
-#include "loop_engine/engine.h"
 
-#define alsa_drain_output(engine_ctx) (snd_seq_drain_output((engine_ctx)->aseqh))
-
-
-bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port);
-bool_t aseq_output_evlist(output_t *output,
-                          list_t *seqevlist,
-                          byte_t *notes_on_state);
-bool_t aseq_output_write(output_t *output,
-                         midicev_t *midicev);
-bool_t _aseq_output_write(output_t *output, midicev_t *midicev);
-
-#endif
+bool_t write_midicev(byte_t *buf, midicev_t *midicev);
