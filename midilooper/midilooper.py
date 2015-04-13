@@ -183,23 +183,22 @@ if __name__ == "__main__":
 
     def usage():
         print """\
-Usage: %s [OPTION]... [FILENAME]
-help    Display this help
-jack    Enable jack backend
-alsa    Enable alsa backend
-file    Load the specified file
-name    Set sequencer backend name
+Usage:
+midilooper [-j | -a] [-n NAME] [FILENAME]
 
-OPTION:
+Options:
 -h, --help
-  Display this help
--j, --jack
-  Enable jack backend
+  Display this help.
 -a, --alsa
-  Enable alsa sequencer backend
+  Enable alsa sequencer backend (default).
+-j, --jack
+  Enable jack backend.
 -n, --name
-  Set sequencer backend name
-""" % sys.argv[0]
+  Set sequencer backend name.
+
+FILENAME
+  The midifile to load (unstable).
+"""
 
     engine_type = None
     engine_name = "MidiLooper"
