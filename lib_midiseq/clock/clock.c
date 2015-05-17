@@ -60,7 +60,7 @@ bool_t _clockloop(clocktick_t *tick, struct timespec *res, clockloop_cb cb_func,
       perror("line: __LINE__ function: __FUNCTION__");
       return FALSE;
     }
-  while (STOP != cb_func(cb_arg))
+  while (CLOCK_STOP != cb_func(cb_arg))
     next_tick(tick, res, clkid);
   return TRUE;
 }

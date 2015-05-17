@@ -23,7 +23,7 @@ pygtk.require("2.0")
 import gtk
 
 from track_editor import TrackEditor
-from tool import prompt_gettext, MsqListMenu
+from tool import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu
 
 
 
@@ -90,6 +90,29 @@ class TrackListMenu(MsqListMenu):
                 self.tracklist.liststore.set_value(tv_iter, 1, repr(tedit.track))
             self.path = None
 
+
+    def add_key_binding(self, menuitem):
+        if self.path:
+            tv_iter = self.tracklist.liststore.get_iter(self.path[0])
+            tedit = self.tracklist.liststore.get_value(tv_iter, 0)
+            key = prompt_keybinding(tedit.track.get_name())
+            if key:
+                self.tracklist.seq.add_keybinding(key, tedit.track)
+
+    def add_note_binding(self, menuitem):
+        if self.path:
+            tv_iter = self.tracklist.liststore.get_iter(self.path[0])
+            tedit = self.tracklist.liststore.get_value(tv_iter, 0)
+            note = prompt_notebinding(self.tracklist.seq,
+                                      tedit.track.get_name())
+            print "note", note
+            if note:
+                self.tracklist.seq.add_notebinding(note, tedit.track)
+            # print "yoyoyo", type(key)
+
+    def clear_all_bindings(self, menuitem):
+        self.tracklist.seq.clear_all_bindings()
+
     def copy_track(self, menuitem):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
@@ -112,6 +135,9 @@ class TrackListMenu(MsqListMenu):
 
         self.mlm_add_item("Show track", self.show_track)
         self.mlm_add_item("Rename track", self.rename_track)
+        self.mlm_add_item("Add key binding", self.add_key_binding)
+        self.mlm_add_item("Add note binding", self.add_note_binding)
+        self.mlm_add_item("Clear all bindings", self.clear_all_bindings)
         self.mlm_add_item("Copy track", self.copy_track)
         separator = gtk.SeparatorMenuItem()
         separator.show()
@@ -120,6 +146,15 @@ class TrackListMenu(MsqListMenu):
 
 
 class TrackList(gtk.Frame):
+    def refresh_mute_state(self):
+        def update_mute_state(tvmodel, path, tv_iter):
+            tedit = tvmodel.get_value(tv_iter, 0)
+            state = tedit.track.get_mute_state()
+            self.liststore.set_value(tv_iter, 3, state)
+        tvmodel = self.treev.get_model()
+        if tvmodel:
+            tvmodel.foreach(update_mute_state)
+
     def update_pos(self, tickpos):
         def update_tedit(tvmodel, path, tv_iter, tickpos):
             tedit = tvmodel.get_value(tv_iter, 0)

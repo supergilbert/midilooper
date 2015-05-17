@@ -370,6 +370,27 @@ bool_t engine_delete_output(engine_ctx_t *ctx, output_t *output)
   return FALSE;
 }
 
+void engine_handle_sysex(engine_ctx_t *ctx, byte_t *sysex, uint_t size)
+{
+  if (sysex[1] == 0x7F && sysex[3] == 0x06)
+    {
+      switch (sysex[4])
+        {
+        case MMC_STOP:
+          engine_stop(ctx);
+          break;
+        case MMC_PLAY:
+        case MMC_PAUSE:
+          engine_start(ctx);
+          break;
+        default:
+          /* output_warning("Unhandled MMC (id:%d)", sysex[4]); */
+          /* print_bin(stdout, sysex, size); */
+          ;
+        }
+    }
+}
+
 bool_t init_engine(engine_ctx_t *engine, char *name, int type)
 {
   bzero(engine, sizeof (engine_ctx_t));
@@ -395,5 +416,6 @@ void uninit_engine(engine_ctx_t *engine)
   free_list_node(&(engine->output_list), engine->free_output_node);
   engine_destroy_hdl(engine);
   free_list_node(&(engine->track_list), _free_trackctx);
+  engine_clear_all_bindings(engine);
   bzero(engine, sizeof (engine_ctx_t));
 }

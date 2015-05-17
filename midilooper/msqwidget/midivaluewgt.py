@@ -37,9 +37,8 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         width = self.setting.getmaxwidth()
         self.set_size_request(width, -1)
 
-    def draw_bar_area(self, tick, val, maxheight, area):
+    def draw_bar_area(self, tick, ypos, area):
         xpos = self.tick2xpos(tick)
-        ypos = (127 - val) * maxheight / 127
         if area.y < ypos:
             if ypos <= area.y + area.height:
                 height = area.height + area.y - ypos
@@ -59,15 +58,18 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
 
     def _draw_note_area(self, ev, maxheight, area):
         if ev[2] == self.param:
-            self.draw_bar_area(ev[0], ev[4], maxheight, area)
+            ypos = (127 - ev[4]) * maxheight / 127
+            self.draw_bar_area(ev[0], ypos, area)
 
     def _draw_ctrl_area(self, ev, maxheight, area):
-        if ev[2] == MIDI_CTRL_EVENT and ev[3] == self.param:
-            self.draw_bar_area(ev[0], ev[4], maxheight, area)
+        if ev[2] == MIDI_CTRL_EVENT and ev[3] == self.ctrl_num:
+            ypos = (127 - ev[4]) * maxheight / 127
+            self.draw_bar_area(ev[0], ypos, area)
 
     def _draw_pitch_area(self, ev, maxheight, area):
-        if ev[2] == MIDI_PITCH_EVENT and ev[3] == self.param:
-            self.draw_bar_area(ev[0], ev[4], maxheight, area)
+        if ev[2] == MIDI_PITCH_EVENT:
+            ypos = (16383 - ((ev[4] * 128) + ev[3])) * maxheight / 16383
+            self.draw_bar_area(ev[0], ypos, area)
 
     def _get_note_tick(self, tick_min, ev_list):
         if self.setting.note_widget.selection and len(ev_list) != 0:
@@ -117,7 +119,7 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
             ev_list.append((bar[0],
                             self.setting.chan_num,
                             MIDI_CTRL_EVENT,
-                            self.param,
+                            self.ctrl_num,
                             self.ypos_to_val(bar[1], maxheight)))
         if len(ev_list): # tmp
             self.setting.track.add_evrepr_list(ev_list)
@@ -126,11 +128,14 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         maxheight = self.window.get_size()[1]
         ev_list = []
         for bar in self.data_cache:
+            val = ((maxheight - bar[1]) * 16383) // maxheight
+            Hval = val // 128
+            Lval = val - (Hval * 128)
             ev_list.append((bar[0],
                             self.setting.chan_num,
                             MIDI_PITCH_EVENT,
-                            self.param,
-                            self.ypos_to_val(bar[1], maxheight)))
+                            Lval,
+                            Hval))
         if len(ev_list): # tmp
             self.setting.track.add_evrepr_list(ev_list)
 
@@ -147,6 +152,7 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         self.data_cache = []
         self.select_area = None
         self.selection = None
+        self.ctrl_num = 0
 
     def set_note_mode(self):
         self._draw_val_func  = self._draw_note_area
@@ -154,10 +160,11 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         self._write_bar_func = self._write_notebar
         self.param = MIDI_NOTEON_EVENT
 
-    def set_ctrl_mode(self):
+    def set_ctrl_mode(self, ctrl_num):
         self._draw_val_func  = self._draw_ctrl_area
         self._get_tick_func  = self._get_ctrl_tick
         self._write_bar_func = self._write_ctrlbar
+        self.ctrl_num        = ctrl_num
         self.param = MIDI_CTRL_EVENT
 
     def set_pitch_mode(self):
@@ -188,7 +195,11 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         return self._draw_note_area == self._draw_val_func
 
     def draw_value_at(self, tick_max, ypos):
-        ypos = ypos if ypos >= 0 else 0
+        height = self.window.get_size()[1]
+        if ypos > height:
+            ypos = height
+        elif ypos < 0:
+            ypos = 0
         tick_min = self.setting.quantify_tick(tick_max)
         ev_list = self.setting.track.getall_midicev(self.setting.chan_num,
                                                     tick_min,
@@ -317,12 +328,11 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
                 evwr_list = self.setting.track.sel_ctrl_evwr(self.setting.chan_num,
                                                              tick_min,
                                                              tick_max,
-                                                             self.param)
+                                                             self.ctrl_num)
             else:
                 evwr_list = self.setting.track.sel_pitch_evwr(self.setting.chan_num,
                                                               tick_min,
-                                                              tick_max,
-                                                              self.param)
+                                                              tick_max)
             self.setting.track._delete_evwr_list(evwr_list)
 
             self.draw_value_area(int(xmin), int(xmax - xmin))

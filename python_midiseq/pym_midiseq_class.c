@@ -360,6 +360,87 @@ static PyObject *midiseq_move_port_after(PyObject *obj,
   Py_RETURN_NONE;
 }
 
+static PyObject *midiseq_clear_all_bindings(PyObject *obj,
+                                        PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  engine_clear_all_bindings(&(self->engine_ctx));
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_clean_remote_note(PyObject *obj,
+                                           PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  self->engine_ctx.bindings.rec_note = 255;
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_get_remote_note(PyObject *obj,
+                                         PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  return Py_BuildValue("i", (int) self->engine_ctx.bindings.rec_note);
+}
+
+static PyObject *midiseq_add_notebinding(PyObject *obj,
+                                         PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_trackObject *pytrack = NULL;
+  int                 note = NULL;
+
+  if (!PyArg_ParseTuple(args , "iO", &note, &pytrack))
+    return NULL;
+  if (note <= 127)
+    engine_add_notebinding(&(self->engine_ctx), note, pytrack->trackctx);
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_add_keybinding(PyObject *obj,
+                                        PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_trackObject *pytrack = NULL;
+  char                *key = NULL;
+
+  if (!PyArg_ParseTuple(args , "sO", &key, &pytrack))
+    return NULL;
+  if (*key != 0)
+    engine_add_keybinding(&(self->engine_ctx), *key, pytrack->trackctx);
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_call_keypress(PyObject *obj,
+                                       PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+  char                *key = NULL;
+
+  if (!PyArg_ParseTuple(args , "s", &key))
+    return NULL;
+  if (*key != 0)
+    engine_call_keypress_b(&(self->engine_ctx), *key);
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_mute_state_changed(PyObject *obj,
+                                            PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+
+  if (self->engine_ctx.mute_state_changed == TRUE)
+    {
+      self->engine_ctx.mute_state_changed = FALSE;
+      Py_RETURN_TRUE;
+    }
+  else
+    Py_RETURN_FALSE;
+}
+
 static PyMethodDef midiseq_methods[] = {
   {"read_msqfile", midiseq_read_msqfile_tracks, METH_VARARGS,
    "Copy the track of a midifile"},
@@ -401,6 +482,20 @@ static PyMethodDef midiseq_methods[] = {
    "Warning: Not thread safe"},
   {"move_port_after", midiseq_move_port_after, METH_VARARGS,
    "Warning: Not thread safe"},
+  {"clear_all_bindings", midiseq_clear_all_bindings, METH_NOARGS,
+   "Clear bindings"},
+  {"clean_remote_note", midiseq_clean_remote_note, METH_NOARGS,
+   "Clean last note recorded from remote port (clean value = 255)"},
+  {"get_remote_note", midiseq_get_remote_note, METH_NOARGS,
+   "Get last note recorded from remote port"},
+  {"add_notebinding", midiseq_add_notebinding, METH_VARARGS,
+   "Add a midi note binding on remote port"},
+  {"add_keybinding", midiseq_add_keybinding, METH_VARARGS,
+   "Add a key binding"},
+  {"call_keypress", midiseq_call_keypress, METH_VARARGS,
+   "Call keypress binding function"},
+  {"mute_state_changed", midiseq_mute_state_changed, METH_NOARGS,
+   "Interface need update mute state"},
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
   /* {"getname", midiseq_readtrack, METH_NOARGS, "get track name"}, */
   {NULL, NULL, 0, NULL}

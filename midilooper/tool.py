@@ -49,6 +49,74 @@ def prompt_gettext(label, prev_text=None):
     dialog.destroy()
     return text
 
+def prompt_keybinding(name):
+    key_binding = None
+    label = gtk.Label("""\
+Getting key binding for %s.
+Press any alpha-numeric key (timeout in 5 sec)""" % name)
+
+    def emit_resp(widget, event, dialog, key_press):
+        key_press[0] = gtk.gdk.keyval_name(event.keyval)
+        dialog.response(gtk.RESPONSE_OK)
+
+    def timeout_func(dialog):
+        dialog.response(gtk.RESPONSE_CANCEL)
+
+    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
+    dialog.set_decorated(False)
+    dialog.set_position(gtk.WIN_POS_MOUSE)
+    dialog.vbox.pack_start(label, True, True, 0)
+    key_press = [None]
+    dialog.connect("key_press_event", emit_resp, dialog, key_press)
+    timeoutid = gobject.timeout_add(5000, timeout_func, dialog)
+
+    dialog.show_all()
+    resp = dialog.run()
+    if resp == gtk.RESPONSE_OK:
+        gobject.source_remove(timeoutid)
+        key_binding = key_press[0]
+    elif resp == gtk.RESPONSE_DELETE_EVENT:
+        gobject.source_remove(timeoutid)
+    dialog.destroy()
+    return key_binding
+
+def prompt_notebinding(seq, name):
+    label = gtk.Label("""\
+Getting midi binding for %s.
+Press any note (timeout in 5 sec)""" % name)
+
+    check_period = 100
+
+    def timeout_func(dialog, seq, timeout_data, check_period):
+        note = seq.get_remote_note()
+        if note != 255:
+            timeout_data[0] = note
+            dialog.response(gtk.RESPONSE_OK)
+            return False
+        if timeout_data[1] >= 5000:
+            dialog.response(gtk.RESPONSE_OK)
+            return False
+        timeout_data[1] += check_period
+        return True
+
+    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
+    dialog.set_decorated(False)
+    dialog.set_position(gtk.WIN_POS_MOUSE)
+    dialog.vbox.pack_start(label, True, True, 0)
+    timeout_data = [None, 0]    # [midinote, timeout time]
+    seq.clean_remote_note()
+    timeoutid = gobject.timeout_add(check_period,
+                                    timeout_func,
+                                    dialog, seq, timeout_data, check_period)
+
+    dialog.show_all()
+    resp = dialog.run()
+    if resp == gtk.RESPONSE_DELETE_EVENT:
+        gobject.source_remove(timeoutid)
+    dialog.destroy()
+    return timeout_data[0]
+
+
 class MsqListMenu(gtk.Menu):
     def mlm_add_item(self, name, callback=None):
             item = gtk.MenuItem(name)

@@ -24,8 +24,6 @@
 
 bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
 {
-  int value = 0;
-
   bzero(ev, sizeof (snd_seq_event_t));
   switch (chnev->type)
     {
@@ -70,12 +68,11 @@ bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
                                   chnev->event.chan_aftertouch);
       break;
     case PITCHWHEELCHANGE:
-      value = chnev->event.pitchbend.Hval << 7;
-      value += chnev->event.pitchbend.Lval;
       ASEQ_SETPITCHWHEELCHANGEEV(ev,
                                  port,
                                  chnev->chan,
-                                 value);
+                                 chnev->event.pitchbend.Lval,
+                                 chnev->event.pitchbend.Hval);
       break;
     default:
       fprintf(stderr, "Unsuported event\n");

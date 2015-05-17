@@ -394,22 +394,37 @@ void delete_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
 
 bool_t gen_mcev_from_evrepr(PyObject *evrepr, uint_t *tick, midicev_t *mcev)
 {
-  Py_ssize_t list_len = PyTuple_Size(evrepr);
-  long       chan, type, num, val;
+  Py_ssize_t    list_len = PyTuple_Size(evrepr);
+  unsigned long chan, type, val1, val2;
 
   if (list_len < 5)
     return FALSE;
   /* todo: more test */
-  *tick = (uint_t) PyInt_AsLong(PyTuple_GetItem(evrepr, 0));
-  chan  = PyInt_AsLong(PyTuple_GetItem(evrepr, 1));
-  type  = PyInt_AsLong(PyTuple_GetItem(evrepr, 2));
-  num   = PyInt_AsLong(PyTuple_GetItem(evrepr, 3));
-  val   = PyInt_AsLong(PyTuple_GetItem(evrepr, 4));
-  /* todo: switch */
+  *tick = (uint_t) PyLong_AsUnsignedLong(PyTuple_GetItem(evrepr, 0));
+  chan  = PyLong_AsUnsignedLong(PyTuple_GetItem(evrepr, 1));
+  type  = PyLong_AsUnsignedLong(PyTuple_GetItem(evrepr, 2));
+  val1  = PyLong_AsUnsignedLong(PyTuple_GetItem(evrepr, 3));
+  val2  = PyLong_AsUnsignedLong(PyTuple_GetItem(evrepr, 4));
   mcev->chan = (byte_t) chan;
   mcev->type = (byte_t) type;
-  mcev->event.note.num  = (byte_t) num;
-  mcev->event.note.val  = (byte_t) val;
+  switch (type)
+    {
+    case NOTEOFF:
+    case NOTEON:
+      mcev->event.note.num = (byte_t) val1;
+      mcev->event.note.val = (byte_t) val2;
+      break;
+    case CONTROLCHANGE:
+      mcev->event.ctrl.num = (byte_t) val1;
+      mcev->event.ctrl.val = (byte_t) val2;
+      break;
+    case PITCHWHEELCHANGE:
+      mcev->event.pitchbend.Lval = (byte_t) val1;
+      mcev->event.pitchbend.Hval = (byte_t) val2;
+      break;
+    default:
+      ;
+    }
   return TRUE;
 }
 

@@ -51,23 +51,34 @@ typedef struct midioutput
 
 void output_add_req(output_t *output, midicev_t *midicev);
 
+typedef struct
+{
+  list_t keypress;
+  byte_t rec_note;
+  bool_t midib_updating;
+  bool_t midib_reading;
+  list_t notepress;
+} bindings_t;
+
 typedef struct engine_ctx
 {
-  void     *hdl;
-  list_t   output_list;
-  list_t   track_list;
-  uint_t   ppq;                 /* Pulse per quater note (beat) */
-  uint_t   tempo;               /* Quater note in micro second */
-  bool_t   (*is_running)(struct engine_ctx *engine);
-  void     (*destroy_hdl)(struct engine_ctx *engine);
-  bool_t   (*start)(struct engine_ctx *engine);
-  void     (*stop)(struct engine_ctx *engine);
-  void     (*init_output)(struct engine_ctx *engine,
-                          output_t *output,
-                          const char *name);
-  void     (*free_output_node)(void *addr);
-  uint_t   (*get_tick)(struct engine_ctx *engine);
-  void     (*set_tempo)(struct engine_ctx *engine, uint_t ms);
+  void       *hdl;
+  list_t     output_list;
+  list_t     track_list;
+  uint_t     ppq;               /* Pulse per quater note (beat) */
+  uint_t     tempo;             /* Quater note in micro second */
+  bindings_t bindings;
+  bool_t     mute_state_changed; /* Ask to update interface */
+  bool_t     (*is_running)(struct engine_ctx *engine);
+  void       (*destroy_hdl)(struct engine_ctx *engine);
+  void       (*start)(struct engine_ctx *engine);
+  void       (*stop)(struct engine_ctx *engine);
+  void       (*init_output)(struct engine_ctx *engine,
+                            output_t *output,
+                            const char *name);
+  void       (*free_output_node)(void *addr);
+  uint_t     (*get_tick)(struct engine_ctx *engine);
+  void       (*set_tempo)(struct engine_ctx *engine, uint_t ms);
 } engine_ctx_t;
 
 #define engine_is_running(eng)                (eng)->is_running(eng)
@@ -97,9 +108,10 @@ typedef struct
   byte_t           notes_on_state[256];
 } track_ctx_t;
 
-uint_t     trackctx_loop_pos(track_ctx_t *track_ctx, uint_t tick);
-void       play_trackctx(uint_t tick,
-                         track_ctx_t *track_ctx);
+void   trackctx_toggle_mute(track_ctx_t *track_ctx);
+uint_t trackctx_loop_pos(track_ctx_t *track_ctx, uint_t tick);
+void   play_trackctx(uint_t tick,
+                     track_ctx_t *track_ctx);
 
 track_ctx_t *engine_create_trackctx(engine_ctx_t *engine, char *name);
 bool_t      engine_delete_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
@@ -110,15 +122,27 @@ void        engine_prepare_tracklist(engine_ctx_t *ctx);
 void        engine_clean_tracklist(engine_ctx_t *ctx);
 void        _engine_free_trash(engine_ctx_t *ctx);
 
-void   play_outputs_reqs(engine_ctx_t *ctx);
-void   play_tracks_pending_notes(engine_ctx_t *ctx);
-void   play_tracks(engine_ctx_t *ctx);
+void engine_clear_all_bindings(engine_ctx_t *engine);
+void engine_call_notepress_b(engine_ctx_t *engine, byte_t key);
+void engine_add_notebinding(engine_ctx_t *engine,
+                            byte_t key,
+                            track_ctx_t *track_ctx);
+void engine_call_keypress_b(engine_ctx_t *engine, byte_t key);
+void engine_add_keybinding(engine_ctx_t *engine,
+                           byte_t key,
+                           track_ctx_t *track_ctx);
 
-void   output_play_reqlist(output_t *output);
-void   output_evlist(output_t *output,
-                     list_t *seqevlist,
-                     byte_t *notes_on_state);
-void   output_pending_notes(output_t *output, byte_t *notes_on_state);
+void play_outputs_reqs(engine_ctx_t *ctx);
+void play_tracks_pending_notes(engine_ctx_t *ctx);
+void play_tracks(engine_ctx_t *ctx);
+
+void output_play_reqlist(output_t *output);
+void output_evlist(output_t *output,
+                   list_t *seqevlist,
+                   byte_t *notes_on_state);
+void output_pending_notes(output_t *output, byte_t *notes_on_state);
+
+void engine_handle_sysex(engine_ctx_t *ctx, byte_t *sysex, uint_t size);
 
 bool_t nns_init_engine(engine_ctx_t *ctx, char *name);
 bool_t jbe_init_engine(engine_ctx_t *ctx, char *name);

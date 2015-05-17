@@ -57,6 +57,24 @@ void _play_if_noteoff(track_ctx_t *trackctx,
     }
 }
 
+uint_t _seqev_len(tickev_t *tickev)
+{
+  list_iterator_t seqevit;
+  seqev_t         *ev = NULL;
+  uint_t          len = 0;
+
+  for (iter_init(&seqevit, &(tickev->seqev_list));
+       iter_node(&seqevit) != NULL;
+       iter_next(&seqevit))
+    {
+      ev = (seqev_t *) iter_node_ptr(&seqevit);
+      if (ev->deleted == FALSE)
+        len++;
+    }
+
+  return len;
+}
+
 void trackctx_event2trash(track_ctx_t *trackctx,
                           ev_iterator_t *ev_iterator)
 /* list_iterator_t *tickit, */
@@ -68,7 +86,7 @@ void trackctx_event2trash(track_ctx_t *trackctx,
   /* seqev_t     *seqev = (seqev_t *) iter_node_ptr(evit); */
   /* tickev_t    *tickev = (tickev_t *) iter_node_ptr(tickit); */
 
-  if (tickev->seqev_list.len == 1)
+  if (_seqev_len(tickev) == 1)
     tickev->deleted = TRUE;
 
   seqev->deleted = TRUE;
@@ -152,5 +170,18 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx)
       else if (tickev->tick >= last_pulse)
         /* if in loop end go to head */
         trackctx_restart_loop(track_ctx);
+    }
+}
+
+void trackctx_toggle_mute(track_ctx_t *track_ctx)
+{
+  if (track_ctx->mute)
+    track_ctx->mute = FALSE;
+  else
+    {
+      track_ctx->mute = TRUE;
+      if (track_ctx->output)
+        if (track_ctx->engine && engine_is_running(track_ctx->engine))
+          track_ctx->play_pending_notes = TRUE;
     }
 }

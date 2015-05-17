@@ -328,7 +328,8 @@ class ChannelEditor(gtk.VBox):
             elif list_idx == 1:
                 self.value_wgt.set_pitch_mode()
             else:
-                self.value_wgt.set_ctrl_mode()
+                if list_idx > 1:
+                    self.value_wgt.set_ctrl_mode(list_idx - 2)
             self.value_wgt.draw_area(self.get_vp_area(self.value_vp))
 
 

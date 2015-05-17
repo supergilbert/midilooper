@@ -175,15 +175,7 @@ static PyObject *midiseq_toggle_mute(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  if (self->trackctx->mute)
-    self->trackctx->mute = FALSE;
-  else
-    {
-      self->trackctx->mute = TRUE;
-      if (self->trackctx->output)
-        if (self->trackctx->engine && engine_is_running(self->trackctx->engine))
-          self->trackctx->play_pending_notes = TRUE;
-    }
+  trackctx_toggle_mute(self->trackctx);
   Py_RETURN_NONE;
 }
 
@@ -512,7 +504,7 @@ static PyObject *msq_track_sel_pitch_evwr(PyObject *obj,
   int                 channel, tick_min, tick_max;
 
   if (!PyArg_ParseTuple(args,
-                        "iiii",
+                        "iii",
                         &channel,
                         &tick_min,
                         &tick_max))

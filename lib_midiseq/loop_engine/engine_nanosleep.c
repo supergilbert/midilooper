@@ -7,7 +7,8 @@
 typedef enum
   {
     engine_rq_cont = 0,
-    engine_rq_stop
+    engine_rq_stop,
+    engine_rq_desactivate
   } engine_rq;
 
 typedef struct
@@ -16,6 +17,7 @@ typedef struct
   pthread_rwlock_t lock;
   clockloop_t      looph;
   snd_seq_t        *aseqh;
+  int              remote_input;
   engine_rq        rq;
   pthread_t        thread_id;
   bool_t           thread_ret;
@@ -46,9 +48,7 @@ void nns_stop(engine_ctx_t *ctx)
 {
   nns_hdl_t *hdl = (nns_hdl_t *) ctx->hdl;
 
-  debug("stopping for engine thread end\n");
   hdl->rq = engine_rq_stop;
-  pthread_join(hdl->thread_id, NULL);
   hdl->looph.clocktick.number = 0;
 }
 
@@ -57,41 +57,23 @@ void nns_destroy_hdl(engine_ctx_t *ctx)
   nns_hdl_t *hdl = (nns_hdl_t *) ctx->hdl;
 
   if (nns_is_running(ctx))
-    nns_stop(ctx);
+    {
+      nns_stop(ctx);
+      pthread_join(hdl->thread_id, NULL);
+    }
   free_aseqh(hdl->aseqh);
   pthread_rwlock_destroy(&(hdl->lock));
   free(hdl);
 }
 
-void *nns_thread_wrapper(void *arg)
-{
-  engine_ctx_t *ctx = (engine_ctx_t *) arg;
-  nns_hdl_t    *hdl = (nns_hdl_t *) ctx->hdl;
-
-  hdl->rq = engine_rq_cont;
-  pthread_rwlock_wrlock(&(hdl->lock));
-  hdl->is_running = TRUE;
-  pthread_rwlock_unlock(&(hdl->lock));
-  engine_prepare_tracklist(ctx);
-  hdl->thread_ret = clockloop(&(hdl->looph));
-  engine_clean_tracklist(ctx);
-  return &(hdl->thread_ret);
-}
-
-bool_t nns_start(engine_ctx_t *ctx)
+void nns_start(engine_ctx_t *ctx)
 {
   nns_hdl_t *hdl = (nns_hdl_t *) ctx->hdl;
 
-  if (hdl->is_running == TRUE)
-    {
-      output_error("Can not start engine it is already running\n");
-      return FALSE;
-    }
-  hdl->looph.clocktick.number = 0;
-  hdl->rq = engine_rq_cont;
-  pthread_create(&(hdl->thread_id), NULL, nns_thread_wrapper, ctx);
-  usleep(200000);
-  return TRUE;
+  if (hdl->rq == engine_rq_stop)
+    hdl->rq = engine_rq_cont;
+  else if (hdl->rq == engine_rq_cont)
+    hdl->rq = engine_rq_stop;
 }
 
 void nns_init_output(engine_ctx_t *ctx, output_t *output, const char *name)
@@ -141,12 +123,46 @@ bool_t nns_drain_output(nns_hdl_t *hdl)
     return FALSE;
 }
 
+void nns_handle_input(engine_ctx_t *ctx)
+{
+  nns_hdl_t       *hdl  = (nns_hdl_t *) ctx->hdl;
+  snd_seq_event_t *ev   = NULL;
+
+  while (snd_seq_event_input_pending(hdl->aseqh, 1) > 0)
+    {
+      snd_seq_event_input(hdl->aseqh, &ev);
+      if (ev->dest.port == hdl->remote_input)
+        {
+          switch (ev->type)
+            {
+            case SND_SEQ_EVENT_NOTEON:
+              if (ev->data.note.velocity != 0)
+                {
+                  engine_call_notepress_b(ctx, ev->data.note.note);
+                  break;
+                }
+            case SND_SEQ_EVENT_NOTEOFF:
+              if (ctx->bindings.rec_note == 255)
+                ctx->bindings.rec_note = ev->data.note.note;
+              break;
+            case SND_SEQ_EVENT_SYSEX:
+              engine_handle_sysex(ctx, ev->data.ext.ptr, ev->data.ext.len);
+              break;
+            default:
+              output("%s: %d %d %d\n", __FUNCTION__, ev->type, SND_SEQ_EVENT_NOTEON, SND_SEQ_EVENT_NOTEOFF);
+            }
+        }
+    }
+}
+
 clock_req_t _nns_engine_cb(void *arg)
 {
   engine_ctx_t *ctx = (engine_ctx_t *) arg;
   nns_hdl_t    *hdl = (nns_hdl_t *) ctx->hdl;
 
-  if (hdl->rq == engine_rq_stop)
+  nns_handle_input(ctx);
+
+  if (hdl->rq != engine_rq_cont)
     {
       debug("engine: Got stop request\n");
       pthread_rwlock_wrlock(&(hdl->lock));
@@ -156,7 +172,7 @@ clock_req_t _nns_engine_cb(void *arg)
       nns_drain_output(hdl);
       hdl->is_running = FALSE;
       pthread_rwlock_unlock(&(hdl->lock));
-      return STOP;
+      return CLOCK_STOP;
     }
 
   play_outputs_reqs(ctx);
@@ -164,7 +180,31 @@ clock_req_t _nns_engine_cb(void *arg)
   nns_drain_output(hdl);
 
   _engine_free_trash(ctx);
-  return CONTINUE;
+  return CLOCK_CONTINUE;
+}
+
+void *nns_thread_wrapper(void *arg)
+{
+  engine_ctx_t *ctx = (engine_ctx_t *) arg;
+  nns_hdl_t    *hdl = (nns_hdl_t *) ctx->hdl;
+
+  hdl->looph.clocktick.number = 0;
+  while (hdl->rq != engine_rq_desactivate)
+    {
+      nns_handle_input(ctx);
+      if (hdl->rq == engine_rq_cont)
+        {
+          debug("engine: Got continue request\n");
+          pthread_rwlock_wrlock(&(hdl->lock));
+          hdl->is_running = TRUE;
+          pthread_rwlock_unlock(&(hdl->lock));
+          engine_prepare_tracklist(ctx);
+          hdl->thread_ret = clockloop(&(hdl->looph));
+          engine_clean_tracklist(ctx);
+        }
+      usleep(15000);
+    }
+  return &(hdl->thread_ret);
 }
 
 bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
@@ -191,7 +231,17 @@ bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
   hdl->looph.cb_arg  = ctx;
   hdl->rq            = engine_rq_stop;
   hdl->is_running    = FALSE;
+  hdl->remote_input  =
+    snd_seq_create_simple_port(hdl->aseqh,
+                               "remote",
+                               SND_SEQ_PORT_CAP_WRITE
+                               |SND_SEQ_PORT_CAP_SUBS_WRITE,
+                               SND_SEQ_PORT_TYPE_APPLICATION);
+  ctx->hdl = hdl;
 
-  ctx->hdl   = hdl;
+  ctx->ppq = 192;
+  engine_set_tempo(ctx, 500);
+  pthread_create(&(hdl->thread_id), NULL, nns_thread_wrapper, ctx);
+  usleep(200000);
   return TRUE;
 }

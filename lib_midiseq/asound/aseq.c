@@ -24,7 +24,7 @@ snd_seq_t     *create_aseqh(char *name)
   snd_seq_t     *handle = NULL;
   int         err = 0;
 
-  err = snd_seq_open(&handle, "default", SND_SEQ_OPEN_OUTPUT, SND_SEQ_NONBLOCK);
+  err = snd_seq_open(&handle, "default", SND_SEQ_OPEN_DUPLEX, SND_SEQ_NONBLOCK);
   if (0 > err)
     {
       output_error("Problem while creating alsa handler:\n%s",

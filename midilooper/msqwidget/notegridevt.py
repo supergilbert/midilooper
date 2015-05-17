@@ -239,7 +239,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                         selarea.height = selarea.height + 4
                         self.draw_area(selarea)
 
-        elif event.button == 3:
+        elif self.wgt_mode == NO_MODE and event.button == 3:
             self.window.set_cursor(cursor_pencil)
             self.wgt_mode = EDIT_MODE
 
@@ -277,7 +277,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 self.window.set_cursor(current_cursor)
                 self.wgt_mode = NO_MODE
 
-        elif event.button == 2:
+        elif self.wgt_mode == NO_MODE and event.button == 2:
             self.wgt_mode = INC_MODE
             # if not self.selection:
             #     self.selection = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))

@@ -50,7 +50,7 @@ void _output_warning(char *fmt, ...);
                                                   TRACE_ARG,            \
                                                   ##__VA_ARGS__)
 
-#define trace_func debug(TRACE_FMT "\n", TRACE_ARG)
+#define trace_func output(TRACE_FMT, TRACE_ARG)
 
 void _msq_assert(bool_t bool, char *format, ...);
 #ifdef __ROUGH

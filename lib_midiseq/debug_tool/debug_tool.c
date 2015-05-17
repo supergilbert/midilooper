@@ -23,8 +23,6 @@
 #define OUTPUT  stdout
 #define ERROUT  stderr
 
-/* TODO */
-
 void            print_hex(FILE *output, byte_t *buffer, uint_t size)
 {
   uint_t        idx = 0;
@@ -38,7 +36,6 @@ void            print_hex(FILE *output, byte_t *buffer, uint_t size)
 
 void            print_ascii(FILE *output, byte_t *buffer, uint_t size)
 {
-#ifdef DEBUG_MODE
   uint_t        idx = 0;
 
   while (idx < size)
@@ -49,17 +46,14 @@ void            print_ascii(FILE *output, byte_t *buffer, uint_t size)
         fprintf(output, ".");
       idx++;
     }
-#endif
 }
 
 void            print_bin(FILE *output, byte_t *buffer, uint_t size)
 {
-#ifdef DEBUG_MODE
   print_hex(output, buffer, size);
   fprintf(output, "\t");
   print_ascii(output, buffer, size);
   fprintf(output, "\n");
-#endif
 }
 
 void		output(char *fmt, ...)

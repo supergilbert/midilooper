@@ -47,15 +47,27 @@ class MidiLooper(gtk.Window):
         if self.progress_running == False:
             if self.msq.isrunning():
                 gobject.timeout_add(25, self.run_progression)
+        if self.msq.mute_state_changed():
+            self.tracklist_frame.refresh_mute_state()
         return True
+
+    def key_press(self, widget, event):
+        keyval = gtk.gdk.keyval_name(event.keyval)
+        if keyval == "space":
+            if self.msq.isrunning():
+                self.msq.stop()
+            else:
+                self.msq.start()
+        else:
+            self.msq.call_keypress(keyval)
+        if not self.spinbut.has_focus():
+            return True
 
     def start_msq(self, button):
         if self.msq.isrunning():
             print "start_msq: sequencer already running"
             return True
         self.msq.start()
-        # gobject.timeout_add(50, self.run_progression)
-        gobject.timeout_add(25, self.run_progression)
 
     def stop_msq(self, button):
         self.msq.stop()
@@ -119,14 +131,14 @@ class MidiLooper(gtk.Window):
             msq.settempo(int(60000000/value))
         bpm = int(60000000 / self.msq.gettempo())
         spinadj = gtk.Adjustment(bpm, 40, 208, 1)
-        spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
-        spinbut.set_numeric(True)
+        self.spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
+        self.spinbut.set_numeric(True)
         spinadj.connect("value-changed", spincb, self.msq)
 
         hbox = gtk.HBox()
         hbox.pack_start(button_start)
         hbox.pack_start(button_stop)
-        hbox.pack_start(spinbut)
+        hbox.pack_start(self.spinbut)
 
         save_mi = gtk.MenuItem("Save (Experimental)")
         save_mi.connect("activate", self.file_save)
@@ -146,6 +158,7 @@ class MidiLooper(gtk.Window):
         vbox.pack_start(self.outputlist_frame)
         vbox.pack_start(self.tracklist_frame)
         self.add(vbox)
+        self.connect("key_press_event", self.key_press)
         self.connect('delete_event', gtk.main_quit)
 
         self.show_all()

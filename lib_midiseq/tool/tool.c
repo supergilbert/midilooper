@@ -38,13 +38,23 @@ void free_list_node(list_t *list, free_list_func func)
   list->len = 0;
   list->head = NULL;
   list->tail = NULL;
-  while (node)
+  if (func != NULL)
     {
-      next = NEXT_NODE(node);
-      func(node->addr);
-      free(node);
-      node = next;
+      while (node)
+        {
+          next = NEXT_NODE(node);
+          func(node->addr);
+          free(node);
+          node = next;
+        }
     }
+  else
+    while (node)
+      {
+        next = NEXT_NODE(node);
+        free(node);
+        node = next;
+      }
 }
 
 void foreach_list_node(list_t *list, list_func func, void *args)
@@ -122,19 +132,14 @@ void iter_init(list_iterator_t *iterator, list_t *list)
 
 node_t *iter_push_before(list_iterator_t *iterator, void *addr)
 {
-  node_t *node = myalloc(sizeof (node_t));
+  node_t *node = NULL;
 
-  node->addr = addr;
   if (iterator->node == NULL)
-    {
-      node->prev = NULL;
-      node->next = NULL;
-      iterator->list->tail = node;
-      /* Atomic assigment */
-      iterator->list->head = node;
-    }
+    push_to_list_tail(iterator->list, addr);
   else
     {
+      node = myalloc(sizeof (node_t));
+      node->addr = addr;
       node->next = iterator->node;
       if (iterator->node->prev == NULL)
         {
@@ -157,19 +162,14 @@ node_t *iter_push_before(list_iterator_t *iterator, void *addr)
 
 node_t *iter_push_after(list_iterator_t *iterator, void *addr)
 {
-  node_t *node = myalloc(sizeof (node_t));
+  node_t *node = NULL;
 
-  node->addr = addr;
   if (iterator->node == NULL)
-    {
-      node->prev = NULL;
-      node->next = NULL;
-      iterator->list->tail = node;
-      /* Atomic assigment */
-      iterator->list->head = node;
-    }
+    push_to_list_tail(iterator->list, addr);
   else
     {
+      node = myalloc(sizeof (node_t));
+      node->addr = addr;
       node->prev = iterator->node;
       if (iterator->node->next == NULL)
         {

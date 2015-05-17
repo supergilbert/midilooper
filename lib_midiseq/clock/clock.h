@@ -30,8 +30,8 @@ typedef struct
 
 typedef enum
   {
-    CONTINUE = 0,
-    STOP
+    CLOCK_CONTINUE = 0,
+    CLOCK_STOP
   } clock_req_t;
 
 typedef clock_req_t (*clockloop_cb)(void *arg);

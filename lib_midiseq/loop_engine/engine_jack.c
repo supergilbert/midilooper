@@ -24,11 +24,12 @@ typedef struct
   jack_client_t  *client;
   jack_nframes_t cur_frame;
   uint_t         tick;
+  jack_port_t    *remote_input;
 } jbe_hdl_t;
 
 bool_t jbe_is_running(engine_ctx_t *ctx)
 {
-  jbe_hdl_t *hdl = (jbe_hdl_t *) ctx->hdl;
+  jbe_hdl_t              *hdl  = (jbe_hdl_t *) ctx->hdl;
   jack_transport_state_t state = jack_transport_query(hdl->client, NULL);
 
   if (state == JackTransportRolling
@@ -40,9 +41,16 @@ bool_t jbe_is_running(engine_ctx_t *ctx)
 
 void jbe_stop(engine_ctx_t *ctx)
 {
-  jbe_hdl_t *hdl = (jbe_hdl_t *) ctx->hdl;
+  jbe_hdl_t       *hdl = (jbe_hdl_t *) ctx->hdl;
+  jack_position_t pos;
 
   jack_transport_stop(hdl->client);
+  pos.valid = 0;
+  pos.frame = 0;
+  jack_transport_reposition(hdl->client, &pos);
+  while (jbe_is_running(ctx) == TRUE)
+    usleep(100000);
+  _engine_free_trash(ctx);
 }
 
 void jbe_free_output_node(void *addr)
@@ -66,12 +74,14 @@ void jbe_destroy_hdl(engine_ctx_t *ctx)
   free(hdl);
 }
 
-bool_t jbe_start(engine_ctx_t *ctx)
+void jbe_start(engine_ctx_t *ctx)
 {
   jbe_hdl_t *hdl = (jbe_hdl_t *) ctx->hdl;
 
-  jack_transport_start(hdl->client);
-  return TRUE;
+  if (engine_is_running(ctx))
+    jack_transport_stop(hdl->client);
+  else
+    jack_transport_start(hdl->client);
 }
 
 void jbe_init_output(engine_ctx_t *ctx, output_t *output, const char *name)
@@ -127,6 +137,7 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
   jack_position_t        position;
   jack_nframes_t         tick_frame;
   uint64_t               tick64;
+  uint64_t               numtmp, dentmp;
   static bool_t          started = FALSE;
 
   switch (jack_transport_query(be_hdl->client, &position))
@@ -135,19 +146,14 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
     case JackTransportLooping:
     case JackTransportStarting:
       /* Getting fist tick in the current buffer*/
-      tick64 = position.frame
-        * (uint64_t) ctx->ppq
-        * (uint64_t) 1000000
-        / (uint64_t) (position.frame_rate
-                      * (uint64_t) ctx->tempo);
-      if ((((uint64_t) (position.frame
-                        * (uint64_t) 1000000
-                        * (uint64_t) ctx->ppq))
-           % ((uint64_t) (position.frame_rate
-                          * (uint64_t) ctx->tempo))) == 0)
+      numtmp = position.frame * (uint64_t) ctx->ppq * 1000000;
+      dentmp = position.frame_rate * (uint64_t) ctx->tempo;
+      tick64 = numtmp / dentmp;
+      if ((numtmp % dentmp) == 0)
         be_hdl->cur_frame = 0;
       else
         {
+          /* in previous buffer so +1 */
           tick64++;
           tick_frame = (uint64_t) tick64
             * (uint64_t) ctx->tempo
@@ -160,25 +166,26 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
       /* Handling missing tick when started */
       if (started == TRUE)
         {
-          if (be_hdl->tick != 0 && be_hdl->tick != tick64)
-             output_error("!!! Missing tick !!! "
-                         "last:%llu diff current:%llu (nframes:%llu)",
+          if (be_hdl->tick + 1 != tick64) {
+            output_error("!!! Missing tick !!! "
+                         "last:%llu diff current:%llu (nframes:%llu position:%llu)",
                          be_hdl->tick,
                          tick64,
-                         nframes);
+                         nframes,
+                         position.frame);
+          }
         }
       started = TRUE;
 
       /* Handling all tick in buffer */
-      be_hdl->tick = tick64;
       while (be_hdl->cur_frame < nframes)
         {
+          be_hdl->tick = tick64;
           play_tracks(ctx);
           tick64++;
           tick_frame = tick64 * ctx->tempo * position.frame_rate
             / (ctx->ppq * 1000000);
           be_hdl->cur_frame = tick_frame - position.frame;
-          be_hdl->tick = tick64;
         }
       break;
     case JackTransportStopped:
@@ -195,15 +202,55 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
     }
 }
 
+void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
+{
+  jbe_hdl_t         *hdl        = (jbe_hdl_t *) ctx->hdl;
+  void              *port_buf   = jack_port_get_buffer(hdl->remote_input, nframes);
+  jack_nframes_t    event_count = jack_midi_get_event_count(port_buf);
+  jack_midi_event_t jackev;
+  byte_t            chanev_type = 0;
+  uint32_t          idx;
+
+  for (idx = 0;
+       idx < event_count;
+       idx++)
+    {
+      jack_midi_event_get(&jackev, port_buf, idx);
+      if (jackev.buffer[0] == 0xF0)
+        engine_handle_sysex(ctx, jackev.buffer, jackev.size);
+      else
+        {
+          if (0x80 <= jackev.buffer[0] && jackev.buffer[0] < 0xA0)
+            {
+              chanev_type = jackev.buffer[0] >> 4;
+              if ((chanev_type == NOTEON && jackev.buffer[2] == 0)
+                  || chanev_type == NOTEOFF)
+                {
+                  if (ctx->bindings.rec_note == 255)
+                    ctx->bindings.rec_note = jackev.buffer[1];
+                }
+              else
+                {
+                  if (chanev_type == NOTEON)
+                    engine_call_notepress_b(ctx, jackev.buffer[1]);
+                }
+            }
+          /* else */
+          /*   print_bin(stdout, jackev.buffer, jackev.size); */
+        }
+    }
+}
 
 int jbe_process_cb(jack_nframes_t nframes, void *ctx_ptr)
 {
   engine_ctx_t *engine = ctx_ptr;
-  jbe_hdl_t       *be_hdl = (jbe_hdl_t *) engine->hdl;
+  jbe_hdl_t    *be_hdl = (jbe_hdl_t *) engine->hdl;
 
   be_hdl->cur_frame = 0;
 
   jbe_prepare_outputs(&(engine->output_list), nframes);
+
+  jbe_handle_input(engine, nframes);
 
   play_outputs_reqs(engine);
 
@@ -237,6 +284,12 @@ bool_t jbe_init_engine(engine_ctx_t *ctx, char *name)
 
   hdl = myalloc(sizeof (jbe_hdl_t));
   hdl->client = client;
+  hdl->remote_input = jack_port_register(client,
+                                         "remote",
+                                         JACK_DEFAULT_MIDI_TYPE,
+                                         JackPortIsTerminal|JackPortIsInput,
+                                         0);
+
   ctx->hdl   = hdl;
 
   jack_set_process_callback(hdl->client,

@@ -21,7 +21,7 @@
 
 #include "tool/tool.h"
 
-/* Midi event list */
+/* Midi event type list */
 enum {
   NOTEOFF = 8,
   NOTEON,
@@ -29,35 +29,32 @@ enum {
   CONTROLCHANGE,
   PROGRAMCHANGE,
   CHANNELAFTERTOUCH,
-  PITCHWHEELCHANGE
+  PITCHWHEELCHANGE,
+  SYSTEM
 };
 
 typedef struct
 {
-  byte_t	type, chan;
+  byte_t type, chan;
   union
   {
-    struct { byte_t num,val; }   note;
-    struct { byte_t num,val; }   aftertouch;
-    struct { byte_t num,val; }   ctrl;
-    byte_t                       prg_chg;
-    byte_t                       chan_aftertouch;
-    struct { byte_t Lval,Hval; } pitchbend;
+    struct { byte_t num, val; }   note;
+    struct { byte_t num, val; }   aftertouch;
+    struct { byte_t num, val; }   ctrl;
+    byte_t                        prg_chg;
+    byte_t                        chan_aftertouch;
+    struct { byte_t Lval, Hval; } pitchbend;
   }  event;
-
-  /* raw midi value without deltatime
-     /!\ caution with one param or two param event */
-  /* byte_t	raw[3]; */
-}		midicev_t;
+} midicev_t;
 
 #define midicmd_to_str(cmd)                                             \
-  ((cmd) == NOTEOFF ? "NOTEOFF" :                                       \
-   (cmd) == NOTEON ? "NOTEON" :                                         \
-   (cmd) == KEYAFTERTOUCH ? "KEYAFTERTOUCH" :                           \
-   (cmd) == CONTROLCHANGE ? "CONTROLCHANGE" :                           \
-   (cmd) == PROGRAMCHANGE ? "PROGRAMCHANGE" :                           \
+  ((cmd) == NOTEOFF ?           "NOTEOFF" :                             \
+   (cmd) == NOTEON ?            "NOTEON" :                              \
+   (cmd) == KEYAFTERTOUCH ?     "KEYAFTERTOUCH" :                       \
+   (cmd) == CONTROLCHANGE ?     "CONTROLCHANGE" :                       \
+   (cmd) == PROGRAMCHANGE ?     "PROGRAMCHANGE" :                       \
    (cmd) == CHANNELAFTERTOUCH ? "CHANNELAFTERTOUCH" :                   \
-   (cmd) == PITCHWHEELCHANGE ? "PITCHWHEELCHANGE" :                     \
+   (cmd) == PITCHWHEELCHANGE ?  "PITCHWHEELCHANGE" :                    \
    "UNKNOWN")
 
 /* #define midievtype_to_str(buf)                                          \ */
@@ -104,6 +101,14 @@ typedef struct
   byte_t        data[256];
   uint_t        val;
 }       midimev_t;
+
+/* Handled MMC */
+#define MMC_STOP  0x01
+#define MMC_PLAY  0x02
+#define MMC_FWD   0x04
+#define MMC_RWD   0x05
+#define MMC_RECS  0x06
+#define MMC_PAUSE 0x09
 
 uint_t get_midibuf_deltatime(byte_t *);
 uint_t get_varlen_from_idx(byte_t *buffer, uint_t *offset);

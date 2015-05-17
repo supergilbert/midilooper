@@ -156,7 +156,7 @@ midicev_t *get_next_midicev(list_iterator_t *iter)
   while (iter_node(iter))
     {
       seqev = iter_node_ptr(iter);
-      if (seqev->type == MIDICEV)
+      if (seqev->deleted == FALSE && seqev->type == MIDICEV)
         return (midicev_t *) seqev->addr;
       iter_next(iter);
     }
@@ -203,11 +203,14 @@ buf_node_t *_append_tickev_list(buf_node_t *tail, list_t *tickevlist)
        iter_next(&iter))
     {
       tickev = iter_node_ptr(&iter);
-      tmp = _get_tickev_buf(tail, tickev, last_tick);
-      if (tmp != NULL)
+      if (tickev->deleted == FALSE)
         {
-          tail = tmp;
-          last_tick = tickev->tick;
+          tmp = _get_tickev_buf(tail, tickev, last_tick);
+          if (tmp != NULL)
+            {
+              tail = tmp;
+              last_tick = tickev->tick;
+            }
         }
     }
   return tail;
