@@ -213,20 +213,19 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
 
     def handle_button_press(self, widget, event):
         self.grab_focus()
-        if event.button == 3:
+        if self.wgt_mode == EDIT_MODE and event.button == 1:
+            self.wgt_mode = WRITE_MODE
+            tick = self.xpos2tick(event.x)
+            bar = self.draw_value_at(tick, event.y)
+            if bar:
+                self.data_cache = []
+                self.data_cache.append(bar)
+        elif self.wgt_mode == NO_MODE and event.button == 1:
+            self.data_cache = event.x
+            self.wgt_mode = SELECT_MODE
+        elif self.wgt_mode == NO_MODE and event.button == 3:
             self.wgt_mode = EDIT_MODE
             self.window.set_cursor(cursor_pencil)
-        elif event.button == 1:
-            if self.wgt_mode == EDIT_MODE:
-                self.wgt_mode = WRITE_MODE
-                tick = self.xpos2tick(event.x)
-                bar = self.draw_value_at(tick, event.y)
-                if bar:
-                    self.data_cache = []
-                    self.data_cache.append(bar)
-            else:
-                self.data_cache = event.x
-                self.wgt_mode = SELECT_MODE
 
     def unset_selection(self):
         if self.selection:
@@ -269,6 +268,7 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
                     self.draw_area(self.select_area)
                     self.select_area = None
                 self.wgt_mode = NO_MODE
+                self.data_cache = []
                 self.window.set_cursor(current_cursor)
         else:
             self.wgt_mode = NO_MODE

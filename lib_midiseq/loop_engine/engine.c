@@ -45,23 +45,22 @@ void _engine_free_trash(engine_ctx_t *ctx)
   track_ctx_t     *track_ctx = NULL;
   list_iterator_t trackit;
 
-  for (iter_init(&trackit, &(ctx->track_list));
-       iter_node(&trackit) != NULL;
-       iter_next(&trackit))
+  iter_init(&trackit, &(ctx->track_list));
+  while (iter_node(&trackit) != NULL)
     {
       track_ctx = iter_node_ptr(&trackit);
       if (track_ctx->deleted == TRUE)
         iter_node_del(&trackit, _free_trackctx); /* /!\ Memory corruption while asking tracklist */
-      if (iter_node(&trackit) != NULL)
-        track_ctx = iter_node_ptr(&trackit);
       else
-        break;
-      if (track_ctx->trash.len &&
-          pthread_rwlock_trywrlock(&(track_ctx->lock)) == 0)
         {
-          free_list_node(&(track_ctx->trash), _free_trash_ctn);
-          track_ctx->need_sync = TRUE;
-          pthread_rwlock_unlock(&(track_ctx->lock));
+          if (track_ctx->trash.len &&
+              pthread_rwlock_trywrlock(&(track_ctx->lock)) == 0)
+            {
+              free_list_node(&(track_ctx->trash), _free_trash_ctn);
+              track_ctx->need_sync = TRUE;
+              pthread_rwlock_unlock(&(track_ctx->lock));
+            }
+          iter_next(&trackit);
         }
     }
 }

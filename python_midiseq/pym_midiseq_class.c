@@ -391,7 +391,7 @@ static PyObject *midiseq_add_notebinding(PyObject *obj,
 {
   midiseq_Object      *self = (midiseq_Object *) obj;
   midiseq_trackObject *pytrack = NULL;
-  int                 note = NULL;
+  int                 note = 255;
 
   if (!PyArg_ParseTuple(args , "iO", &note, &pytrack))
     return NULL;

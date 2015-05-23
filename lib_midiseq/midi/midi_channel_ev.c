@@ -26,28 +26,6 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
   debug_midi("midi channel event type: %s %X\n", midicmd_to_str(type), type);
   switch (type)
     {
-    /* case 0: */
-    /*   chan_ev->type = 0; */
-    /*   debug_error("Unknown midi channel event type 0x%X\n", chan_ev->type); */
-    /*   return 2; */
-    /* case 2: */
-    /*   chan_ev->type = 2; */
-    /*   debug_error("Unknown midi channel event type 0x%X\n", chan_ev->type); */
-    /*   return 2; */
-    /* case 4: */
-    /*   chan_ev->type = 4; */
-    /*   debug_error("Unknown midi channel event type 0x%X\n", chan_ev->type); */
-    /*   return 2; */
-    /* case 5: */
-    /*   chan_ev->type = 5; */
-    /*   debug_error("Unknown midi channel event type 0x%X\n", chan_ev->type); */
-    /*   return 5; */
-    /* case 7: */
-    /*   chan_ev->type = 7; */
-    /*   debug_error("Unknown midi channel event type 0x%X\n", chan_ev->type); */
-    /*   return 4; */
-
-
     case NOTEOFF:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
@@ -314,7 +292,8 @@ void _list_copy_seqev(void *addr, void *arg)
   if (seqev->type == MIDICEV)
     {
       debug_midi("adding midi channel event\n");
-      copy_midicev_to_track(list_arg->track, list_arg->tick, seqev->addr);
+      if (seqev->deleted == FALSE)
+        copy_midicev_to_track(list_arg->track, list_arg->tick, seqev->addr);
     }
   else
     {
@@ -325,10 +304,16 @@ void _list_copy_seqev(void *addr, void *arg)
 void _list_copy_tickev(void *addr, void *track_addr)
 {
   tickev_t *tickev = (tickev_t *) addr;
-  track_t *track_dst = (track_t *) track_addr;
-  list_copy_seqev_t list_arg = {tickev->tick, track_dst};
+  track_t *track_dst = NULL;
+  list_copy_seqev_t list_arg;
 
-  foreach_list_node(&(tickev->seqev_list), _list_copy_seqev, (void *) &list_arg);
+  if (tickev->deleted == FALSE)
+    {
+      track_dst = (track_t *) track_addr;
+      list_arg.tick = tickev->tick;
+      list_arg.track = track_dst;
+      foreach_list_node(&(tickev->seqev_list), _list_copy_seqev, (void *) &list_arg);
+    }
 }
 
 void copy_track_list(track_t *track_src, track_t *track_dst)
