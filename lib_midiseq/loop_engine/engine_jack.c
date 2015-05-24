@@ -166,34 +166,35 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
       /* Handling missing tick when started */
       if (started == TRUE)
         {
-          if (be_hdl->tick + 1 != tick64) {
+          if (be_hdl->tick != tick64) {
             output_error("!!! Missing tick !!! "
-                         "last:%llu diff current:%llu (nframes:%llu position:%llu)",
+                         "last:%llu != current:%llu (nframes:%llu position:%llu last_frame:%llu)",
                          be_hdl->tick,
                          tick64,
                          nframes,
-                         position.frame);
+                         position.frame,
+                         be_hdl->cur_frame);
+            be_hdl->tick = tick64;
           }
         }
-      started = TRUE;
+      else
+        started = TRUE;
 
       /* Handling all tick in buffer */
       while (be_hdl->cur_frame < nframes)
         {
-          be_hdl->tick = tick64;
           play_tracks(ctx);
           tick64++;
           tick_frame = tick64 * ctx->tempo * position.frame_rate
             / (ctx->ppq * 1000000);
           be_hdl->cur_frame = tick_frame - position.frame;
+          be_hdl->tick = tick64;
         }
       break;
     case JackTransportStopped:
       if (started == TRUE)
         {
           play_tracks_pending_notes(ctx);
-          be_hdl->tick = 0;
-          be_hdl->cur_frame = 0;
           started = FALSE;
         }
       break;

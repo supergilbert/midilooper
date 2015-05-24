@@ -72,9 +72,20 @@ void free_jbe_output(jbe_output_t *jbe)
 
 const char *jbe_output_get_name(void *hdl)
 {
-  jbe_output_t *output = (jbe_output_t *) hdl;
+  jbe_output_t *output      = (jbe_output_t *) hdl;
+  const char   *output_name = jack_port_name(output->port);
 
-  return jack_port_name(output->port);
+  while (output_name)
+    {
+      if (*output_name == ':')
+        {
+          output_name++;
+          break;
+        }
+      else
+        output_name++;
+    }
+  return output_name;
 }
 
 void jbe_output_set_name(void *hdl, const char *name)
