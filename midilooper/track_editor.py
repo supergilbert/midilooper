@@ -288,7 +288,6 @@ class ChannelEditor(gtk.VBox):
                                  int(hadj.get_page_size()),
                                  int(vadj.get_page_size()))
 
-
     def redraw(self):
         self.grid.draw_area(self.get_vp_area(self.grid_vp))
         self.hbar.draw_area(self.get_vp_area(self.hbar_vp))

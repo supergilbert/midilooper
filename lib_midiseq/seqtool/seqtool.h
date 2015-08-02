@@ -64,13 +64,17 @@ typedef void (*free_seqev_addr_func)(void *addr);
 void free_track(void *addr);
 void clear_tickev_list(list_t *tickev_list);
 
-void dump_seqev(seqev_t *seqev);
+void    dump_seqev(seqev_t *seqev);
+void    free_seqev(void *addr);
+void    free_tickev(void *addr);
+node_t  *search_or_add_ticknode(list_t *tickev_list, uint_t tick);
 seqev_t *alloc_seqev(void *addr, seqevtype_t type);
-node_t *search_ticknode(list_t *tickev_list, uint_t tick);
-void free_seqev(void *addr);
-void free_tickev(void *addr);
-void goto_next_available_tick(list_iterator_t *tickit, uint_t tick);
-void iter_next_available_tick(list_iterator_t *tickit);
-node_t *search_or_add_ticknode(list_t *tickev_list, uint_t tick);
+node_t  *search_ticknode(list_t *tickev_list, uint_t tick);
+void    goto_next_available_tick(list_iterator_t *tickit, uint_t tick);
+void    iter_next_available_tick(list_iterator_t *tickit);
+bool_t  note_collision(list_t *tickev_list,
+                       uint_t tick, byte_t channel, byte_t note,
+                       uint_t *noteon_tick,
+                       uint_t *noteoff_tick);
 
 #endif

@@ -31,14 +31,15 @@ cursor_inc_r   = gtk.gdk.Cursor(gtk.gdk.SB_RIGHT_ARROW)
 cursor_move    = gtk.gdk.Cursor(gtk.gdk.FLEUR)
 current_cursor = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
 
-MIDI_NOTEOFF_EVENT = 8
-MIDI_NOTEON_EVENT  = 9
-MIDI_CTRL_EVENT    = 11
-MIDI_PITCH_EVENT   = 14
+MIDI_NOTEOFF_EVENT = 0x8
+MIDI_NOTEON_EVENT  = 0x9
+MIDI_CTRL_EVENT    = 0xB
+MIDI_PITCH_EVENT   = 0xE
 
 class Xpos2Tick(object):
     def xpos2tick(self, xpos):
-        return int(xpos * self.setting.getppq() / self.setting.qnxsz)
+        tick = int(xpos * self.setting.getppq() / self.setting.qnxsz)
+        return tick if tick >= 0 else 0
 
     def tick2xpos(self, tick):
         return tick * self.setting.qnxsz / self.setting.getppq()
@@ -85,7 +86,19 @@ def is_in_notelist(noteon, noteoff, notelist):
                 return True
     return False
 
+def note_collision(tick_on, tick_off, channel, note, notelist, excl_list=None):
+    for note_on, note_off in notelist:
+        if note_on[1] != channel:
+            continue
+        if note_on[3] == note and not is_in_notelist(note_on, note_off, excl_list):
+            if tick_on >= note_on[0] and tick_on < note_off[0]:
+                return (note_on, note_off)
+            elif tick_off > note_on[0] and tick_off <= note_off[0]:
+                return (note_on, note_off)
+            elif note_on[0] >= tick_on and note_on[0] < tick_off:
+                return (note_on, note_off)
+            elif note_off[0] > tick_on and note_off[0] <= tick_off:
+                return (note_on, note_off)
+    return None
 
-
-
-__all__ = ["Xpos2Tick", "Ypos2Note", "MIDI_NOTEOFF_EVENT", "MIDI_NOTEON_EVENT", "MIDI_CTRL_EVENT", "MIDI_PITCH_EVENT", "cursor_pencil", "cursor_inc_l", "cursor_inc_r", "cursor_move", "current_cursor", "cursor_inc", "evwr_to_repr_list", "evrepr_is_in_notelist", "is_in_notelist"]
+__all__ = ["Xpos2Tick", "Ypos2Note", "MIDI_NOTEOFF_EVENT", "MIDI_NOTEON_EVENT", "MIDI_CTRL_EVENT", "MIDI_PITCH_EVENT", "cursor_pencil", "cursor_inc_l", "cursor_inc_r", "cursor_move", "current_cursor", "cursor_inc", "evwr_to_repr_list", "evrepr_is_in_notelist", "is_in_notelist", "note_collision"]

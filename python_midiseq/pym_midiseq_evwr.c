@@ -24,47 +24,6 @@
 #include "./pym_midiseq_evwr.h"
 #include "./pym_midiseq_tools.h"
 
-PyObject *build_evrepr(uint_t tick, midicev_t *midicev)
-{
-  PyObject *ret = NULL;
-
-  switch (midicev->type)
-    {
-    case NOTEOFF:
-    case NOTEON:
-      ret = Py_BuildValue("(iiiii)",
-                          tick,
-                          midicev->chan,
-                          midicev->type,
-                          midicev->event.note.num,
-                          midicev->event.note.val);
-      break;
-    case CONTROLCHANGE:
-      ret = Py_BuildValue("(iiiii)",
-                          tick,
-                          midicev->chan,
-                          midicev->type,
-                          midicev->event.ctrl.num,
-                          midicev->event.ctrl.val);
-      break;
-    case PITCHWHEELCHANGE:
-      ret = Py_BuildValue("(iiiii)",
-                          tick,
-                          midicev->chan,
-                          midicev->type,
-                          midicev->event.pitchbend.Lval,
-                          midicev->event.pitchbend.Hval);
-      break;
-    default:
-      output_error("Unsupported midi channel event type: %i\n", midicev->type);
-      ret = Py_BuildValue("(iii)",
-                          tick,
-                          midicev->chan,
-                          midicev->type);
-    }
-  return ret;
-}
-
 static void midiseq_evwr_dealloc(PyObject *obj)
 {
   midiseq_evwrObject *self = (midiseq_evwrObject *) obj;

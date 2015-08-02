@@ -81,6 +81,40 @@ bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
   return TRUE;
 }
 
+void aseq_to_mcev(snd_seq_event_t *snd_ev, midicev_t *mcev)
+{
+  bzero(mcev, sizeof (midicev_t));
+  switch (snd_ev->type)
+    {
+    case SND_SEQ_EVENT_NOTEON:
+      mcev->type = NOTEON;
+      mcev->chan = snd_ev->data.note.channel;
+      mcev->event.note.num = snd_ev->data.note.note;
+      mcev->event.note.val = snd_ev->data.note.velocity;
+      break;
+    case SND_SEQ_EVENT_NOTEOFF:
+      mcev->type = NOTEOFF;
+      mcev->chan = snd_ev->data.note.channel;
+      mcev->event.note.num = snd_ev->data.note.note;
+      mcev->event.note.val = snd_ev->data.note.velocity;
+      break;
+    case SND_SEQ_EVENT_CONTROLLER:
+      mcev->type = CONTROLCHANGE;
+      mcev->chan = snd_ev->data.control.channel;
+      mcev->event.ctrl.num = snd_ev->data.control.param;
+      mcev->event.ctrl.val = snd_ev->data.control.value;
+      break;
+    case SND_SEQ_EVENT_PITCHBEND:
+      mcev->type = PITCHWHEELCHANGE;
+      mcev->chan = snd_ev->data.control.channel;
+      mcev->event.pitchbend.Lval = snd_ev->data.control.param;
+      mcev->event.pitchbend.Hval = snd_ev->data.control.value;
+      break;
+    default:
+      ;
+    }
+}
+
 bool_t _aseq_output_write(output_t *output, midicev_t *midicev)
 {
   aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;

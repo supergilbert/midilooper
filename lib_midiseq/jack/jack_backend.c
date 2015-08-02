@@ -109,7 +109,7 @@ bool_t _jbe_output_write(struct midioutput *output, midicev_t *midicev)
   jbe_output_t *jbe_output = (jbe_output_t *) output->hdl;
   byte_t       data[3];
 
-  if (write_midicev(data, midicev) == FALSE)
+  if (convert_mididata_to_midicev(data, midicev) == FALSE)
     return FALSE;
   if (jack_midi_event_write(jbe_output->jack_buffer, *(jbe_output->cur_frame), data, 3))
     return FALSE;

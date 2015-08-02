@@ -18,6 +18,7 @@ typedef struct
   clockloop_t      looph;
   snd_seq_t        *aseqh;
   int              remote_input;
+  int              record_input;
   engine_rq        rq;
   pthread_t        thread_id;
   bool_t           thread_ret;
@@ -126,31 +127,44 @@ bool_t nns_drain_output(nns_hdl_t *hdl)
 void nns_handle_input(engine_ctx_t *ctx)
 {
   nns_hdl_t       *hdl  = (nns_hdl_t *) ctx->hdl;
-  snd_seq_event_t *ev   = NULL;
+  snd_seq_event_t *snd_ev   = NULL;
+  midicev_t       mcev;
 
   while (snd_seq_event_input_pending(hdl->aseqh, 1) > 0)
     {
-      snd_seq_event_input(hdl->aseqh, &ev);
-      if (ev->dest.port == hdl->remote_input)
+      snd_seq_event_input(hdl->aseqh, &snd_ev);
+      if (snd_ev->dest.port == hdl->remote_input)
         {
-          switch (ev->type)
+          switch (snd_ev->type)
             {
             case SND_SEQ_EVENT_NOTEON:
-              if (ev->data.note.velocity != 0)
+              if (snd_ev->data.note.velocity != 0)
                 {
-                  engine_call_notepress_b(ctx, ev->data.note.note);
+                  engine_call_notepress_b(ctx, snd_ev->data.note.note);
                   break;
                 }
             case SND_SEQ_EVENT_NOTEOFF:
               if (ctx->bindings.rec_note == 255)
-                ctx->bindings.rec_note = ev->data.note.note;
+                ctx->bindings.rec_note = snd_ev->data.note.note;
               break;
             case SND_SEQ_EVENT_SYSEX:
-              engine_handle_sysex(ctx, ev->data.ext.ptr, ev->data.ext.len);
+              engine_handle_sysex(ctx, snd_ev->data.ext.ptr, snd_ev->data.ext.len);
               break;
             default:
-              output("%s: %d %d %d\n", __FUNCTION__, ev->type, SND_SEQ_EVENT_NOTEON, SND_SEQ_EVENT_NOTEOFF);
+              output("%s: %d %d %d\n", __FUNCTION__, snd_ev->type, SND_SEQ_EVENT_NOTEON, SND_SEQ_EVENT_NOTEOFF);
             }
+        }
+      else if (nns_is_running(ctx) == TRUE
+               && ctx->rec == TRUE
+               && ctx->track_rec != NULL
+               && snd_ev->dest.port == hdl->record_input
+               && (snd_ev->type == SND_SEQ_EVENT_NOTEON
+                   || snd_ev->type == SND_SEQ_EVENT_NOTEOFF
+                   || snd_ev->type == SND_SEQ_EVENT_CONTROLLER
+                   || snd_ev->type == SND_SEQ_EVENT_PITCHBEND))
+        {
+          aseq_to_mcev(snd_ev, &mcev);
+          mrb_write(ctx->rbuff, engine_get_tick(ctx), &mcev);
         }
     }
 }
@@ -234,6 +248,12 @@ bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
   hdl->remote_input  =
     snd_seq_create_simple_port(hdl->aseqh,
                                "remote",
+                               SND_SEQ_PORT_CAP_WRITE
+                               |SND_SEQ_PORT_CAP_SUBS_WRITE,
+                               SND_SEQ_PORT_TYPE_APPLICATION);
+  hdl->record_input  =
+    snd_seq_create_simple_port(hdl->aseqh,
+                               "record",
                                SND_SEQ_PORT_CAP_WRITE
                                |SND_SEQ_PORT_CAP_SUBS_WRITE,
                                SND_SEQ_PORT_TYPE_APPLICATION);

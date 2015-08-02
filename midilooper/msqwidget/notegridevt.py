@@ -146,31 +146,16 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         return (INC_RIGHT, ev_on_off_tick[1][0], mintick)
 
 
-    def note_collision(self, tick_on, tick_off, note, notelist, excl_list=None):
-        if tick_on < 0:
-            return True
-        for note_on, note_off in notelist:
-            if note_on[3] == note and not is_in_notelist(note_on, note_off, excl_list):
-                if tick_on >= note_on[0] and tick_on < note_off[0]:
-                    return True
-                elif tick_off > note_on[0] and tick_off <= note_off[0]:
-                    return True
-                elif note_on[0] >= tick_on and note_on[0] < tick_off:
-                    return True
-                elif note_off[0] > tick_on and note_off[0] <= tick_off:
-                    return True
-        return False
-
-
     def gen_note_at_pos(self, xpos, ypos):
         noteon_tick = self.setting.quantify_tick(self.xpos2tick(xpos))
         noteoff_tick = noteon_tick + self.setting.tick_res - NOTEOFF_DEC
         note = self.ypos2note(int(ypos))
 
-        if self.note_collision(noteon_tick,
-                               noteoff_tick,
-                               note,
-                               self.setting.track.getall_noteonoff(self.setting.chan_num)):
+        if note_collision(noteon_tick,
+                          noteoff_tick,
+                          self.setting.chan_num,
+                          note,
+                          self.setting.track.getall_noteonoff(self.setting.chan_num)):
             print "Can not add notes at this position"
             return None
 
@@ -289,7 +274,12 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
     def notelist_collision(self, notelist, excl_list=None):
         track_notes = self.setting.track.getall_noteonoff(self.setting.chan_num)
         for note_on, note_off in notelist:
-            if self.note_collision(note_on[0], note_off[0], note_on[3], track_notes, excl_list):
+            if note_collision(note_on[0],
+                              note_off[0],
+                              note_on[1],
+                              note_on[3],
+                              track_notes,
+                              excl_list):
                 return True
         return False
 
@@ -736,6 +726,11 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             self.wgt_mode = INC_MODE
             xpos, ypos, mod = self.window.get_pointer()
             self.set_inc_cursor(xpos, ypos)
+        elif event.keyval == gtk.keysyms.space:
+            if self.setting.sequencer.isrunning():
+                self.setting.sequencer.stop()
+            else:
+                self.setting.sequencer.start()
 
 
     def get_paste_data(self, notelist):

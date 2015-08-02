@@ -316,7 +316,7 @@ void output_pending_notes(output_t *output, byte_t *notes_on_state)
       {
         if (is_pending_notes(notes_on_state, channel_idx, note_idx))
           {
-            mcev.chan      = channel_idx;
+            mcev.chan = channel_idx;
             mcev.event.note.num = note_idx;
             _output_write(output, &mcev);
             unset_pending_note(notes_on_state, channel_idx, note_idx);
@@ -393,6 +393,7 @@ void engine_handle_sysex(engine_ctx_t *ctx, byte_t *sysex, uint_t size)
 bool_t init_engine(engine_ctx_t *engine, char *name, int type)
 {
   bzero(engine, sizeof (engine_ctx_t));
+  engine->rbuff = init_midiringbuff(400);
 
   if (type == 0)
     {
@@ -405,6 +406,7 @@ bool_t init_engine(engine_ctx_t *engine, char *name, int type)
         return FALSE;
     }
 
+  /* Setting pulsation to prevent error */
   engine->ppq   = 192;
   engine_set_tempo(engine, 500);
   return TRUE;

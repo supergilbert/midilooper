@@ -126,7 +126,8 @@ class TrackListMenu(MsqListMenu):
             self.tracklist.liststore.append([new_tedit,
                                              repr(new_track),
                                              0,
-                                             new_tedit.track.get_mute_state()])
+                                             new_tedit.track.get_mute_state(),
+                                             False])
             new_tedit.show_all()
 
     def __init__(self, tracklist):
@@ -158,6 +159,8 @@ class TrackList(gtk.Frame):
     def update_pos(self, tickpos):
         def update_tedit(tvmodel, path, tv_iter, tickpos):
             tedit = tvmodel.get_value(tv_iter, 0)
+            if tedit.track.has_changed():
+                tedit.chaned.redraw()
             tedit.update_pos(tickpos)
             def get_percent(tick, track_len):
                 val = tick % track_len
@@ -201,7 +204,7 @@ class TrackList(gtk.Frame):
     def add_track(self, track_name):
         track = self.seq.newtrack(track_name);
         tedit = TrackEditor(track, self.seq, self.portlist)
-        self.liststore.append([tedit, repr(track), 0, tedit.track.get_mute_state()])
+        self.liststore.append([tedit, repr(track), 0, tedit.track.get_mute_state(), False])
         tedit.show_all()
 
     def button_add_track(self, button):
@@ -213,9 +216,25 @@ class TrackList(gtk.Frame):
         model[path][0].track.toggle_mute()
         model[path][3] = not model[path][3]
 
+    def set_trackrec(self, cell, path, model):
+        val = True
+        if model[path][4]:
+            self.seq.unsettrackrec()
+            val = False
+        else:
+            self.seq.settrackrec(model[path][0].track)
+        for ent in model:
+            ent[4] = False
+        model[path][4] = val
+
+    def unset_trackrec(self, tv):
+        self.seq.unsettrackrec()
+        for ent in self.liststore:
+            ent[4] = False
+
     def toggle_mute_all(self, tv):
         def _toggle_mute(tvmodel, path, tv_iter):
-            tvmodel.get_value(tv_iter, 0).track.toggle_mute()
+            tvmodel.get_value(tv_iter, 0).track.mute()
             mute_val = not tvmodel.get_value(tv_iter, 3)
             self.liststore.set_value(tv_iter, 3, mute_val)
         self.liststore.foreach(_toggle_mute)
@@ -264,14 +283,23 @@ class TrackList(gtk.Frame):
         gtk.Frame.__init__(self, "Track list")
         self.seq = seq
         self.portlist = portlist
-        self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str, int, bool)
+        self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str, int, bool, bool)
         for track in seq.gettracks():
             tedit = TrackEditor(track, self.seq, self.portlist)
             tedit.unmap()
-            self.liststore.append([tedit, repr(track), 0, track.get_mute_state()])
+            self.liststore.append([tedit, repr(track), 0, track.get_mute_state(), False])
         self.treev = gtk.TreeView(self.liststore)
         self.treev.set_enable_search(False)
         self.menu = TrackListMenu(self)
+
+        cell_rdrr = gtk.CellRendererToggle()
+        # cell_rdrr.set_property('activatable', True)
+        cell_rdrr.connect('toggled', self.set_trackrec, self.liststore)
+        tvcolumn = gtk.TreeViewColumn('R', cell_rdrr, active=4)
+        tvcolumn.set_expand(False)
+        tvcolumn.set_clickable(True)
+        tvcolumn.connect('clicked', self.unset_trackrec)
+        self.treev.append_column(tvcolumn)
 
         cell_rdrr = gtk.CellRendererProgress()
         tvcolumn = gtk.TreeViewColumn('Track', cell_rdrr, text=1, value=2)
@@ -289,6 +317,7 @@ class TrackList(gtk.Frame):
         tvcolumn.set_clickable(True)
         tvcolumn.connect('clicked', self.toggle_mute_all)
         self.treev.append_column(tvcolumn)
+
         self.treev.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
                                             [("MIDILOOPER_TRACK_LIST",
                                               gtk.TARGET_SAME_WIDGET,

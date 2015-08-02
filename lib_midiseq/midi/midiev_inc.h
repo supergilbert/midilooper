@@ -100,7 +100,7 @@ typedef struct
   uint_t        size;
   byte_t        data[256];
   uint_t        val;
-}       midimev_t;
+} midimev_t;
 
 /* Handled MMC */
 #define MMC_STOP  0x01

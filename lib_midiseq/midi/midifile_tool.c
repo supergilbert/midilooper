@@ -145,7 +145,7 @@ buf_node_t *get_midicev_buf(midicev_t *midicev)
 {
   byte_t buffer[3];
 
-  write_midicev(buffer, midicev);
+  convert_mididata_to_midicev(buffer, midicev);
   return init_buf_node(buffer, 3);
 }
 

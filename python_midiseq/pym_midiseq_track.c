@@ -188,35 +188,6 @@ static PyObject *midiseq_track_get_mute_state(PyObject *obj, PyObject *args)
   Py_RETURN_FALSE;
 }
 
-
-/* static PyObject *midiseq_track_add_note_event(PyObject *obj, PyObject *args) */
-/* { */
-/*   midiseq_trackObject *self = (midiseq_trackObject *) obj; */
-/*   uint_t channel = 0, tick = 0, type = 0, num = 0, val = 0; */
-/*   midicev_t *mcev; */
-
-/*   if (!PyArg_ParseTuple(args, "iiiii", &tick, &channel, &type, &num, &val)) */
-/*     { */
-/*       output_error("Problem with argument"); */
-/*       return NULL; */
-/*     } */
-
-/*   if (type != NOTEOFF && type != NOTEON) */
-/*     { */
-/*       output_error("unknown type"); */
-/*       return NULL; */
-/*     } */
-
-/*   mcev = myalloc(sizeof (midicev_t)); */
-/*   mcev->chan = channel; */
-/*   mcev->type = type; */
-/*   mcev->event.note.num = num; */
-/*   mcev->event.note.val = val; */
-/*   add_new_midicev(self->trackctx->track, tick, mcev); */
-
-/*   Py_RETURN_NONE; */
-/* } */
-
 static PyObject *midiseq_track_add_evrepr_list(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
@@ -312,6 +283,19 @@ static PyObject *midiseq_track_ishandled(PyObject *obj,
 
   if (self->trackctx->engine && engine_is_running(self->trackctx->engine) == TRUE)
     Py_RETURN_TRUE;
+  Py_RETURN_FALSE;
+}
+
+static PyObject *midiseq_track_has_changed(PyObject *obj,
+                                         PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  if (self->trackctx->has_changed == TRUE)
+    {
+      self->trackctx->has_changed = FALSE;
+      Py_RETURN_TRUE;
+    }
   Py_RETURN_FALSE;
 }
 
@@ -549,6 +533,7 @@ static PyMethodDef midiseq_track_methods[] = {
   {"has_port",           midiseq_track_has_port,        METH_VARARGS, "Check if track has port"},
   {"add_evrepr_list",    midiseq_track_add_evrepr_list, METH_VARARGS, "Add a note list event representation"},
   {"is_handled",         midiseq_track_ishandled,       METH_NOARGS,  "Get if the track is handled"},
+  {"has_changed",        midiseq_track_has_changed,     METH_NOARGS,  "Get if the track has changed (During record)"},
   {"_delete_evwr_list",  msq_track_delete_evwr_list,    METH_VARARGS, "Delete event wrapper list (Caution: never use event of other tracks)"},
   {"_get_evwr_list",     msq_track_get_evwr_list,       METH_VARARGS, "Delete event wrapper list (Caution: never use event of other tracks)"},
   {"play_note",          midiseq_track_play_note,       METH_VARARGS, "Play note on port"},

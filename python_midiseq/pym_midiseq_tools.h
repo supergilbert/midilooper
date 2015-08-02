@@ -20,6 +20,9 @@
 #define __PYM_MTOOLS
 #include "loop_engine/engine.h"
 
+#include <Python.h>
+
+
 PyObject *sel_noteonoff_repr(track_ctx_t *trackctx,
                              byte_t channel,
                              uint_t tick_min,
@@ -50,6 +53,7 @@ PyObject *getall_event_repr(list_t *tickev_list);
 PyObject *add_evrepr_list(track_ctx_t *trackctx, PyObject *pylist);
 void     delete_evwr_list(track_ctx_t *trackctx, PyObject *pylist);
 PyObject *try_gen_evwr_list(track_ctx_t *trackctx, PyObject *pylist);
+PyObject *build_evrepr(uint_t tick, midicev_t *midicev);
 
 /* PyObject *get_event_list_repr(list_t *); */
 /* PyObject *get_note_list_repr(list_t *tickev_list, byte_t channel); */

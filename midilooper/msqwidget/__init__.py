@@ -25,7 +25,7 @@ if gtk.pygtk_version < (2, 8):
     print "PyGtk 2.8 or later required"
     raise SystemExit
 
-from wgttools import Xpos2Tick, Ypos2Note
+from wgttools import Xpos2Tick, Ypos2Note, MIDI_NOTEOFF_EVENT, MIDI_NOTEON_EVENT
 
 
 # Quater note x size
@@ -38,9 +38,6 @@ DEFAULT_FONT_NAME = "-misc-fixed-medium-r-normal--10-70-100-100-c-60-iso8859-1"
 # DEFAULT_FONT_NAME = "-misc-fixed-medium-r-normal--13-120-75-75-c-120-*-*"
 
 NOTE_MAX = 127
-
-MIDI_NOTEOFF_EVENT = 0x8
-MIDI_NOTEON_EVENT  = 0x9
 
 default_font       = gdk.Font(DEFAULT_FONT_NAME)
 DEFAULT_NOTE_YSZ   = default_font.string_height("C -10X") + 4

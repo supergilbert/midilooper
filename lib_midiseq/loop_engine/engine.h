@@ -60,33 +60,56 @@ typedef struct
   list_t notepress;
 } bindings_t;
 
+typedef struct
+{
+  uint      tick;
+  midicev_t ev;
+} midirec_t;
+
+typedef struct
+{
+  midirec_t *buff;
+  midirec_t *last;
+  midirec_t *wptr;
+  midirec_t *rptr;
+  bool_t    max;
+} midiringbuffer_t;
+
+void             free_midiringbuff(midiringbuffer_t *mrb);
+midiringbuffer_t *init_midiringbuff(uint_t size);
+bool_t           mrb_write(midiringbuffer_t *rbuff, uint tick, midicev_t *ev);
+bool_t           mrb_read(midiringbuffer_t *rbuff, uint *tick, midicev_t *ev);
+
 typedef struct engine_ctx
 {
-  void       *hdl;
-  list_t     output_list;
-  list_t     track_list;
-  uint_t     ppq;               /* Pulse per quater note (beat) */
-  uint_t     tempo;             /* Quater note in micro second */
-  bindings_t bindings;
-  bool_t     mute_state_changed; /* Ask to update interface */
-  bool_t     (*is_running)(struct engine_ctx *engine);
-  void       (*destroy_hdl)(struct engine_ctx *engine);
-  void       (*start)(struct engine_ctx *engine);
-  void       (*stop)(struct engine_ctx *engine);
-  void       (*init_output)(struct engine_ctx *engine,
-                            output_t *output,
-                            const char *name);
-  void       (*free_output_node)(void *addr);
-  uint_t     (*get_tick)(struct engine_ctx *engine);
-  void       (*set_tempo)(struct engine_ctx *engine, uint_t ms);
+  void             *hdl;
+  list_t           output_list;
+  list_t           track_list;
+  bool_t           rec;
+  void             *track_rec;
+  midiringbuffer_t *rbuff;
+  uint_t           ppq;               /* Pulse per quater note (beat) */
+  uint_t           tempo;             /* Quater note in micro second */
+  bindings_t       bindings;
+  bool_t           mute_state_changed; /* Ask to update interface */
+  bool_t           (*is_running)(struct engine_ctx *engine);
+  void             (*destroy_hdl)(struct engine_ctx *engine);
+  void             (*start)(struct engine_ctx *engine);
+  void             (*stop)(struct engine_ctx *engine);
+  void             (*init_output)(struct engine_ctx *engine,
+                                  output_t *output,
+                                  const char *name);
+  void             (*free_output_node)(void *addr);
+  uint_t           (*get_tick)(struct engine_ctx *engine);
+  void             (*set_tempo)(struct engine_ctx *engine, uint_t ms);
 } engine_ctx_t;
 
-#define engine_is_running(eng)                (eng)->is_running(eng)
-#define engine_destroy_hdl(eng)               (eng)->destroy_hdl(eng)
-#define engine_start(eng)                     (eng)->start(eng)
-#define engine_stop(eng)                      (eng)->stop(eng)
-#define engine_get_tick(eng)                  (eng)->get_tick(eng)
-#define engine_set_tempo(eng, ms)            (eng)->set_tempo(eng, ms)
+#define engine_is_running(eng)    (eng)->is_running(eng)
+#define engine_destroy_hdl(eng)   (eng)->destroy_hdl(eng)
+#define engine_start(eng)         (eng)->start(eng)
+#define engine_stop(eng)          (eng)->stop(eng)
+#define engine_get_tick(eng)      (eng)->get_tick(eng)
+#define engine_set_tempo(eng, ms) (eng)->set_tempo(eng, ms)
 
 output_t *engine_create_output(engine_ctx_t *ctx, const char *name);
 bool_t   engine_delete_output(engine_ctx_t *ctx, output_t *output);
@@ -99,6 +122,7 @@ typedef struct
   uint_t           loop_start;
   uint_t           loop_len;
   bool_t           need_sync;
+  bool_t           has_changed;
   bool_t           mute;
   list_iterator_t  current_tickev;
   pthread_rwlock_t lock;
@@ -112,6 +136,8 @@ void   trackctx_toggle_mute(track_ctx_t *track_ctx);
 uint_t trackctx_loop_pos(track_ctx_t *track_ctx, uint_t tick);
 void   play_trackctx(uint_t tick,
                      track_ctx_t *track_ctx);
+
+void engine_flush_rbuff(engine_ctx_t *engine);
 
 track_ctx_t *engine_create_trackctx(engine_ctx_t *engine, char *name);
 bool_t      engine_delete_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
@@ -150,14 +176,13 @@ bool_t jbe_init_engine(engine_ctx_t *ctx, char *name);
 bool_t init_engine(engine_ctx_t *engine, char *name, int type);
 void   uninit_engine(engine_ctx_t *engine);
 
-
-# include "ev_iterator.h"
-
 typedef struct
 {
   list_iterator_t evit;
   list_iterator_t tickit;
 } trash_ctn_t;
+
+#include "seqtool/ev_iterator.h"
 
 void            trackctx_event2trash(track_ctx_t *traxkctx,
                                      ev_iterator_t *ev_iterator);

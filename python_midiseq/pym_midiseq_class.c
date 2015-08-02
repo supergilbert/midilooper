@@ -16,6 +16,7 @@
 /* along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>. */
 
 
+#include "./pym_midiseq_tools.h"
 #include "./pym_midiseq_track.h"
 #include "./pym_midiseq_file.h"
 
@@ -54,7 +55,6 @@ static int midiseq_init(midiseq_Object *self,
       if (tmp != NULL)
         aport_name = tmp;
     }
-  self->engine_ctx.hdl = NULL;
   if (init_engine(&(self->engine_ctx), aport_name, type) == TRUE)
     return 0;
   return -1;
@@ -263,8 +263,87 @@ static PyObject *midiseq_getoutputs(PyObject *obj,
   return outputlist;
 }
 
+static PyObject *midiseq_settrackrec(PyObject *obj,
+                                     PyObject *args)
+{
+  midiseq_Object      *self     = (midiseq_Object *) obj;
+  midiseq_trackObject *trackobj = NULL;
+
+  if (!PyArg_ParseTuple(args , "O", &trackobj))
+    return NULL;
+
+  self->engine_ctx.track_rec = trackobj->trackctx;
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_unsettrackrec(PyObject *obj,
+                                       PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  self->engine_ctx.track_rec = NULL;
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_setrecmode(PyObject *obj,
+                                    PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  self->engine_ctx.rec = TRUE;
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_unsetrecmode(PyObject *obj,
+                                      PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  self->engine_ctx.rec = FALSE;
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_recmode(PyObject *obj,
+                                 PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  if (self->engine_ctx.rec == TRUE)
+    Py_RETURN_TRUE;
+  else
+    Py_RETURN_FALSE;
+}
+
+static PyObject *midiseq_getrecbuf(PyObject *obj,
+                                   PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+  PyObject       *ret_obj = NULL;
+  uint           tick;
+  midicev_t      mcev;
+
+  ret_obj = PyList_New(0);
+  while(mrb_read(self->engine_ctx.rbuff, &tick, &mcev) == TRUE)
+    {
+      if (mcev.type == NOTEON && mcev.event.note.val == 0)
+        mcev.type = NOTEOFF;
+      PyList_Append(ret_obj, build_evrepr(tick, &mcev));
+    }
+  return ret_obj;
+}
+
+static PyObject *midiseq_getrectrack(PyObject *obj,
+                                     PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+
+  if (self->engine_ctx.track_rec != NULL)
+    return create_pym_track((track_ctx_t *) self->engine_ctx.track_rec);
+  Py_RETURN_NONE;
+}
+
 static PyObject *midiseq_read_msqfile_tracks(PyObject *obj,
-                                               PyObject *args)
+                                             PyObject *args)
 {
   midiseq_Object      *self = (midiseq_Object *) obj;
   midiseq_fileObject  *mfile = NULL;
@@ -466,6 +545,20 @@ static PyMethodDef midiseq_methods[] = {
    "Del sequencer output port"},
   {"getoutputs", midiseq_getoutputs, METH_NOARGS,
    "Get output ports list"},
+  {"settrackrec", midiseq_settrackrec, METH_VARARGS,
+   "Set the track that will record input"},
+  {"unsettrackrec", midiseq_unsettrackrec, METH_NOARGS,
+   "Unset the track that will record input"},
+  {"setrecmode", midiseq_setrecmode, METH_NOARGS,
+   "Set record mode"},
+  {"unsetrecmode", midiseq_unsetrecmode, METH_NOARGS,
+   "Unset record mode"},
+  {"recmode", midiseq_recmode, METH_NOARGS,
+   "Get record mode"},
+  {"getrecbuf", midiseq_getrecbuf, METH_NOARGS,
+   "Get record buffer entry"},
+  {"getrectrack", midiseq_getrectrack, METH_NOARGS,
+   "Get the record track"},
   {"newtrack", midiseq_newtrack, METH_VARARGS,
    "Create new track"},
   {"copy_track", midiseq_copy_track, METH_VARARGS,

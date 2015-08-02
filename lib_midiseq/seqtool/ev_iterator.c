@@ -118,10 +118,8 @@ seqev_t *evit_tick_head(ev_iterator_t *ev_iterator)
   return seqev;
 }
 
-
 seqev_t *evit_init(ev_iterator_t *ev_iterator, list_t *tickev_list)
 {
-
   iter_init(&(ev_iterator->tickit), tickev_list);
   return evit_tick_head(ev_iterator);
 }
@@ -165,6 +163,23 @@ midicev_t *evit_init_noteon(ev_iterator_t *ev_iterator,
     midicev = evit_next_noteon(ev_iterator, channel);
   return midicev;
 }
+
+midicev_t *evit_first_noteon(ev_iterator_t *ev_iterator, byte_t channel)
+{
+  seqev_t   *seqev = evit_tick_head(ev_iterator);
+  midicev_t *mcev  = NULL;
+
+  if (seqev->type == MIDICEV)
+    {
+      mcev = seqev->addr;
+      if (mcev->chan == channel)
+        return mcev;
+    }
+  else
+    mcev = evit_next_noteon(ev_iterator, channel);
+  return mcev;
+}
+
 
 midicev_t *evit_next_ctrl_num(ev_iterator_t *ev_iterator,
                               byte_t channel,
@@ -381,7 +396,8 @@ node_t *search_or_add_midicev(list_t *seqev_list, midicev_t *midicev)
         mcev = (midicev_t *) ev->addr;
         if (compare_midicev_type(midicev, mcev) == TRUE)
           {
-            bcopy(midicev, mcev, sizeof (midicev_t)); /* todo (function to copy only the necesary) */
+            /* TODO (function to copy only the necessary) */
+            bcopy(midicev, mcev, sizeof (midicev_t));
             return seqevit.node;
           }
       }

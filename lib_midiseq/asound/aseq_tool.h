@@ -27,6 +27,7 @@
 
 
 bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port);
+void   aseq_to_mcev(snd_seq_event_t *snd_ev, midicev_t *mcev);
 bool_t aseq_output_evlist(output_t *output,
                           list_t *seqevlist,
                           byte_t *notes_on_state);

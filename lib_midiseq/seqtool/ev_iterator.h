@@ -50,6 +50,10 @@ midicev_t *evit_next_midiallchannel(ev_iterator_t *ev_iterator);
 void      evit_del_event(ev_iterator_t *ev_iterator);
 void      evit_add_midicev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev);
 
+bool_t  search_note_collision(list_t *tickev_list,
+                              uint_t tick, byte_t channel, byte_t note,
+                              uint_t *noteon_tick);
+
 bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list);
 #ifdef __ROUGH
 #define evit_check(evit, tickev_list) (TRUE)

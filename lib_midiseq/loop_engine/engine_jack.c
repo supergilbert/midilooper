@@ -25,6 +25,7 @@ typedef struct
   jack_nframes_t cur_frame;
   uint_t         tick;
   jack_port_t    *remote_input;
+  jack_port_t    *record_input;
 } jbe_hdl_t;
 
 bool_t jbe_is_running(engine_ctx_t *ctx)
@@ -131,6 +132,15 @@ void jbe_prepare_outputs(list_t *output_list, jack_nframes_t nframes)
     }
 }
 
+uint64_t convert_frame_to_tick(uint64_t frame, uint64_t frame_rate, uint64_t ppq, uint64_t tempo)
+{
+  uint64_t numtmp, dentmp;
+
+  numtmp = frame * ppq * 1000000;
+  dentmp = frame_rate * tempo;
+  return numtmp / dentmp;
+}
+
 void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
 {
   jbe_hdl_t              *be_hdl = (jbe_hdl_t *) ctx->hdl;
@@ -178,7 +188,10 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
           }
         }
       else
-        started = TRUE;
+        {
+          started = TRUE;
+          engine_prepare_tracklist(ctx);
+        }
 
       /* Handling all tick in buffer */
       while (be_hdl->cur_frame < nframes)
@@ -203,15 +216,21 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
     }
 }
 
+#include "midi/midi_tool.h"
 void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
 {
-  jbe_hdl_t         *hdl        = (jbe_hdl_t *) ctx->hdl;
-  void              *port_buf   = jack_port_get_buffer(hdl->remote_input, nframes);
-  jack_nframes_t    event_count = jack_midi_get_event_count(port_buf);
-  jack_midi_event_t jackev;
-  byte_t            chanev_type = 0;
-  uint32_t          idx;
+  jbe_hdl_t              *hdl        = (jbe_hdl_t *) ctx->hdl;
+  void                   *port_buf   = jack_port_get_buffer(hdl->remote_input, nframes);
+  jack_nframes_t         event_count = jack_midi_get_event_count(port_buf);
+  jack_midi_event_t      jackev;
+  byte_t                 chanev_type = 0;
+  uint32_t               idx;
+  midicev_t              midicev;
+  uint64_t               tick;
+  jack_position_t        position;
+  jack_transport_state_t state;
 
+  /* Handling midi remote */
   for (idx = 0;
        idx < event_count;
        idx++)
@@ -239,6 +258,28 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
           /* else */
           /*   print_bin(stdout, jackev.buffer, jackev.size); */
         }
+    }
+
+  state = jack_transport_query(hdl->client, &position);
+  if (state == JackTransportRolling ||
+      state == JackTransportLooping ||
+      state == JackTransportStarting)
+    {
+      /* Handling midi record */
+      port_buf    = jack_port_get_buffer(hdl->record_input, nframes);
+      event_count = jack_midi_get_event_count(port_buf);
+      for (idx = 0;
+           idx < event_count;
+           idx++) {
+        jack_midi_event_get(&jackev, port_buf, idx);
+        if (convert_mididata_to_midicev(jackev.buffer, &midicev) == TRUE) {
+          tick = convert_frame_to_tick(position.frame + jackev.time,
+                                       position.frame_rate,
+                                       ctx->ppq,
+                                       ctx->tempo);
+          mrb_write(ctx->rbuff, tick, &midicev);
+        }
+      }
     }
 }
 
@@ -287,6 +328,11 @@ bool_t jbe_init_engine(engine_ctx_t *ctx, char *name)
   hdl->client = client;
   hdl->remote_input = jack_port_register(client,
                                          "remote",
+                                         JACK_DEFAULT_MIDI_TYPE,
+                                         JackPortIsTerminal|JackPortIsInput,
+                                         0);
+  hdl->record_input = jack_port_register(client,
+                                         "record",
                                          JACK_DEFAULT_MIDI_TYPE,
                                          JackPortIsTerminal|JackPortIsInput,
                                          0);
