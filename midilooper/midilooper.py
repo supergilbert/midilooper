@@ -192,13 +192,14 @@ class MidiLooper(gtk.Window):
 
         self.outputlist_frame.tracklist = self.tracklist_frame.liststore
 
-        button_start = gtk.Button(stock=gtk.STOCK_MEDIA_PLAY)
+        button_start = gtk.Button()
+        button_start.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_PLAY,  gtk.ICON_SIZE_BUTTON))
         button_start.connect("clicked", self.start_msq)
 
-        button_stop = gtk.Button(stock=gtk.STOCK_MEDIA_STOP)
+        button_stop = gtk.Button()
+        button_stop.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_STOP,  gtk.ICON_SIZE_BUTTON))
         button_stop.connect("clicked", self.stop_msq)
 
-        # button_record = gtk.ToggleButton(stock=gtk.STOCK_MEDIA_RECORD)
         button_record = gtk.ToggleButton()
         button_record.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_RECORD,  gtk.ICON_SIZE_BUTTON))
         button_record.connect("toggled", self.record_msq)
