@@ -47,45 +47,47 @@ DEFAULT_NOTEON_VAL = 100
 class ProgressLineListener(object):
 
     def __init__(self):
-        self.line_cache = None
-        self.line_ypos = 0
+        self.prev_line_xpos   = None
+        self.prev_line_ypos   = 0
+        self.prev_line_height = 0
 
 
     def clear_progressline(self):
-        if not self.line_cache:
+        if not self.window:
             return
-        lwidth, lheight = self.line_cache.get_size()
-        self.window.draw_drawable(self.style.fg_gc[gtk.STATE_NORMAL],
-                                  self.line_cache, 0, 0, self.line_xpos, self.line_ypos, 1, lheight)
+        self.buffer_refresh_area([self.prev_line_xpos,
+                                  self.prev_line_ypos,
+                                  1,
+                                  self.prev_line_height])
+        self.prev_line_xpos = None
 
 
     def _update_pos(self, pos):
         if not self.window:
             return
-        height = None
+        line_height = None
         line_ypos = None
         if self.vadj:
             line_ypos = int(self.vadj.get_value())
-            height = int(self.vadj.get_page_size())
+            line_height = int(self.vadj.get_page_size())
         else:
-            width, height = self.window.get_size()
+            line_width, line_height = self.window.get_size()
             line_ypos = 0
-        if self.line_cache == None:
-            self.line_cache = gtk.gdk.Pixmap(self.window, 1, height)
-        else:
-            lwidth, lheight = self.line_cache.get_size()
-            self.window.draw_drawable(self.style.fg_gc[gtk.STATE_NORMAL],
-                                      self.line_cache, 0, 0, self.line_xpos, self.line_ypos, 1, lheight)
-            if lheight != height:
-                self.line_cache = gtk.gdk.Pixmap(self.window, 1, height)
-        if self.line_ypos != line_ypos:
-            self.line_ypos = line_ypos
 
-        self.line_cache.draw_drawable(self.style.fg_gc[gtk.STATE_NORMAL],
-                                      self.window, pos, line_ypos, 0, 0, 1, height)
+        if self.prev_line_xpos:
+            self.buffer_refresh_area([self.prev_line_xpos,
+                                      self.prev_line_ypos,
+                                      1,
+                                      self.prev_line_height])
+
         self.window.draw_line(self.style.fg_gc[gtk.STATE_NORMAL],
-                              pos, line_ypos, pos, line_ypos + height)
-        self.line_xpos = pos
+                              pos, line_ypos, pos, line_ypos + line_height)
+
+        if self.prev_line_ypos != line_ypos:
+            self.prev_line_ypos = line_ypos
+        if self.prev_line_height != line_height:
+            self.prev_line_height = line_height
+        self.prev_line_xpos = pos
 
 
 
@@ -411,6 +413,8 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
         self.max_height = (NOTE_MAX + 1) * self.setting.noteysz + 1
         self.vadj = None
         self.selection = None
+        self.buffer_img = None  # TODO search for the best buffer
+        # self.set_flags(gtk.CAN_DEFAULT)
 
 
     def draw_note(self, note_on, note_off, selected=False):
@@ -446,6 +450,8 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
         self.vadj.set_value((self.vadj.get_lower() + self.vadj.get_upper() / 2))
         self.vadj.value_changed()
 
+        self.buffer_img = gtk.gdk.Pixmap(self.window, self.allocation[2], self.allocation[3], -1)
+
 
     def do_unrealize(self):
         self.window.set_user_data(None)
@@ -460,6 +466,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
         self.allocation = allocation
         if self.flags() & gtk.REALIZED:
             self.window.move_resize(*self.allocation)
+            self.buffer_img = gtk.gdk.Pixmap(self.window, self.allocation[2], self.allocation[3], -1)
 
 
     def draw_grid(self, area):
@@ -622,10 +629,27 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
         if self.value_wgt.is_in_note_mode():
             self.value_wgt.draw_value_area(area.x, area.width)
 
+    def buffer_refresh_area(self, area):
+        self.window.draw_drawable(self.style.fg_gc[gtk.STATE_NORMAL],
+                                  self.buffer_img,
+                                  area[0],
+                                  area[1],
+                                  area[0],
+                                  area[1],
+                                  area[2],
+                                  area[3])
 
     def draw_area(self, area):
         self.draw_grid(area)
         self.draw_notes_bar(area)
+        self.buffer_img.draw_drawable(self.style.fg_gc[gtk.STATE_NORMAL],
+                                      self.window,
+                                      area[0],
+                                      area[1],
+                                      area[0],
+                                      area[1],
+                                      area[2],
+                                      area[3])
 
 
     def do_expose_event(self, event):

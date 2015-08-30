@@ -463,8 +463,6 @@ class ChannelEditor(gtk.VBox):
         debug_frame.add(debug_hbox)
         self.pack_end(debug_frame, expand=False)
 
-        # self.set_focus_child(table2)
-        # self.set_focus_chain((table, table2))
         self.resize_all()
 
 
@@ -504,4 +502,7 @@ class TrackEditor(gtk.Window):
         self.vbox = vbox
         self.add(vbox)
 
-        self.set_default(self.chaned.grid)
+        self.set_focus_child(self.chaned.grid)
+        # self.set_focus_chain((xxx, yyy, zzz))
+        # self.set_default(self.chaned.grid)
+        # self.chaned.grid.grab_default()

@@ -261,13 +261,15 @@ class TrackList(gtk.Frame):
                 model.insert_before(iterator, [self.dnd_tedit,
                                                repr(self.dnd_tedit.track),
                                                0,
-                                               self.dnd_tedit.track.get_mute_state()])
+                                               self.dnd_tedit.track.get_mute_state(),
+                                               self.dnd_tedit.track.is_in_recmode()])
             else:
                 self.seq.move_track_after(tedit.track, self.dnd_tedit.track)
                 model.insert_after(iterator, [self.dnd_tedit,
                                               repr(self.dnd_tedit.track),
                                               0,
-                                              self.dnd_tedit.track.get_mute_state()])
+                                              self.dnd_tedit.track.get_mute_state(),
+                                              self.dnd_tedit.track.is_in_recmode()])
         else:
             nchild = model.iter_n_children(None)
             if nchild > 1:
@@ -277,7 +279,8 @@ class TrackList(gtk.Frame):
                 model.insert_after(iterator, [self.dnd_tedit,
                                               repr(self.dnd_tedit.track),
                                               0,
-                                              self.dnd_tedit.track.get_mute_state()])
+                                              self.dnd_tedit.track.get_mute_state(),
+                                              self.dnd_tedit.track.is_in_recmode()])
 
     def __init__(self, seq, portlist):
         gtk.Frame.__init__(self, "Track list")

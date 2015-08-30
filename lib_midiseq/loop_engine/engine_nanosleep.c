@@ -23,6 +23,8 @@ typedef struct
   pthread_t        thread_id;
   bool_t           thread_ret;
   bool_t           ev_to_drain;
+  char             *output_req;
+  aseq_output_t    *output_req_res;
 } nns_hdl_t;
 
 bool_t nns_is_running(engine_ctx_t *ctx)
@@ -81,7 +83,24 @@ void nns_init_output(engine_ctx_t *ctx, output_t *output, const char *name)
 {
   nns_hdl_t     *hdl = (nns_hdl_t *) ctx->hdl;
 
-  output->hdl      = create_aseq_output(hdl->aseqh, name, &(hdl->ev_to_drain), &(hdl->is_running));
+  pthread_rwlock_rdlock(&(hdl->lock));
+  if (hdl->is_running)
+    {
+      hdl->output_req = (char *) name;
+      pthread_rwlock_unlock(&(hdl->lock));
+      while (hdl->output_req != NULL)
+        usleep(100000);
+      output->hdl = hdl->output_req_res;
+      hdl->output_req_res = NULL;
+    }
+  else
+    {
+      output->hdl = create_aseq_output(hdl->aseqh,
+                                       name,
+                                       &(hdl->ev_to_drain),
+                                       &(hdl->is_running));
+      pthread_rwlock_unlock(&(hdl->lock));
+    }
   output->get_name = aseq_output_get_name;
   output->set_name = aseq_output_set_name;
   output->write    = aseq_output_write;
@@ -192,6 +211,15 @@ clock_req_t _nns_engine_cb(void *arg)
   play_outputs_reqs(ctx);
   play_tracks(ctx);
   nns_drain_output(hdl);
+
+  if (hdl->output_req != NULL)
+    {
+      hdl->output_req_res = create_aseq_output(hdl->aseqh,
+                                               hdl->output_req,
+                                               &(hdl->ev_to_drain),
+                                               &(hdl->is_running));
+      hdl->output_req = NULL;
+    }
 
   _engine_free_trash(ctx);
   return CLOCK_CONTINUE;

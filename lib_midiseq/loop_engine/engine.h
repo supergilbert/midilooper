@@ -132,6 +132,7 @@ typedef struct
   byte_t           notes_on_state[256];
 } track_ctx_t;
 
+void   _trackctx_mute(track_ctx_t *track_ctx);
 void   trackctx_toggle_mute(track_ctx_t *track_ctx);
 uint_t trackctx_loop_pos(track_ctx_t *track_ctx, uint_t tick);
 void   play_trackctx(uint_t tick,

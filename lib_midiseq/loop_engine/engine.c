@@ -248,6 +248,7 @@ void engine_prepare_tracklist(engine_ctx_t *ctx)
 {
   track_ctx_t     *track_ctx = NULL;
   list_iterator_t trackit;
+  uint_t          current_tick = engine_get_tick(ctx);
 
   for (iter_init(&trackit, &(ctx->track_list));
        iter_node(&trackit) != NULL;
@@ -255,7 +256,7 @@ void engine_prepare_tracklist(engine_ctx_t *ctx)
     {
       track_ctx = iter_node_ptr(&trackit);
       goto_next_available_tick(&(track_ctx->current_tickev),
-                               track_ctx->loop_start);
+                               current_tick);
       /* iter_head(&(track_ctx->current_tickev)); */
     }
 }

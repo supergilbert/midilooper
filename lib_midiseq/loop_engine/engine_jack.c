@@ -42,15 +42,13 @@ bool_t jbe_is_running(engine_ctx_t *ctx)
 
 void jbe_stop(engine_ctx_t *ctx)
 {
-  jbe_hdl_t       *hdl = (jbe_hdl_t *) ctx->hdl;
-  jack_position_t pos;
+  jbe_hdl_t *hdl = (jbe_hdl_t *) ctx->hdl;
 
   jack_transport_stop(hdl->client);
-  pos.valid = 0;
-  pos.frame = 0;
-  jack_transport_reposition(hdl->client, &pos);
   while (jbe_is_running(ctx) == TRUE)
     usleep(100000);
+  jack_transport_locate(hdl->client, 0);
+  hdl->tick = 0;
   _engine_free_trash(ctx);
 }
 

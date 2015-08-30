@@ -171,7 +171,22 @@ static PyObject *midiseq_track_set_start(PyObject *obj, PyObject *args)
 
 #include "asound/aseq_tool.h"
 
-static PyObject *midiseq_toggle_mute(PyObject *obj, PyObject *args)
+static PyObject *midiseq_track_mute(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  if (self->trackctx->mute == FALSE)
+    _trackctx_mute(self->trackctx);
+  Py_RETURN_NONE;
+}
+static PyObject *midiseq_track_unmute(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  self->trackctx->mute = FALSE;
+  Py_RETURN_NONE;
+}
+static PyObject *midiseq_track_toggle_mute(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
@@ -275,6 +290,16 @@ static PyObject *midiseq_track_has_port(PyObject *obj, PyObject *args)
 /*                        &(evwr->evit.seqevit)); */
 /*   Py_RETURN_NONE; */
 /* } */
+
+static PyObject *midiseq_track_is_in_recmode(PyObject *obj,
+                                             PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+
+  if (self->trackctx->engine->track_rec == self->trackctx)
+    Py_RETURN_TRUE;
+  Py_RETURN_FALSE;
+}
 
 static PyObject *midiseq_track_ishandled(PyObject *obj,
                                          PyObject *args)
@@ -529,9 +554,12 @@ static PyMethodDef midiseq_track_methods[] = {
   {"set_start",          midiseq_track_set_start,       METH_VARARGS, "Set track start"},
   {"get_port",           midiseq_track_get_port,        METH_NOARGS,  "Get track port"},
   {"set_port",           midiseq_track_set_port,        METH_VARARGS, "Set track port"},
-  {"toggle_mute",        midiseq_toggle_mute,           METH_NOARGS,  "Toggle mute state"},
+  {"toggle_mute",        midiseq_track_toggle_mute,     METH_NOARGS,  "Toggle mute state"},
+  {"mute",               midiseq_track_mute,            METH_NOARGS,  "Set mute state"},
+  {"unmute",             midiseq_track_unmute,          METH_NOARGS,  "Unset mute state"},
   {"has_port",           midiseq_track_has_port,        METH_VARARGS, "Check if track has port"},
   {"add_evrepr_list",    midiseq_track_add_evrepr_list, METH_VARARGS, "Add a note list event representation"},
+  {"is_in_recmode",      midiseq_track_is_in_recmode,   METH_NOARGS,  "Get if the track is in record mode"},
   {"is_handled",         midiseq_track_ishandled,       METH_NOARGS,  "Get if the track is handled"},
   {"has_changed",        midiseq_track_has_changed,     METH_NOARGS,  "Get if the track has changed (During record)"},
   {"_delete_evwr_list",  msq_track_delete_evwr_list,    METH_VARARGS, "Delete event wrapper list (Caution: never use event of other tracks)"},

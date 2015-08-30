@@ -25,7 +25,7 @@ LIB_MSQ_SRC=$(LIB_MSQ_DIR)/asound/aseq.c\
 
 LIB_MSQ_DEPS=$(LIB_MSQ_SRC:.c=.d)
 
-CFLAGS=-Wall -Werror -g -fPIC -I $(LIB_MSQ_DIR)
+CFLAGS=-Wall -Werror -g -fPIC -I$(LIB_MSQ_DIR)
 CC=gcc
 
 LIB_MSQ_OBJ=$(LIB_MSQ_SRC:.c=.o)

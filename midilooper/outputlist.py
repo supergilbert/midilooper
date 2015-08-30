@@ -41,9 +41,6 @@ class OutputListMenu(MsqListMenu):
             self.path = None
 
     def del_output(self, menuitem):
-        if self.outputlist.seq.isrunning():
-            print "Can not delete output while running"
-            return
         if self.path:
             iter = self.outputlist.listfilter.get_iter(self.path[0])
             seqoutput = self.outputlist.listfilter.get_value(iter, 0)
@@ -78,9 +75,6 @@ class OutputList(gtk.Frame):
                 self.menu.popup(None, None, None, event.button, event.time)
 
     def button_add_output(self, button):
-        if self.seq.isrunning():
-            print "Creating output while running is unavailable"
-            return
         name = prompt_gettext("Enter new output name")
         if name:
             seqoutput = self.seq.newoutput(name)

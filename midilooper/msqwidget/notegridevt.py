@@ -196,7 +196,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                         if ev_on_off_tick:
                             selarea = self.get_notelist_area(evwr_to_repr_list(self.selection))
                             self.selection = new_selection
-                            self.draw_area(selarea)
+                            # self.draw_area(selarea)
             else:
                 self.selection = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
                 ev_on_off_tick = self.coo_under_notelist(event.x,
@@ -413,8 +413,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
             elif self.wgt_mode == SELECT_MODE:
                 if self.select_area:
-                    # tmp: change draw_area to reversible effect (or a faster redraw)
-                    self.draw_area(self.select_area)
+                    self.buffer_refresh_area(self.select_area)
                 else:
                     self.select_area = gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1)
 
@@ -548,7 +547,8 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         tick_diff, note_diff = self._get_diff_paste_note(xpos, ypos)
 
         if self.tmp_note_area:
-            self.draw_area(self.tmp_note_area)
+            self.buffer_refresh_area(self.tmp_note_area)
+            pass
         diff_note_list = self.gen_notelist_at(tick_diff, note_diff, note_list)
         if self.notelist_collision(diff_note_list, excl_list):
              self.tmp_note_area = None
@@ -654,7 +654,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 ymax = self.start_coo[1]
                 ymin = event.y
             if self.select_area:
-                self.draw_area(self.select_area)
+                self.buffer_refresh_area(self.select_area)
             self.select_area = gtk.gdk.Rectangle(int(xmin) - 2,
                                                  int(ymin) - 2,
                                                  int(xmax - xmin) + 4,
@@ -667,7 +667,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
         elif self.wgt_mode == EDIT_MODE and self.data_cache:
             if self.tmp_note_area:
-                self.draw_area(self.tmp_note_area)
+                self.buffer_refresh_area(self.tmp_note_area)
                 self.tmp_note_area = None
             tick = self.xpos2tick(event.x)
             if tick < self.data_cache[0][0][0]:
@@ -689,7 +689,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         elif self.wgt_mode == INC_MODE and self.selection:
             if self.data_cache:
                 if self.tmp_note_area:
-                    self.draw_area(self.tmp_note_area)
+                    self.buffer_refresh_area(self.tmp_note_area)
                     self.tmp_note_area = None
                 tick = self.xpos2tick(event.x)
                 note_list = evwr_to_repr_list(self.selection)

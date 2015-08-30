@@ -173,15 +173,18 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx)
     }
 }
 
+void _trackctx_mute(track_ctx_t *track_ctx)
+{
+  track_ctx->mute = TRUE;
+  if (track_ctx->output)
+    if (track_ctx->engine && engine_is_running(track_ctx->engine))
+      track_ctx->play_pending_notes = TRUE;
+}
+
 void trackctx_toggle_mute(track_ctx_t *track_ctx)
 {
   if (track_ctx->mute)
     track_ctx->mute = FALSE;
   else
-    {
-      track_ctx->mute = TRUE;
-      if (track_ctx->output)
-        if (track_ctx->engine && engine_is_running(track_ctx->engine))
-          track_ctx->play_pending_notes = TRUE;
-    }
+    _trackctx_mute(track_ctx);
 }
