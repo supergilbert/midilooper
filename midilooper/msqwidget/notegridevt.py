@@ -625,7 +625,10 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
 
     def set_inc_cursor(self, xpos, ypos):
-        ev_on_off_tick = self.coo_under_notelist(xpos, ypos, evwr_to_repr_list(self.selection))
+        if self.selection:
+            ev_on_off_tick = self.coo_under_notelist(xpos, ypos, evwr_to_repr_list(self.selection))
+        else:
+            ev_on_off_tick = None
         if ev_on_off_tick:
             if self._is_note_left_inc(ev_on_off_tick):
                 self.window.set_cursor(cursor_inc_l)

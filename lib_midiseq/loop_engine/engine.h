@@ -149,6 +149,7 @@ void        engine_prepare_tracklist(engine_ctx_t *ctx);
 void        engine_clean_tracklist(engine_ctx_t *ctx);
 void        _engine_free_trash(engine_ctx_t *ctx);
 
+void engine_del_track_bindings(engine_ctx_t *engine, track_ctx_t *track_ctx);
 void engine_clear_all_bindings(engine_ctx_t *engine);
 void engine_call_notepress_b(engine_ctx_t *engine, byte_t key);
 void engine_add_notebinding(engine_ctx_t *engine,

@@ -439,8 +439,20 @@ static PyObject *midiseq_move_port_after(PyObject *obj,
   Py_RETURN_NONE;
 }
 
+static PyObject *midiseq_del_track_bindings(PyObject *obj,
+                                            PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_trackObject *pytrack = NULL;
+
+  if (!PyArg_ParseTuple(args , "O", &pytrack))
+    return NULL;
+  engine_del_track_bindings(&(self->engine_ctx), pytrack->trackctx);
+  Py_RETURN_NONE;
+}
+
 static PyObject *midiseq_clear_all_bindings(PyObject *obj,
-                                        PyObject *args)
+                                            PyObject *args)
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
@@ -575,6 +587,8 @@ static PyMethodDef midiseq_methods[] = {
    "Warning: Not thread safe"},
   {"move_port_after", midiseq_move_port_after, METH_VARARGS,
    "Warning: Not thread safe"},
+  {"del_track_bindings", midiseq_del_track_bindings, METH_VARARGS,
+   "Clear bindings"},
   {"clear_all_bindings", midiseq_clear_all_bindings, METH_NOARGS,
    "Clear bindings"},
   {"clean_remote_note", midiseq_clean_remote_note, METH_NOARGS,

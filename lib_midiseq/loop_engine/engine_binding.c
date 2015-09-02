@@ -70,6 +70,32 @@ void _add_binding(list_t *bindings, byte_t val, track_ctx_t *track_ctx)
     }
 }
 
+void _del_track_bindings(list_t *bindings, track_ctx_t *track_ctx)
+{
+  list_iterator_t iter_tracks;
+  list_iterator_t iter_bindings;
+  track_ctx_t     *track_ctx_ptr = NULL;
+  binding_t       *binding = NULL;
+
+  for (iter_init(&iter_bindings, bindings);
+       iter_node(&iter_bindings) != NULL;
+       iter_next(&iter_bindings))
+    {
+      binding = iter_node_ptr(&iter_bindings);
+      for (iter_init(&iter_tracks, &(binding->tracks));
+           iter_node(&iter_tracks) != NULL;
+           iter_next(&iter_tracks))
+        {
+          track_ctx_ptr = iter_node_ptr(&iter_tracks);
+          if (track_ctx_ptr == track_ctx)
+            {
+              iter_node_del(&iter_tracks, NULL);
+              return;
+            }
+        }
+    }
+}
+
 bool_t _call_binding(list_t *bindings, byte_t val)
 {
   list_iterator_t iter;
@@ -98,10 +124,24 @@ void engine_add_notebinding(engine_ctx_t *engine,
                             track_ctx_t *track_ctx)
 {
   engine->bindings.midib_updating = TRUE;
+  /* Waiting if midi input port call bindings */
   while (engine->bindings.midib_reading == TRUE)
     usleep(100000);
   _add_binding(&(engine->bindings.notepress), note, track_ctx);
   engine->bindings.midib_updating = FALSE;
+}
+
+void engine_del_track_bindings(engine_ctx_t *engine,
+                               track_ctx_t *track_ctx)
+{
+  engine->bindings.midib_updating = TRUE;
+  /* Waiting if midi input port call bindings */
+  while (engine->bindings.midib_reading == TRUE)
+    usleep(100000);
+  _del_track_bindings(&(engine->bindings.notepress), track_ctx);
+  engine->bindings.midib_updating = FALSE;
+
+  _del_track_bindings(&(engine->bindings.keypress), track_ctx);
 }
 
 void engine_call_notepress_b(engine_ctx_t *engine, byte_t note)

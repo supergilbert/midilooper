@@ -105,10 +105,15 @@ class TrackListMenu(MsqListMenu):
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
             note = prompt_notebinding(self.tracklist.seq,
                                       tedit.track.get_name())
-            print "note", note
             if note:
                 self.tracklist.seq.add_notebinding(note, tedit.track)
             # print "yoyoyo", type(key)
+
+    def del_track_bindings(self, menuitem):
+        if self.path:
+            tv_iter = self.tracklist.liststore.get_iter(self.path[0])
+            tedit = self.tracklist.liststore.get_value(tv_iter, 0)
+            self.tracklist.seq.del_track_bindings(tedit.track)
 
     def clear_all_bindings(self, menuitem):
         self.tracklist.seq.clear_all_bindings()
@@ -138,6 +143,7 @@ class TrackListMenu(MsqListMenu):
         self.mlm_add_item("Rename track", self.rename_track)
         self.mlm_add_item("Add key binding", self.add_key_binding)
         self.mlm_add_item("Add note binding", self.add_note_binding)
+        self.mlm_add_item("Del bindings", self.del_track_bindings)
         self.mlm_add_item("Clear all bindings", self.clear_all_bindings)
         self.mlm_add_item("Copy track", self.copy_track)
         separator = gtk.SeparatorMenuItem()
