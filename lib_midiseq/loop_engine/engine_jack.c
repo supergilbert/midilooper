@@ -26,6 +26,7 @@ typedef struct
   uint_t         tick;
   jack_port_t    *remote_input;
   jack_port_t    *record_input;
+  bool_t         stopped;
 } jbe_hdl_t;
 
 bool_t jbe_is_running(engine_ctx_t *ctx)
@@ -45,20 +46,20 @@ void jbe_stop(engine_ctx_t *ctx)
   jbe_hdl_t *hdl = (jbe_hdl_t *) ctx->hdl;
 
   jack_transport_stop(hdl->client);
+  hdl->stopped = TRUE;
   while (jbe_is_running(ctx) == TRUE)
     usleep(100000);
-  jack_transport_locate(hdl->client, 0);
-  hdl->tick = 0;
   _engine_free_trash(ctx);
 }
 
-void jbe_free_output_node(void *addr)
+void jbe_delete_output_node(engine_ctx_t *ctx, list_iterator_t *iter)
 {
-  output_t     *joutput = (output_t *) addr;
+  output_t     *joutput = (output_t *) iter_node_ptr(iter);
   jbe_output_t *jackoutput = (jbe_output_t *) joutput->hdl;
 
   free_jbe_output(jackoutput);
   free(joutput);
+  iter_node_del(iter, NULL);
 }
 
 void jbe_destroy_hdl(engine_ctx_t *ctx)
@@ -83,7 +84,7 @@ void jbe_start(engine_ctx_t *ctx)
     jack_transport_start(hdl->client);
 }
 
-void jbe_init_output(engine_ctx_t *ctx, output_t *output, const char *name)
+void jbe_create_output(engine_ctx_t *ctx, output_t *output, const char *name)
 {
   jbe_hdl_t *be_hdl = (jbe_hdl_t *) ctx->hdl;
 
@@ -146,7 +147,7 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
   jack_nframes_t         tick_frame;
   uint64_t               tick64;
   uint64_t               numtmp, dentmp;
-  static bool_t          started = FALSE;
+  static bool_t          running = FALSE;
 
   switch (jack_transport_query(be_hdl->client, &position))
     {
@@ -161,7 +162,7 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
         be_hdl->cur_frame = 0;
       else
         {
-          /* in previous buffer so +1 */
+          /* Tick is in the previous buffer so +1 */
           tick64++;
           tick_frame = (uint64_t) tick64
             * (uint64_t) ctx->tempo
@@ -171,8 +172,8 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
           be_hdl->cur_frame = tick_frame - position.frame;
         }
 
-      /* Handling missing tick when started */
-      if (started == TRUE)
+      /* Handling missing tick when running */
+      if (running == TRUE)
         {
           if (be_hdl->tick != tick64) {
             output_error("!!! Missing tick !!! "
@@ -187,7 +188,7 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
         }
       else
         {
-          started = TRUE;
+          running = TRUE;
           engine_prepare_tracklist(ctx);
         }
 
@@ -196,17 +197,23 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
         {
           play_tracks(ctx);
           tick64++;
+          be_hdl->tick = tick64;
           tick_frame = tick64 * ctx->tempo * position.frame_rate
             / (ctx->ppq * 1000000);
           be_hdl->cur_frame = tick_frame - position.frame;
-          be_hdl->tick = tick64;
         }
       break;
     case JackTransportStopped:
-      if (started == TRUE)
+      if (running == TRUE)
         {
           play_tracks_pending_notes(ctx);
-          started = FALSE;
+          running = FALSE;
+        }
+      if (be_hdl->stopped == TRUE)
+        {
+          jack_transport_locate(be_hdl->client, 0);
+          be_hdl->tick = 0;
+          be_hdl->stopped = FALSE;
         }
       break;
     default:
@@ -235,7 +242,18 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
     {
       jack_midi_event_get(&jackev, port_buf, idx);
       if (jackev.buffer[0] == 0xF0)
-        engine_handle_sysex(ctx, jackev.buffer, jackev.size);
+        {
+          switch (engine_get_sysex_mmc(ctx, jackev.buffer, jackev.size))
+            {
+            case MMC_STOP:
+              jack_transport_stop(hdl->client);
+              hdl->stopped = TRUE;
+              break;
+            case MMC_PAUSE:
+              jbe_start(ctx);
+              break;
+            }
+        }
       else
         {
           if (0x80 <= jackev.buffer[0] && jackev.buffer[0] < 0xA0)
@@ -313,14 +331,14 @@ bool_t jbe_init_engine(engine_ctx_t *ctx, char *name)
   if (client == NULL)
     return FALSE;
 
-  ctx->destroy_hdl      = jbe_destroy_hdl;
-  ctx->is_running       = jbe_is_running;
-  ctx->start            = jbe_start;
-  ctx->stop             = jbe_stop;
-  ctx->init_output      = jbe_init_output;
-  ctx->free_output_node = jbe_free_output_node;
-  ctx->get_tick         = jbe_get_tick;
-  ctx->set_tempo        = jbe_set_tempo;
+  ctx->destroy_hdl        = jbe_destroy_hdl;
+  ctx->is_running         = jbe_is_running;
+  ctx->start              = jbe_start;
+  ctx->stop               = jbe_stop;
+  ctx->create_output      = jbe_create_output;
+  ctx->delete_output_node = jbe_delete_output_node;
+  ctx->get_tick           = jbe_get_tick;
+  ctx->set_tempo          = jbe_set_tempo;
 
   hdl = myalloc(sizeof (jbe_hdl_t));
   hdl->client = client;

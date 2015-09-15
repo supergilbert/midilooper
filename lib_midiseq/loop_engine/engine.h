@@ -96,10 +96,11 @@ typedef struct engine_ctx
   void             (*destroy_hdl)(struct engine_ctx *engine);
   void             (*start)(struct engine_ctx *engine);
   void             (*stop)(struct engine_ctx *engine);
-  void             (*init_output)(struct engine_ctx *engine,
-                                  output_t *output,
-                                  const char *name);
-  void             (*free_output_node)(void *addr);
+  void             (*create_output)(struct engine_ctx *engine,
+                                    output_t *output,
+                                    const char *name);
+  void             (*delete_output_node)(struct engine_ctx *engine,
+                                         list_iterator_t *iterxs);
   uint_t           (*get_tick)(struct engine_ctx *engine);
   void             (*set_tempo)(struct engine_ctx *engine, uint_t ms);
 } engine_ctx_t;
@@ -170,7 +171,7 @@ void output_evlist(output_t *output,
                    byte_t *notes_on_state);
 void output_pending_notes(output_t *output, byte_t *notes_on_state);
 
-void engine_handle_sysex(engine_ctx_t *ctx, byte_t *sysex, uint_t size);
+byte_t engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size);
 
 bool_t nns_init_engine(engine_ctx_t *ctx, char *name);
 bool_t jbe_init_engine(engine_ctx_t *ctx, char *name);

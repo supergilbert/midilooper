@@ -343,7 +343,7 @@ output_t *engine_create_output(engine_ctx_t *ctx, const char *name)
 {
   output_t      *output = myalloc(sizeof (output_t));
 
-  ctx->init_output(ctx, output, name);
+  ctx->create_output(ctx, output, name);
   pthread_mutex_init(&(output->req_lock), NULL);
   push_to_list_tail(&(ctx->output_list), output);
   return output;
@@ -363,32 +363,32 @@ bool_t engine_delete_output(engine_ctx_t *ctx, output_t *output)
         {
           free_list_node(&(output->req_list), free);
           pthread_mutex_destroy(&(output->req_lock));
-          iter_node_del(&output_it, ctx->free_output_node);
+          ctx->delete_output_node(ctx, &output_it);
           return TRUE;
         }
     }
   return FALSE;
 }
 
-void engine_handle_sysex(engine_ctx_t *ctx, byte_t *sysex, uint_t size)
+byte_t engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size)
 {
   if (sysex[1] == 0x7F && sysex[3] == 0x06)
     {
       switch (sysex[4])
         {
         case MMC_STOP:
-          engine_stop(ctx);
-          break;
+          return MMC_STOP;
         case MMC_PLAY:
         case MMC_PAUSE:
-          engine_start(ctx);
+          return MMC_PAUSE;
           break;
         default:
           /* output_warning("Unhandled MMC (id:%d)", sysex[4]); */
           /* print_bin(stdout, sysex, size); */
-          ;
+          break;
         }
     }
+  return 0;
 }
 
 bool_t init_engine(engine_ctx_t *engine, char *name, int type)
@@ -413,9 +413,19 @@ bool_t init_engine(engine_ctx_t *engine, char *name, int type)
   return TRUE;
 }
 
+void free_output_list(engine_ctx_t *ctx)
+{
+  list_iterator_t  output_it;
+
+  for (iter_init(&output_it, &(ctx->output_list));
+       iter_node(&output_it);
+       ctx->delete_output_node(ctx, &output_it))
+    ;
+}
+
 void uninit_engine(engine_ctx_t *engine)
 {
-  free_list_node(&(engine->output_list), engine->free_output_node);
+  free_output_list(engine);
   engine_destroy_hdl(engine);
   free_list_node(&(engine->track_list), _free_trackctx);
   engine_clear_all_bindings(engine);

@@ -23,8 +23,9 @@ typedef struct
   pthread_t        thread_id;
   bool_t           thread_ret;
   bool_t           ev_to_drain;
-  char             *output_req;
-  aseq_output_t    *output_req_res;
+  output_t         *del_output_req;
+  char             *add_output_req;
+  aseq_output_t    *add_output_req_res;
 } nns_hdl_t;
 
 bool_t nns_is_running(engine_ctx_t *ctx)
@@ -38,13 +39,27 @@ bool_t nns_is_running(engine_ctx_t *ctx)
   return isrunning;
 }
 
-void nns_free_output_node(void *addr)
+void nns_delete_output_node(engine_ctx_t *ctx, list_iterator_t *iter)
 {
-  output_t      *output = (output_t *) addr;
+  nns_hdl_t     *hdl = (nns_hdl_t *) ctx->hdl;
+  output_t      *output = (output_t *) iter_node_ptr(iter);
   aseq_output_t *aseqoutput = (aseq_output_t  *) output->hdl;
 
-  free_aseq_output(aseqoutput);
-  free(output);
+  pthread_rwlock_rdlock(&(hdl->lock));
+  if (hdl->is_running)
+    {
+      hdl->del_output_req = output;
+      pthread_rwlock_unlock(&(hdl->lock));
+      while (hdl->del_output_req != NULL)
+        usleep(100000);
+    }
+  else
+    {
+      free_aseq_output(aseqoutput);
+      free(output);
+      pthread_rwlock_unlock(&(hdl->lock));
+    }
+  iter_node_del(iter, NULL);
 }
 
 void nns_stop(engine_ctx_t *ctx)
@@ -79,19 +94,19 @@ void nns_start(engine_ctx_t *ctx)
     hdl->rq = engine_rq_stop;
 }
 
-void nns_init_output(engine_ctx_t *ctx, output_t *output, const char *name)
+void nns_create_output(engine_ctx_t *ctx, output_t *output, const char *name)
 {
   nns_hdl_t     *hdl = (nns_hdl_t *) ctx->hdl;
 
   pthread_rwlock_rdlock(&(hdl->lock));
   if (hdl->is_running)
     {
-      hdl->output_req = (char *) name;
+      hdl->add_output_req = (char *) name;
       pthread_rwlock_unlock(&(hdl->lock));
-      while (hdl->output_req != NULL)
+      while (hdl->add_output_req != NULL)
         usleep(100000);
-      output->hdl = hdl->output_req_res;
-      hdl->output_req_res = NULL;
+      output->hdl = hdl->add_output_req_res;
+      hdl->add_output_req_res = NULL;
     }
   else
     {
@@ -167,7 +182,17 @@ void nns_handle_input(engine_ctx_t *ctx)
                 ctx->bindings.rec_note = snd_ev->data.note.note;
               break;
             case SND_SEQ_EVENT_SYSEX:
-              engine_handle_sysex(ctx, snd_ev->data.ext.ptr, snd_ev->data.ext.len);
+              switch (engine_get_sysex_mmc(ctx, snd_ev->data.ext.ptr, snd_ev->data.ext.len))
+                {
+                case MMC_STOP:
+                  nns_stop(ctx);
+                  break;
+                case MMC_PAUSE:
+                  nns_start(ctx);
+                  break;
+                default:
+                  break;
+                }
               break;
             default:
               output("%s: %d %d %d\n", __FUNCTION__, snd_ev->type, SND_SEQ_EVENT_NOTEON, SND_SEQ_EVENT_NOTEOFF);
@@ -188,10 +213,32 @@ void nns_handle_input(engine_ctx_t *ctx)
     }
 }
 
+void _nnshdl_add_del_output_req(nns_hdl_t *hdl)
+{
+  aseq_output_t *aseqoutput = NULL;
+
+  if (hdl->add_output_req != NULL)
+    {
+      hdl->add_output_req_res = create_aseq_output(hdl->aseqh,
+                                                   hdl->add_output_req,
+                                                   &(hdl->ev_to_drain),
+                                                   &(hdl->is_running));
+      hdl->add_output_req = NULL;
+    }
+  if (hdl->del_output_req != NULL)
+    {
+      output("Deleting an output a la cool ;-)\n");
+      aseqoutput = (aseq_output_t  *) hdl->del_output_req->hdl;
+      free_aseq_output(aseqoutput);
+      free(hdl->del_output_req);
+      hdl->del_output_req = NULL;
+    }
+}
+
 clock_req_t _nns_engine_cb(void *arg)
 {
-  engine_ctx_t *ctx = (engine_ctx_t *) arg;
-  nns_hdl_t    *hdl = (nns_hdl_t *) ctx->hdl;
+  engine_ctx_t  *ctx = (engine_ctx_t *) arg;
+  nns_hdl_t     *hdl = (nns_hdl_t *) ctx->hdl;
 
   nns_handle_input(ctx);
 
@@ -203,6 +250,7 @@ clock_req_t _nns_engine_cb(void *arg)
       play_outputs_reqs(ctx);
       play_tracks_pending_notes(ctx);
       nns_drain_output(hdl);
+      _nnshdl_add_del_output_req(hdl);
       hdl->is_running = FALSE;
       pthread_rwlock_unlock(&(hdl->lock));
       return CLOCK_STOP;
@@ -212,14 +260,7 @@ clock_req_t _nns_engine_cb(void *arg)
   play_tracks(ctx);
   nns_drain_output(hdl);
 
-  if (hdl->output_req != NULL)
-    {
-      hdl->output_req_res = create_aseq_output(hdl->aseqh,
-                                               hdl->output_req,
-                                               &(hdl->ev_to_drain),
-                                               &(hdl->is_running));
-      hdl->output_req = NULL;
-    }
+  _nnshdl_add_del_output_req(hdl);
 
   _engine_free_trash(ctx);
   return CLOCK_CONTINUE;
@@ -257,14 +298,14 @@ bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
   if (aseqh == NULL)
     return FALSE;
 
-  ctx->destroy_hdl      = nns_destroy_hdl;
-  ctx->is_running       = nns_is_running;
-  ctx->start            = nns_start;
-  ctx->stop             = nns_stop;
-  ctx->init_output      = nns_init_output;
-  ctx->free_output_node = nns_free_output_node;
-  ctx->get_tick         = nns_get_tick;
-  ctx->set_tempo        = nns_set_tempo;
+  ctx->destroy_hdl        = nns_destroy_hdl;
+  ctx->is_running         = nns_is_running;
+  ctx->start              = nns_start;
+  ctx->stop               = nns_stop;
+  ctx->create_output      = nns_create_output;
+  ctx->delete_output_node = nns_delete_output_node;
+  ctx->get_tick           = nns_get_tick;
+  ctx->set_tempo          = nns_set_tempo;
 
   hdl = myalloc(sizeof (nns_hdl_t));
   pthread_rwlock_init(&(hdl->lock), NULL);

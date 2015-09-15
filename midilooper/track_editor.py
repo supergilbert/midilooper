@@ -37,7 +37,7 @@ class TrackSettingTable(gtk.Table):
         port_idx = combobox.get_active()
         if port_idx >= 0:
             port = portlist[port_idx][0]
-            self.chaned.setting.track.set_port(port)
+            self.chaned.setting.track.set_output(port)
 
     def set_track_len(self, widget):
         self.chaned.set_len(int(widget.get_value()))
@@ -78,7 +78,7 @@ class TrackSettingTable(gtk.Table):
         portlist_cbbox.add_attribute(cell, 'text', 1)
         portlist_cbbox.connect("changed", self.port_changed)
         for idx, model in enumerate(portlist):
-            if self.chaned.setting.track.has_port(model[0]):
+            if self.chaned.setting.track.has_output(model[0]):
                 portlist_cbbox.set_active(idx)
                 break
         self.attach(label, 4, 5, 0, 1)

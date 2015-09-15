@@ -10,9 +10,9 @@ LIB_MSQ_SRC=$(LIB_MSQ_DIR)/asound/aseq.c\
 	$(LIB_MSQ_DIR)/midi/midifile_tool.c\
 	$(LIB_MSQ_DIR)/loop_engine/track_ctx.c\
 	$(LIB_MSQ_DIR)/loop_engine/output_req.c\
-	$(LIB_MSQ_DIR)/loop_engine/engine.c\
 	$(LIB_MSQ_DIR)/loop_engine/engine_nanosleep.c\
 	$(LIB_MSQ_DIR)/loop_engine/engine_jack.c\
+	$(LIB_MSQ_DIR)/loop_engine/engine.c\
 	$(LIB_MSQ_DIR)/loop_engine/engine_midisave.c\
 	$(LIB_MSQ_DIR)/loop_engine/engine_binding.c\
 	$(LIB_MSQ_DIR)/loop_engine/midi_ring_buffer.c\

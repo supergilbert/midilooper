@@ -219,7 +219,7 @@ static PyObject *midiseq_track_add_evrepr_list(PyObject *obj, PyObject *args)
   return ret;
 }
 
-static PyObject *midiseq_track_get_port(PyObject *obj, PyObject *args)
+static PyObject *midiseq_track_get_output(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
@@ -229,7 +229,7 @@ static PyObject *midiseq_track_get_port(PyObject *obj, PyObject *args)
     return create_midiseq_output(self->trackctx->output);
 }
 
-static PyObject *midiseq_track_set_port(PyObject *obj, PyObject *args)
+static PyObject *midiseq_track_set_output(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
   midiseq_outputObject *pyoutput = NULL;
@@ -243,7 +243,7 @@ static PyObject *midiseq_track_set_port(PyObject *obj, PyObject *args)
   Py_RETURN_NONE;
 }
 
-static PyObject *midiseq_track_has_port(PyObject *obj, PyObject *args)
+static PyObject *midiseq_track_has_output(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
   midiseq_outputObject *pyoutput = NULL;
@@ -552,19 +552,19 @@ static PyMethodDef midiseq_track_methods[] = {
   {"get_mute_state",     midiseq_track_get_mute_state,  METH_NOARGS,  "Get mute state"},
   {"set_len",            midiseq_track_set_len,         METH_VARARGS, "Set track len"},
   {"set_start",          midiseq_track_set_start,       METH_VARARGS, "Set track start"},
-  {"get_port",           midiseq_track_get_port,        METH_NOARGS,  "Get track port"},
-  {"set_port",           midiseq_track_set_port,        METH_VARARGS, "Set track port"},
+  {"get_output",         midiseq_track_get_output,      METH_NOARGS,  "Get track output"},
+  {"set_output",         midiseq_track_set_output,      METH_VARARGS, "Set track output"},
   {"toggle_mute",        midiseq_track_toggle_mute,     METH_NOARGS,  "Toggle mute state"},
   {"mute",               midiseq_track_mute,            METH_NOARGS,  "Set mute state"},
   {"unmute",             midiseq_track_unmute,          METH_NOARGS,  "Unset mute state"},
-  {"has_port",           midiseq_track_has_port,        METH_VARARGS, "Check if track has port"},
+  {"has_output",         midiseq_track_has_output,      METH_VARARGS, "Check if track has output"},
   {"add_evrepr_list",    midiseq_track_add_evrepr_list, METH_VARARGS, "Add a note list event representation"},
   {"is_in_recmode",      midiseq_track_is_in_recmode,   METH_NOARGS,  "Get if the track is in record mode"},
   {"is_handled",         midiseq_track_ishandled,       METH_NOARGS,  "Get if the track is handled"},
   {"has_changed",        midiseq_track_has_changed,     METH_NOARGS,  "Get if the track has changed (During record)"},
   {"_delete_evwr_list",  msq_track_delete_evwr_list,    METH_VARARGS, "Delete event wrapper list (Caution: never use event of other tracks)"},
   {"_get_evwr_list",     msq_track_get_evwr_list,       METH_VARARGS, "Delete event wrapper list (Caution: never use event of other tracks)"},
-  {"play_note",          midiseq_track_play_note,       METH_VARARGS, "Play note on port"},
+  {"play_note",          midiseq_track_play_note,       METH_VARARGS, "Play note on output"},
   {"getall_noteonoff",   msq_track_getall_noteonoff,    METH_VARARGS, "Get note list representation in python"},
   {"getall_midicev",     msq_track_getall_midicev,      METH_VARARGS, "Get note list representation in python"},
   {"getall_event",       msq_track_getall_event,        METH_VARARGS, "Get event list representation in python"},
