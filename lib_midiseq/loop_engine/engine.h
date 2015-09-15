@@ -100,7 +100,7 @@ typedef struct engine_ctx
                                     output_t *output,
                                     const char *name);
   void             (*delete_output_node)(struct engine_ctx *engine,
-                                         list_iterator_t *iterxs);
+                                         output_t *output);
   uint_t           (*get_tick)(struct engine_ctx *engine);
   void             (*set_tempo)(struct engine_ctx *engine, uint_t ms);
 } engine_ctx_t;

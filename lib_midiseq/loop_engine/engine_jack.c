@@ -52,14 +52,12 @@ void jbe_stop(engine_ctx_t *ctx)
   _engine_free_trash(ctx);
 }
 
-void jbe_delete_output_node(engine_ctx_t *ctx, list_iterator_t *iter)
+void jbe_delete_output_node(engine_ctx_t *ctx, output_t *output)
 {
-  output_t     *joutput = (output_t *) iter_node_ptr(iter);
-  jbe_output_t *jackoutput = (jbe_output_t *) joutput->hdl;
+  jbe_output_t *jackoutput = (jbe_output_t *) output->hdl;
 
   free_jbe_output(jackoutput);
-  free(joutput);
-  iter_node_del(iter, NULL);
+  free(output);
 }
 
 void jbe_destroy_hdl(engine_ctx_t *ctx)

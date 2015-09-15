@@ -363,7 +363,8 @@ bool_t engine_delete_output(engine_ctx_t *ctx, output_t *output)
         {
           free_list_node(&(output->req_list), free);
           pthread_mutex_destroy(&(output->req_lock));
-          ctx->delete_output_node(ctx, &output_it);
+          ctx->delete_output_node(ctx, output);
+          iter_node_del(&output_it, NULL);
           return TRUE;
         }
     }
@@ -416,11 +417,15 @@ bool_t init_engine(engine_ctx_t *engine, char *name, int type)
 void free_output_list(engine_ctx_t *ctx)
 {
   list_iterator_t  output_it;
+  output_t         *output = NULL;
 
   for (iter_init(&output_it, &(ctx->output_list));
        iter_node(&output_it);
-       ctx->delete_output_node(ctx, &output_it))
-    ;
+       iter_node_del(&output_it, NULL))
+    {
+      output = (output_t *) iter_node_ptr(&output_it);
+      ctx->delete_output_node(ctx, output);
+    }
 }
 
 void uninit_engine(engine_ctx_t *engine)

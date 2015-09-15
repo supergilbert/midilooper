@@ -39,10 +39,9 @@ bool_t nns_is_running(engine_ctx_t *ctx)
   return isrunning;
 }
 
-void nns_delete_output_node(engine_ctx_t *ctx, list_iterator_t *iter)
+void nns_delete_output_node(engine_ctx_t *ctx, output_t *output)
 {
   nns_hdl_t     *hdl = (nns_hdl_t *) ctx->hdl;
-  output_t      *output = (output_t *) iter_node_ptr(iter);
   aseq_output_t *aseqoutput = (aseq_output_t  *) output->hdl;
 
   pthread_rwlock_rdlock(&(hdl->lock));
@@ -59,7 +58,6 @@ void nns_delete_output_node(engine_ctx_t *ctx, list_iterator_t *iter)
       free(output);
       pthread_rwlock_unlock(&(hdl->lock));
     }
-  iter_node_del(iter, NULL);
 }
 
 void nns_stop(engine_ctx_t *ctx)
@@ -227,7 +225,6 @@ void _nnshdl_add_del_output_req(nns_hdl_t *hdl)
     }
   if (hdl->del_output_req != NULL)
     {
-      output("Deleting an output a la cool ;-)\n");
       aseqoutput = (aseq_output_t  *) hdl->del_output_req->hdl;
       free_aseq_output(aseqoutput);
       free(hdl->del_output_req);
