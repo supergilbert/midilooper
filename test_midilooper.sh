@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 MIDILOOPER=$(dirname $0)/midilooper/midilooper.py
-export PYTHONPATH=$(dirname $0)/python_midiseq/build
+export PYTHONPATH=$(dirname $0)/python_midiseq
 
 if [ $# -lt 1 ]; then
 	ulimit -c unlimited

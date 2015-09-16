@@ -25,21 +25,24 @@ LIB_MSQ_SRC=$(LIB_MSQ_DIR)/asound/aseq.c\
 
 LIB_MSQ_DEPS=$(LIB_MSQ_SRC:.c=.d)
 
-CFLAGS=-Wall -Werror -g -fPIC -I$(LIB_MSQ_DIR)
-CC=gcc
+$(LIB_MSQ_DEPS): CFLAGS=-Wall -Werror -g -fPIC -I$(LIB_MSQ_DIR)
+$(LIB_MSQ_DEPS): CC=gcc
+
+$(LIB_MSQ): CFLAGS=-Wall -Werror -g -fPIC -I$(LIB_MSQ_DIR)
+$(LIB_MSQ): CC=gcc
+
 
 LIB_MSQ_OBJ=$(LIB_MSQ_SRC:.c=.o)
 
-$(LIB_MSQ) : $(LIB_MSQ_OBJ)
+$(LIB_MSQ_OBJ): CFLAGS=-Wall -Werror -g -fPIC -I$(LIB_MSQ_DIR)
+$(LIB_MSQ_OBJ): CC=gcc
+
+$(LIB_MSQ): $(LIB_MSQ_OBJ)
 	ar -rvs $@ $^
 
-.PHONY : clean_msq_lib
-clean_lib_msq :
+.PHONY: clean_msq_lib
+clean_lib_msq:
 	rm -f $(LIB_MSQ) $(LIB_MSQ_OBJ) $(LIB_MSQ_DEPS)
-
-# Header dependencies
-%.d : %.c
-	$(CC) $(CFLAGS) -MM -MT "$(patsubst %.c,%.o,$<)" -MF $@ $<
 
 ifneq ($(findstring clean, $(MAKECMDGOALS)), clean)
 -include $(LIB_MSQ_DEPS)

@@ -197,7 +197,7 @@ class MsqVBarNoteWidget(gtk.Widget, Ypos2Note):
             return
         note = self.ypos2note(int(event.y))
         self.show_note(note)
-        port = self.setting.track.get_port()
+        port = self.setting.track.get_output()
 
         self.setting.track.play_note(self.setting.chan_num,
                                      MIDI_NOTEON_EVENT,
@@ -209,7 +209,7 @@ class MsqVBarNoteWidget(gtk.Widget, Ypos2Note):
     def handle_button_release(self, widget, event, grid):
         self.clear_note()
         note = self.ypos2note(int(event.y))
-        port = self.setting.track.get_port()
+        port = self.setting.track.get_output()
         self.setting.track.play_note(self.setting.chan_num,
                                      MIDI_NOTEOFF_EVENT,
                                      note,
