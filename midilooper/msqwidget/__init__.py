@@ -41,7 +41,7 @@ NOTE_MAX = 127
 
 default_font       = gdk.Font(DEFAULT_FONT_NAME)
 DEFAULT_NOTE_YSZ   = default_font.string_height("C -10X") + 4
-DEFAULT_NOTEON_VAL = 100
+DEFAULT_NOTEON_VAL = 64
 
 
 class ProgressLineListener(object):
@@ -417,12 +417,13 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
         # self.set_flags(gtk.CAN_DEFAULT)
 
 
-    def draw_note(self, note_on, note_off, selected=False):
+    def draw_note(self, drawable, note_on, note_off, selected=False):
         xmin = self.tick2xpos(note_on[0])
         xmax = self.tick2xpos(note_off[0])
         width = xmax - xmin
         ypos = self.note2ypos(note_on[3]) + 1
-        self.draw_note_rectangle(xmin, ypos, width, self.setting.noteysz - 1,
+        self.draw_note_rectangle(drawable,
+                                 xmin, ypos, width, self.setting.noteysz - 1,
                                  note_on[4], selected)
 
 
@@ -470,7 +471,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
 
 
     def draw_grid(self, area):
-        cr = self.window.cairo_create()
+        cr = self.buffer_img.cairo_create()
         cr.set_source_color(self.grid_bg)
         cr.rectangle(area.x, area.y, area.width, area.height)
         cr.fill()
@@ -547,7 +548,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
         return False
 
 
-    def draw_note_rectangle(self, x, y, width, height, value, selected):
+    def draw_note_rectangle(self, drawable, x, y, width, height, value, selected):
         def ponder_color(coef, color1, color2):
             def ponder_value(coef, value1, value2):
                 dist = value2 - value1
@@ -588,7 +589,7 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
             return gtk.gdk.Color(red=red_value, green=green_value, blue=blue_value)
 
         note_color = get_note_color(value)
-        cr = self.window.cairo_create()
+        cr = drawable.cairo_create()
         cr.set_source_color(note_color)
         cr.rectangle(x, y, width, height)
         cr.fill()
@@ -619,13 +620,13 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
                                                      note_max)
 
 
-    def draw_notes_bar(self, area):
+    def draw_notes_bar(self, drawable, area):
         note_list = self.get_notes(area)
         selected_notes = None
         if self.selection:
             selected_notes = evwr_to_repr_list(self.selection)
         for ev_on, ev_off in note_list:
-            self.draw_note(ev_on, ev_off, self.is_in_note_list(ev_on, selected_notes))
+            self.draw_note(drawable, ev_on, ev_off, self.is_in_note_list(ev_on, selected_notes))
         if self.value_wgt.is_in_note_mode():
             self.value_wgt.draw_value_area(area.x, area.width)
 
@@ -641,16 +642,8 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
 
     def draw_area(self, area):
         self.draw_grid(area)
-        self.draw_notes_bar(area)
-        self.buffer_img.draw_drawable(self.style.fg_gc[gtk.STATE_NORMAL],
-                                      self.window,
-                                      area[0],
-                                      area[1],
-                                      area[0],
-                                      area[1],
-                                      area[2],
-                                      area[3])
-
+        self.draw_notes_bar(self.buffer_img, area)
+        self.buffer_refresh_area(area)
 
     def do_expose_event(self, event):
         self.draw_area(event.area)

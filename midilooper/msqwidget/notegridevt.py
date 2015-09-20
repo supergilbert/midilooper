@@ -510,7 +510,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         note_min = note_list[0][0][3]
         note_max = note_list[0][0][3]
         for note_on, note_off in note_list:
-            self.draw_note(note_on, note_off, selected)
+            self.draw_note(self.window, note_on, note_off, selected)
             if tick_max < note_off[0]:
                 tick_max = note_off[0]
             if tick_min > note_on[0]:
