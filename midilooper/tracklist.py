@@ -23,8 +23,7 @@ pygtk.require("2.0")
 import gtk
 
 from track_editor import TrackEditor
-from tool import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu
-
+from tool import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu, prompt_get_loop
 
 
 # xpm_button_add = ["8 8 2 1",
@@ -118,6 +117,15 @@ class TrackListMenu(MsqListMenu):
     def clear_all_bindings(self, menuitem):
         self.tracklist.seq.clear_all_bindings()
 
+    def set_loop(self, menuitem):
+        if self.path:
+            tv_iter = self.tracklist.liststore.get_iter(self.path[0])
+            tedit = self.tracklist.liststore.get_value(tv_iter, 0)
+            loop_pos = prompt_get_loop(tedit.chaned.setting.getstart() / tedit.chaned.setting.getppq(),
+                                       tedit.chaned.setting.getlen()   / tedit.chaned.setting.getppq())
+            if loop_pos:
+                tedit.track_setting.set_loop(loop_pos[0], loop_pos[1])
+
     def copy_track(self, menuitem):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
@@ -135,6 +143,15 @@ class TrackListMenu(MsqListMenu):
                                              False])
             new_tedit.show_all()
 
+    def set_loop_all(self, menuitem):
+        def set_loop_all_cb(model, path, tv_iter, loop_pos):
+            tedit = model.get_value(tv_iter, 0)
+            tedit.track_setting.set_loop(loop_pos[0], loop_pos[1])
+
+        loop_pos = prompt_get_loop(0, 4)
+        if loop_pos:
+            self.tracklist.liststore.foreach(set_loop_all_cb, loop_pos)
+
     def __init__(self, tracklist):
         MsqListMenu.__init__(self)
         self.tracklist = tracklist
@@ -145,11 +162,16 @@ class TrackListMenu(MsqListMenu):
         self.mlm_add_item("Add note binding", self.add_note_binding)
         self.mlm_add_item("Del bindings", self.del_track_bindings)
         self.mlm_add_item("Clear all bindings", self.clear_all_bindings)
+        self.mlm_add_item("Configure loop", self.set_loop)
         self.mlm_add_item("Copy track", self.copy_track)
         separator = gtk.SeparatorMenuItem()
         separator.show()
         self.append(separator)
         self.mlm_add_item("Delete track", self.del_track)
+        separator = gtk.SeparatorMenuItem()
+        separator.show()
+        self.append(separator)
+        self.mlm_add_item("Configure all loop", self.set_loop_all)
 
 
 class TrackList(gtk.Frame):

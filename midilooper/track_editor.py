@@ -28,8 +28,8 @@ if gtk.pygtk_version < (2, 8):
 from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, MIN_QNOTE_XSZ, DEFAULT_QNOTE_XSZ, MAX_QNOTE_XSZ
 from msqwidget.midivaluewgt import MsqValueWidget
 from msqwidget.wgttools import MIDI_CTRL_EVENT
+from tool import prompt_get_loop
 
-MAX_LENGTH = 240
 
 class TrackSettingTable(gtk.Table):
     def port_changed(self, combobox):
@@ -39,37 +39,31 @@ class TrackSettingTable(gtk.Table):
             port = portlist[port_idx][0]
             self.chaned.setting.track.set_output(port)
 
-    def set_track_len(self, widget):
-        self.chaned.set_len(int(widget.get_value()))
+    def set_loop(self, loop_start, loop_len):
+        self.chaned.setting.track.set_start(loop_start * self.chaned.setting.getppq())
+        self.chaned.setting.track.set_len(loop_len * self.chaned.setting.getppq())
+        self.chaned.resize_all()
+        self.loop_label.set_text("Loop start:%d length:%d " % (self.chaned.setting.getstart() / self.chaned.setting.getppq(),
+                                                               self.chaned.setting.getlen()   / self.chaned.setting.getppq()))
 
-    def set_track_start(self, widget):
-        self.chaned.set_start(int(widget.get_value()))
+    def button_set_loop(self, button):
+        loop_pos = prompt_get_loop(self.chaned.setting.getstart() / self.chaned.setting.getppq(),
+                                   self.chaned.setting.getlen()   / self.chaned.setting.getppq())
+        if loop_pos:
+            self.set_loop(loop_pos[0], loop_pos[1])
 
     def __init__(self, chaned, portlist):
-        gtk.Table.__init__(self, 6, 1)
+        gtk.Table.__init__(self, 4, 1)
         self.chaned = chaned
 
-        label = gtk.Label(" Loop Start: ")
-        spinadj = gtk.Adjustment(self.chaned.setting.getstart() / self.chaned.setting.getppq(),
-                                 0,
-                                 MAX_LENGTH - 1,
-                                 1)
-        spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
-        spinadj.connect("value-changed", self.set_track_start)
-        spinbut.set_tooltip_text("Set the track start")
-        self.attach(label, 0, 1, 0, 1)
-        self.attach(spinbut, 1, 2, 0, 1)
+        self.loop_label = gtk.Label("Loop start:%d length:%d " % (self.chaned.setting.getstart() / self.chaned.setting.getppq(),
+                                                                  self.chaned.setting.getlen()   / self.chaned.setting.getppq()))
+        self.attach(self.loop_label, 0, 1, 0, 1)
 
-        label = gtk.Label(" Loop length: ")
-        spinadj = gtk.Adjustment(self.chaned.setting.getlen() / self.chaned.setting.getppq(),
-                                 1,
-                                 MAX_LENGTH,
-                                 1)
-        spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
-        spinadj.connect("value-changed", self.set_track_len)
-        spinbut.set_tooltip_text("Set the track length")
-        self.attach(label, 2, 3, 0, 1)
-        self.attach(spinbut, 3, 4, 0, 1)
+        button = gtk.Button("Configure loop")
+        button.connect("clicked", self.button_set_loop)
+
+        self.attach(button, 1, 2, 0, 1)
 
         label = gtk.Label("  Output Port: ")
         portlist_cbbox = gtk.ComboBox(portlist)
@@ -81,8 +75,8 @@ class TrackSettingTable(gtk.Table):
             if self.chaned.setting.track.has_output(model[0]):
                 portlist_cbbox.set_active(idx)
                 break
-        self.attach(label, 4, 5, 0, 1)
-        self.attach(portlist_cbbox, 5, 6, 0, 1)
+        self.attach(label, 2, 3, 0, 1)
+        self.attach(portlist_cbbox, 3, 4, 0, 1)
 
 
 
@@ -222,14 +216,6 @@ class ChannelEditor(gtk.VBox):
         self.hbar.resize_wgt()
         self.grid.resize_wgt()
         self.value_wgt.resize_wgt()
-
-    def set_len(self, track_len):
-        self.setting.track.set_len(track_len * self.setting.getppq())
-        self.resize_all()
-
-    def set_start(self, start):
-        self.setting.track.set_start(start * self.setting.getppq())
-        self.resize_all()
 
     def set_chaned_vadj(self, widget, event, vadj, noteysz):
         if is_mask_to_bypass(event.state):
@@ -490,8 +476,9 @@ class TrackEditor(gtk.Window):
             return True
         self.connect('delete-event', hide_tracked)
 
+        self.track_setting = TrackSettingTable(self.chaned, portlist)
         track_setting_frame = gtk.Frame("Track setting")
-        track_setting_frame.add(TrackSettingTable(self.chaned, portlist))
+        track_setting_frame.add(self.track_setting)
 
         hbox = gtk.HBox()
         hbox.pack_start(track_setting_frame, expand=False)

@@ -23,13 +23,9 @@ pygtk.require("2.0")
 import gtk
 
 def prompt_gettext(label, prev_text=None):
-    # dialog = gtk.MessageDialog(None,
-    #                            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-    #                            gtk.MESSAGE_QUESTION,
-    #                            gtk.BUTTONS_OK,
-    #                            None)
     def emit_resp(entry, dialog):
         dialog.response(gtk.RESPONSE_OK)
+
     dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
     dialog.set_decorated(False)
     dialog.set_position(gtk.WIN_POS_MOUSE)
@@ -116,6 +112,65 @@ Press any note (timeout in 5 sec)""" % name)
     dialog.destroy()
     return timeout_data[0]
 
+MAX_LENGTH = 480
+
+def prompt_get_loop(loop_start, loop_len):
+    def button_apply_cb(button, dialog, loop_pos, spinbut1, spinbut2):
+        loop_pos[0] = int(spinbut1.get_value())
+        loop_pos[1] = int(spinbut2.get_value())
+        dialog.response(gtk.RESPONSE_OK)
+
+    def button_cancel_cb(button, loop_pos):
+        loop_pos[0] = None
+        dialog.response(gtk.RESPONSE_CANCEL)
+
+    hbox = gtk.HBox()
+
+    label = gtk.Label(" Loop Start: ")
+    spinadj = gtk.Adjustment(loop_start,
+                             0,
+                             MAX_LENGTH - 1,
+                             1)
+    spinbut1 = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
+    spinbut1.set_tooltip_text("Set the track start")
+    hbox.pack_start(label,   True, True, 0)
+    hbox.pack_start(spinbut1, True, True, 0)
+
+    label = gtk.Label(" Loop length: ")
+    spinadj = gtk.Adjustment(loop_len,
+                             1,
+                             MAX_LENGTH,
+                             1)
+    spinbut2 = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
+    spinbut2.set_tooltip_text("Set the track length")
+    hbox.pack_start(label,   True, True, 0)
+    hbox.pack_start(spinbut2, True, True, 0)
+
+    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
+    dialog.set_position(gtk.WIN_POS_MOUSE)
+    # dialog.set_decorated(False)
+    dialog.vbox.pack_start(hbox, True, True, 0)
+
+    hbox = gtk.HBox()
+
+    loop_pos = [loop_start, loop_len]
+
+    button = gtk.Button(stock=gtk.STOCK_APPLY)
+    button.connect("clicked", button_apply_cb, dialog, loop_pos, spinbut1, spinbut2)
+    hbox.pack_start(button, True, True, 0)
+
+    button = gtk.Button(stock=gtk.STOCK_CANCEL)
+    button.connect("clicked", button_cancel_cb, loop_pos)
+    hbox.pack_start(button, True, True, 0)
+
+    dialog.vbox.pack_start(hbox, True, True, 0)
+
+    dialog.show_all()
+    dialog.run()
+    dialog.destroy()
+    if loop_pos[0] == None:
+        return None
+    return loop_pos
 
 class MsqListMenu(gtk.Menu):
     def mlm_add_item(self, name, callback=None):
