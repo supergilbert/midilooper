@@ -240,7 +240,6 @@ class MidiLooper(gtk.Window):
         self.add(vbox)
         self.connect("key_press_event", self.key_press)
         self.connect('delete_event', gtk.main_quit)
-
         self.show_all()
 
 import getopt
@@ -277,7 +276,7 @@ if __name__ == "__main__":
     def usage():
         print """\
 Usage:
-midilooper [-h] [-a | -j] [-n NAME] [FILENAME]
+midilooper [-h] [-a | -j] [-n NAME] [-f filepath] [-i filepath] [FILENAME]
 
 Options:
 -h, --help
@@ -288,6 +287,8 @@ Options:
   Enable jack backend.
 -n, --name
   Set sequencer backend name.
+-i, --import
+  Import midi file.
 
 FILENAME
   The midifile to load (unstable).
@@ -296,9 +297,12 @@ FILENAME
     engine_type = None
     engine_name = "MidiLooper"
     file_name = None
+    import_midi = False
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hjan:", ["help", "jack", "alsa", "name"])
+        opts, args = getopt.getopt(sys.argv[1:],
+                                   "hjan:i:",
+                                   ["help", "jack", "alsa", "name", "import"])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -330,6 +334,9 @@ FILENAME
             file_name = arg
         elif opt in ["-n", "--name"]:
             engine_name = arg
+        elif opt in ["-i", "--import"]:
+            import_midi = True
+            file_name = arg
         else:
             assert False, "Unhandled option"
 
@@ -337,4 +344,9 @@ FILENAME
         engine_type = 0
 
     mlooper = MidiLooper(seq_name=engine_name, filename=file_name, engine_type=engine_type)
+    if import_midi:
+        output = mlooper.outputlist_frame.add_output("default")
+        if output:
+            mlooper.tracklist_frame.menu.set_output_all(output)
+            mlooper.tracklist_frame.menu.set_loop_all((0, 240))
     gtk.main()

@@ -23,7 +23,7 @@ pygtk.require("2.0")
 import gtk
 
 from track_editor import TrackEditor
-from tool import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu, prompt_get_loop
+from tool import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu, prompt_get_loop, prompt_get_output
 
 
 # xpm_button_add = ["8 8 2 1",
@@ -126,6 +126,19 @@ class TrackListMenu(MsqListMenu):
             if loop_pos:
                 tedit.track_setting.set_loop(loop_pos[0], loop_pos[1])
 
+    def set_output(self, menuitem):
+        if self.path:
+            tv_iter = self.tracklist.liststore.get_iter(self.path[0])
+            tedit = self.tracklist.liststore.get_value(tv_iter, 0)
+            port_idx = 0
+            for idx, model in enumerate(self.tracklist.portlist):
+                if tedit.chaned.setting.track.has_output(model[0]):
+                    port_idx = idx
+                    break;
+            output_res = prompt_get_output(self.tracklist.portlist, port_idx)
+            if output_res[0]:
+                tedit.track_setting.set_output(output_res[1])
+
     def copy_track(self, menuitem):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
@@ -143,35 +156,53 @@ class TrackListMenu(MsqListMenu):
                                              False])
             new_tedit.show_all()
 
-    def set_loop_all(self, menuitem):
+    def set_loop_all(self, loop_pos):
         def set_loop_all_cb(model, path, tv_iter, loop_pos):
             tedit = model.get_value(tv_iter, 0)
             tedit.track_setting.set_loop(loop_pos[0], loop_pos[1])
+        self.tracklist.liststore.foreach(set_loop_all_cb, loop_pos)
 
+    def menu_set_loop_all(self, menuitem):
         loop_pos = prompt_get_loop(0, 4)
         if loop_pos:
-            self.tracklist.liststore.foreach(set_loop_all_cb, loop_pos)
+            self.set_loop_all(loop_pos)
+
+    def set_output_all(self, output):
+        def set_output_all_cb(model, path, tv_iter, output):
+            tedit = model.get_value(tv_iter, 0)
+            tedit.track_setting.set_output(output)
+        self.tracklist.liststore.foreach(set_output_all_cb, output)
+
+    def menu_set_output_all(self, menuitem):
+        output_res = prompt_get_output(self.tracklist.portlist, 0)
+        if output_res:
+            self.set_output_all(output_res[1])
 
     def __init__(self, tracklist):
         MsqListMenu.__init__(self)
         self.tracklist = tracklist
 
-        self.mlm_add_item("Show track", self.show_track)
-        self.mlm_add_item("Rename track", self.rename_track)
-        self.mlm_add_item("Add key binding", self.add_key_binding)
-        self.mlm_add_item("Add note binding", self.add_note_binding)
-        self.mlm_add_item("Del bindings", self.del_track_bindings)
-        self.mlm_add_item("Clear all bindings", self.clear_all_bindings)
-        self.mlm_add_item("Configure loop", self.set_loop)
-        self.mlm_add_item("Copy track", self.copy_track)
-        separator = gtk.SeparatorMenuItem()
-        separator.show()
-        self.append(separator)
-        self.mlm_add_item("Delete track", self.del_track)
-        separator = gtk.SeparatorMenuItem()
-        separator.show()
-        self.append(separator)
-        self.mlm_add_item("Configure all loop", self.set_loop_all)
+        self.mlm_add_root_item("Show track", self.show_track)
+        self.mlm_add_root_item("Rename track", self.rename_track)
+        self.mlm_add_root_item("Copy track", self.copy_track)
+        self.mlm_add_root_item("Delete track", self.del_track)
+
+        menutrack = self.mlm_add_submenu(self, "Configure track")
+        self.mlm_add_menu_item(menutrack, "Loop", self.set_loop)
+        self.mlm_add_menu_item(menutrack, "Output", self.set_output)
+
+        self.mlm_add_menu_separator(menutrack)
+
+        menualltracks = self.mlm_add_submenu(menutrack, "All tracks")
+        self.mlm_add_menu_item(menualltracks, "Loop", self.menu_set_loop_all)
+        self.mlm_add_menu_item(menualltracks, "Output", self.menu_set_output_all)
+
+        self.mlm_add_root_separator()
+
+        self.mlm_add_root_item("Add key binding", self.add_key_binding)
+        self.mlm_add_root_item("Add note binding", self.add_note_binding)
+        self.mlm_add_root_item("Del bindings", self.del_track_bindings)
+        self.mlm_add_root_item("Clear all bindings", self.clear_all_bindings)
 
 
 class TrackList(gtk.Frame):
@@ -211,14 +242,6 @@ class TrackList(gtk.Frame):
             if event.button == 3:
                 self.menu.path = path
                 self.menu.popup(None, None, None, event.button, event.time)
-            # elif self.track_col == path[1]:
-            #     tv_iter = self.liststore.get_iter(path[0])
-            #     tedit = self.liststore.get_value(tv_iter, 0)
-            #     if tedit.get_mapped():
-            #         tedit.unmap()
-            #     else:
-            #         tedit.show_all()
-            #         tedit.map()
 
     def tvbutton_row_activated(self, treeview, path, view_column):
         tv_iter = self.liststore.get_iter(path[0])

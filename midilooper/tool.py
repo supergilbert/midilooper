@@ -112,7 +112,7 @@ Press any note (timeout in 5 sec)""" % name)
     dialog.destroy()
     return timeout_data[0]
 
-MAX_LENGTH = 480
+MAX_LENGTH = 240
 
 def prompt_get_loop(loop_start, loop_len):
     def button_apply_cb(button, dialog, loop_pos, spinbut1, spinbut2):
@@ -172,13 +172,81 @@ def prompt_get_loop(loop_start, loop_len):
         return None
     return loop_pos
 
+
+def prompt_get_output(portlist, idx=None):
+
+    def button_apply_cb(button, portlist_cbbox, port_res):
+        port_iter = portlist_cbbox.get_active_iter()
+        model = portlist_cbbox.get_model()
+        output = model.get_value(port_iter, 0)
+        port_res[0] = True
+        port_res[1] = output
+        dialog.response(gtk.RESPONSE_OK)
+
+    def button_cancel_cb(button, loop_ptr):
+        dialog.response(gtk.RESPONSE_CANCEL)
+
+    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
+
+    portlist_cbbox = gtk.ComboBox(portlist)
+    cell = gtk.CellRendererText()
+    portlist_cbbox.pack_start(cell, True)
+    portlist_cbbox.add_attribute(cell, 'text', 1)
+    if idx != None:
+        portlist_cbbox.set_active(idx)
+    else:
+        portlist_cbbox.set_active(0)
+
+    dialog.vbox.pack_start(portlist_cbbox, True, True, 0)
+
+    hbox = gtk.HBox()
+
+    port_res = [False, None]
+    button = gtk.Button(stock=gtk.STOCK_APPLY)
+    button.connect("clicked", button_apply_cb, portlist_cbbox, port_res)
+    hbox.pack_start(button, True, True, 0)
+
+    button = gtk.Button(stock=gtk.STOCK_CANCEL)
+    button.connect("clicked", button_cancel_cb, port_res)
+    hbox.pack_start(button, True, True, 0)
+
+    dialog.vbox.pack_start(hbox, True, True, 0)
+
+    dialog.show_all()
+    dialog.run()
+    dialog.destroy()
+    return port_res
+
 class MsqListMenu(gtk.Menu):
-    def mlm_add_item(self, name, callback=None):
-            item = gtk.MenuItem(name)
-            if callback:
-                item.connect("activate", callback)
-            item.show()
-            self.append(item)
+    @staticmethod
+    def mlm_add_menu_item(menu, name, callback=None):
+        item = gtk.MenuItem(name)
+        if callback:
+            item.connect("activate", callback)
+        item.show()
+        menu.append(item)
+
+    def mlm_add_root_item(self, name, callback=None):
+        self.mlm_add_menu_item(self, name, callback)
+
+    @staticmethod
+    def mlm_add_menu_separator(menu):
+        separator = gtk.SeparatorMenuItem()
+        separator.show()
+        menu.append(separator)
+
+    def mlm_add_root_separator(self):
+        self.mlm_add_menu_separator(self)
+
+    @staticmethod
+    def mlm_add_submenu(menu, name):
+        submenu = gtk.Menu()
+        mi = gtk.MenuItem(name)
+        mi.set_submenu(submenu)
+        mi.show()
+        menu.append(mi)
+        return submenu
+
     def __init__(self):
         gtk.Menu.__init__(self)
         self.path = None

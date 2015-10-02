@@ -28,23 +28,17 @@ if gtk.pygtk_version < (2, 8):
 from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, MIN_QNOTE_XSZ, DEFAULT_QNOTE_XSZ, MAX_QNOTE_XSZ
 from msqwidget.midivaluewgt import MsqValueWidget
 from msqwidget.wgttools import MIDI_CTRL_EVENT
-from tool import prompt_get_loop
+from tool import prompt_get_loop, prompt_get_output
 
 
 class TrackSettingTable(gtk.Table):
-    def port_changed(self, combobox):
-        portlist = combobox.get_model()
-        port_idx = combobox.get_active()
-        if port_idx >= 0:
-            port = portlist[port_idx][0]
-            self.chaned.setting.track.set_output(port)
 
     def set_loop(self, loop_start, loop_len):
         self.chaned.setting.track.set_start(loop_start * self.chaned.setting.getppq())
         self.chaned.setting.track.set_len(loop_len * self.chaned.setting.getppq())
         self.chaned.resize_all()
-        self.loop_label.set_text("Loop start:%d length:%d " % (self.chaned.setting.getstart() / self.chaned.setting.getppq(),
-                                                               self.chaned.setting.getlen()   / self.chaned.setting.getppq()))
+        self.loop_label.set_text(self.loop_str % (self.chaned.setting.getstart() / self.chaned.setting.getppq(),
+                                                  self.chaned.setting.getlen()   / self.chaned.setting.getppq()))
 
     def button_set_loop(self, button):
         loop_pos = prompt_get_loop(self.chaned.setting.getstart() / self.chaned.setting.getppq(),
@@ -52,12 +46,36 @@ class TrackSettingTable(gtk.Table):
         if loop_pos:
             self.set_loop(loop_pos[0], loop_pos[1])
 
+    def set_output(self, output):
+        self.chaned.setting.track.set_output(output)
+        output_port = None
+        for idx, model in enumerate(self.portlist):
+            if self.chaned.setting.track.has_output(model[0]):
+                output_port = model[1]
+                break
+        if output_port:
+            self.output_label.set_text(self.output_str % output_port)
+        else:
+            self.output_label.set_text(self.output_str % "None")
+
+    def button_set_output(self, button):
+        port_idx = 0
+        for idx, model in enumerate(self.portlist):
+            if self.chaned.setting.track.has_output(model[0]):
+                port_idx = idx
+                break;
+        output_res = prompt_get_output(self.portlist, port_idx)
+        if output_res[0]:
+            self.set_output(output_res[1])
+
     def __init__(self, chaned, portlist):
         gtk.Table.__init__(self, 4, 1)
         self.chaned = chaned
-
-        self.loop_label = gtk.Label("Loop start:%d length:%d " % (self.chaned.setting.getstart() / self.chaned.setting.getppq(),
-                                                                  self.chaned.setting.getlen()   / self.chaned.setting.getppq()))
+        self.loop_str = "Loop start:%d length:%d "
+        self.output_str = "  Output Port: %s "
+        self.portlist = portlist
+        self.loop_label = gtk.Label(self.loop_str % (self.chaned.setting.getstart() / self.chaned.setting.getppq(),
+                                                     self.chaned.setting.getlen()   / self.chaned.setting.getppq()))
         self.attach(self.loop_label, 0, 1, 0, 1)
 
         button = gtk.Button("Configure loop")
@@ -65,21 +83,22 @@ class TrackSettingTable(gtk.Table):
 
         self.attach(button, 1, 2, 0, 1)
 
-        label = gtk.Label("  Output Port: ")
-        portlist_cbbox = gtk.ComboBox(portlist)
-        cell = gtk.CellRendererText()
-        portlist_cbbox.pack_start(cell, True)
-        portlist_cbbox.add_attribute(cell, 'text', 1)
-        portlist_cbbox.connect("changed", self.port_changed)
-        for idx, model in enumerate(portlist):
+        self.output_label = gtk.Label()
+        output_port = None
+        for idx, model in enumerate(self.portlist):
             if self.chaned.setting.track.has_output(model[0]):
-                portlist_cbbox.set_active(idx)
+                output_port = model[1]
                 break
-        self.attach(label, 2, 3, 0, 1)
-        self.attach(portlist_cbbox, 3, 4, 0, 1)
+        if output_port:
+            self.output_label.set_text(self.output_str % output_port)
+        else:
+            self.output_label.set_text(self.output_str % "None")
 
+        button = gtk.Button("Configure output")
+        button.connect("clicked", self.button_set_output)
 
-
+        self.attach(self.output_label, 2, 3, 0, 1)
+        self.attach(button, 3, 4, 0, 1)
 
 class GridSettingTable(gtk.Table):
 
@@ -316,7 +335,6 @@ class ChannelEditor(gtk.VBox):
                 if list_idx > 1:
                     self.value_wgt.set_ctrl_mode(list_idx - 2)
             self.value_wgt.draw_area(self.get_vp_area(self.value_vp))
-
 
     def __init__(self, track, sequencer):
         gtk.VBox.__init__(self)

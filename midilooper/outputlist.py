@@ -59,11 +59,11 @@ class OutputListMenu(MsqListMenu):
         MsqListMenu.__init__(self)
         self.outputlist = outputlist
 
-        self.mlm_add_item("Rename output", self.rename_output)
+        self.mlm_add_root_item("Rename output", self.rename_output)
         separator = gtk.SeparatorMenuItem()
         separator.show()
         self.append(separator)
-        self.mlm_add_item("Delete output", self.del_output)
+        self.mlm_add_root_item("Delete output", self.del_output)
 
 
 class OutputList(gtk.Frame):
@@ -74,11 +74,15 @@ class OutputList(gtk.Frame):
                 self.menu.path = path
                 self.menu.popup(None, None, None, event.button, event.time)
 
-    def button_add_output(self, button):
-        name = prompt_gettext("Enter new output name")
+    def add_output(self, name):
         if name:
             seqoutput = self.seq.newoutput(name)
             self.liststore.append([seqoutput, seqoutput.get_name()])
+            return seqoutput
+
+    def button_add_output(self, button):
+        name = prompt_gettext("Enter new output name")
+        self.add_output(self, name)
 
     def drag_data_get_data(self, treeview, context, selection, target_id, etime):
         if self.seq.isrunning():
