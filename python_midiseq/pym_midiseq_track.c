@@ -581,7 +581,9 @@ static PyObject *midiseq_track_repr(PyObject *obj)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  return Py_BuildValue("s", self->trackctx->track->name);
+  return Py_BuildValue("s",
+                       self->trackctx->track->name ?
+                       self->trackctx->track->name : "no track name");
 }
 
 #include "./pym_midiseq_evwr.h"

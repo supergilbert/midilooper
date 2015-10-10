@@ -30,30 +30,24 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
-      chan_ev->event.ctrl.num = buffer[1];
-      chan_ev->event.ctrl.val = buffer[2];
-      debug_midi("*** NOTEOFF Event ***\n"
-            "\tchannel: %d\n"
-            "\tnum: %d\n"
-            "\tval: %d\n",
-            chan_ev->chan,
-            chan_ev->event.note.num,
-            chan_ev->event.note.val);
+      chan_ev->event.note.num = buffer[1];
+      chan_ev->event.note.val = buffer[2];
+      debug_midi("*** NOTEOFF Event (channel:%d num:%d val:%d) ***",
+                 chan_ev->chan,
+                 chan_ev->event.note.num,
+                 chan_ev->event.note.val);
       return 3;
 
     case NOTEON:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
-      chan_ev->event.ctrl.num = buffer[1];
-      chan_ev->event.ctrl.val = buffer[2];
-      debug_midi("*** NOTEON Event ***\n"
-            "\tchannel: %d\n"
-            "\tnum: %d\n"
-            "\tval: %d\n",
-            chan_ev->chan,
-            chan_ev->event.note.num,
-            chan_ev->event.note.val);
+      chan_ev->event.note.num = buffer[1];
+      chan_ev->event.note.val = buffer[2];
+      debug_midi("*** NOTEON Event (channel:%d num:%d val:%d) ***",
+                 chan_ev->chan,
+                 chan_ev->event.note.num,
+                 chan_ev->event.note.val);
       return 3;
 
     case CONTROLCHANGE:
@@ -124,7 +118,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
       return 3;
 
     default:
-      output_error("\nUNKNOWN channel event command: 0x%02X @ %p\n", type, buffer);
+      output_error("\nUNKNOWN channel event command=%X (ptr=%p)\n", type, buffer);
     }
   return 0;
 }

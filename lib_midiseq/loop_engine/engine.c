@@ -409,7 +409,7 @@ bool_t init_engine(engine_ctx_t *engine, char *name, int type)
     }
 
   /* Setting pulsation to prevent error */
-  engine->ppq   = 192;
+  engine->ppq = 192;
   engine_set_tempo(engine, 500);
   return TRUE;
 }

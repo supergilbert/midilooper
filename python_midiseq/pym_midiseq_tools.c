@@ -56,7 +56,7 @@ PyObject *build_evrepr(uint_t tick, midicev_t *midicev)
                           midicev->event.pitchbend.Hval);
       break;
     default:
-      output_error("Unsupported midi channel event type: %i\n", midicev->type);
+      /* output_error("Unsupported midi channel event type: %i\n", midicev->type); */
       ret = Py_BuildValue("(iii)",
                           tick,
                           midicev->chan,

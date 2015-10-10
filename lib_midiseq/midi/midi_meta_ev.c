@@ -172,14 +172,13 @@ uint_t		get_midi_meta_event(midimev_t *metaev, byte_t *buffer)
       break;
 
     default:
-      output_error("!!! UNKNOWN meta event hex:0x%02X dec:%i\n",
-		  buffer[offset],
-		  buffer[offset]);
+      debug_midi("!!! UNKNOWN meta event hex:0x%02X dec:%i\n",
+                 buffer[offset],
+                 buffer[offset]);
       metaev->type = buffer[offset];
       offset++;
-      output_error("1 offset=0x%X\n", offset);
       offset += get_varlen_from_idx(buffer, &offset);
-      output_error("2 offset=0x%X\n\n", offset);
+      debug_midi("offset=%u\n\n", offset);
       break;
     }
   return offset;

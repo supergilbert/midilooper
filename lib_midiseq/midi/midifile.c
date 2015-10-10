@@ -56,9 +56,9 @@ void free_midifile(midifile_t *midifile)
     }
 }
 
-size_t		get_midifile_track_size(byte_t *buffer)
+size_t get_midifile_track_size(byte_t *buffer)
 {
-  size_t	track_size = 0;
+  size_t track_size = 0;
 
   if (strncmp((char *) buffer, "MTrk", 4))
     return 0;
@@ -126,13 +126,12 @@ void get_msq_sysex(midifile_info_t *info, midifile_track_t *track, byte_t *buffe
     }
 }
 
-
 /* Get midifile track information, and add
    midi channel event to track to the track structure */
-bool_t          get_midifile_track(midifile_info_t *info,
-                                   midifile_track_t **addr,
-                                   byte_t *buffer,
-                                   size_t size)
+bool_t get_midifile_track(midifile_info_t *info,
+                          midifile_track_t **addr,
+                          byte_t *buffer,
+                          size_t size)
 {
   midifile_track_t *midifile_track = myalloc(sizeof (midifile_track_t));
   byte_t           *end = NULL;
@@ -140,6 +139,7 @@ bool_t          get_midifile_track(midifile_info_t *info,
   uint_t           offset;
   midicev_t        chan_ev;
   midimev_t        meta_ev;
+  byte_t           status_byte = 0;
 
   midifile_track->sysex_portid = -1;
   debug_midi("!!! start=%p end=%p\n", buffer, &(buffer[size]));
@@ -162,63 +162,109 @@ bool_t          get_midifile_track(midifile_info_t *info,
 #ifdef DEBUG_MIDI_MODE
 	print_bin(stdout, buffer, 16);
 #endif
-        debug_midi("\033[32m> buffer addr: %1$p=%1$u\033[0m\n", buffer);
-        switch (*buffer)
+        debug_midi("\033[32m> buffer addr: %p=%u\033[0m\n", buffer, buffer);
+        if (*buffer & 0x80)
           {
-          case 0xFF:
-            buffer++;
-            offset = get_midi_meta_event(&meta_ev, buffer); /* retour donne le type et loffset */
-            if (0 == offset)
-              return FALSE;
-            debug_midi("Meta event %s detected %u\n", midime_to_str(meta_ev.type), meta_ev.type);
-            switch (meta_ev.type)
+            switch (*buffer)
               {
-              case ME_NAME:
-                if (midifile_track->track.name)
-                  output_warning("Found two meta event name for this track (keeping the first one \"%s\")\n",
-                                midifile_track->track.name);
-                else
-                  midifile_track->track.name = strdup((const char *) meta_ev.data);
-		debug_midi("Found name: >%s<\n", meta_ev.data);
+              case 0xFF:
+                buffer++;
+                offset = get_midi_meta_event(&meta_ev, buffer); /* retour donne le type et loffset */
+                if (0 == offset)
+                  return FALSE;
+                debug_midi("Meta event %s detected %u\n", midime_to_str(meta_ev.type), meta_ev.type);
+                switch (meta_ev.type)
+                  {
+                  case ME_NAME:
+                    if (midifile_track->track.name)
+                      output_warning("Found two meta event name for this track (keeping the first one \"%s\")\n",
+                                     midifile_track->track.name);
+                    else
+                      midifile_track->track.name = strdup((const char *) meta_ev.data);
+                    debug_midi("Found name: >%s<\n", meta_ev.data);
+                    break;
+                  case ME_COPYRIGHTNOTICE:
+                    debug_midi("Found copyright: >%s<\n", meta_ev.data);
+                    break;
+                  case ME_CUEPOINT:
+                    debug_midi("Found cuepoint: >%s<\n", meta_ev.data);
+                    break;
+                  case ME_SETTEMPO:
+                    info->tempo = meta_ev.val;
+                    break;
+                  }
+                status_byte = 0;
                 break;
-	      case ME_COPYRIGHTNOTICE:
-		debug_midi("Found copyright: >%s<\n", meta_ev.data);
-		break;
-	      case ME_CUEPOINT:
-		debug_midi("Found cuepoint: >%s<\n", meta_ev.data);
-		break;
-              case ME_SETTEMPO:
-                info->tempo = meta_ev.val;
+
+              case 0xF0:
+                buffer++;
+                offset = get_varlen_from_ptr(&buffer); /* /!\ */
+                get_msq_sysex(info, midifile_track, buffer, offset);
+                status_byte = 0;
                 break;
+              case 0xF7:
+                debug_midi("SysEx event detected\n");
+                debug_midi("\nUnsuported System Exclusive Event type: 0x%02X\n", *buffer);
+                buffer++;
+                offset = get_varlen_from_ptr(&buffer); /* /!\ */
+                status_byte = 0;
+                break;
+
+              default:
+                bzero(&chan_ev, sizeof (midicev_t));
+                offset = get_midi_channel_event(&chan_ev, buffer); /* cmd = *buffer >> 4; */
+                if (0 == offset)
+                  {
+                    output_error("Problem while searching channel event (type=0x%02X)", *buffer);
+                    free_midifile_track(midifile_track);
+                    return FALSE;
+                  }
+                if (chan_ev.type >= 0x8 && chan_ev.type <= 0xE)
+                  {
+                    status_byte = (chan_ev.type << 4) + chan_ev.chan;
+                    debug_midi("Add midi channel event to track\n");
+                    copy_midicev_to_track(&(midifile_track->track), tick, &chan_ev);
+                  }
               }
-            break;
-
-          case 0xF0:
-            buffer++;
-            offset = get_varlen_from_ptr(&buffer); /* /!\ */
-            get_msq_sysex(info, midifile_track, buffer, offset);
-            break;
-          case 0xF7:
-            debug_midi("SysEx event detected\n");
-            output_error("\nUnsuported System Exclusive Event type: 0x%02X\n", *buffer);
-            buffer++;
-            offset = get_varlen_from_ptr(&buffer); /* /!\ */
-            break;
-
-          default:
+          }
+        else if (status_byte != 0)
+          {
+            debug_midi("Using midi running status (0x%X).\n", status_byte);
+            buffer--;
+            *buffer = status_byte;
             bzero(&chan_ev, sizeof (midicev_t));
             offset = get_midi_channel_event(&chan_ev, buffer); /* cmd = *buffer >> 4; */
             if (0 == offset)
               {
-                output_error("\nProblem with event type: 0x%02X\n", *buffer);
+                output_error("Problem while searching channel event (type=0x%02X)", *buffer);
                 free_midifile_track(midifile_track);
                 return FALSE;
               }
             if (chan_ev.type >= 0x8 && chan_ev.type <= 0xE)
               {
-                debug_midi("Inserting midi channel event\n");
+                debug_midi("Add midi channel event to track\n");
                 copy_midicev_to_track(&(midifile_track->track), tick, &chan_ev);
               }
+          }
+        else
+          {
+            output_error("Problem with event type: 0x%02X", *buffer);
+            return FALSE;
+            /* output_warning("Skipping event(s) and searching for next command"); */
+            /* for (offset = 0; */
+            /*      (buffer + offset) < end; */
+            /*      offset++) */
+            /*   if (buffer[offset] & 0x80) */
+            /*     break; */
+            /* if ((buffer + offset) < end) */
+            /*   { */
+            /*     output_warning("New command found (continue midifile read)"); */
+            /*   } */
+            /* else */
+            /*   { */
+            /*     output_error("No command found in track"); */
+            /*     return FALSE; */
+            /*   } */
           }
         buffer += offset;
         debug_midi("buffer addr: %p ---------------------------\n", buffer);
@@ -244,14 +290,14 @@ bool_t          get_midifile_track(midifile_info_t *info,
 midifile_t *get_midifile_tracks(int fd,
                                 midifile_hdr_chunk_t *midifile_hdr)
 {
-  size_t                size = 0;
-  size_t                bsize = BUFFER_DEFAULT_SIZE;
-  byte_t                *buffer = NULL;
-  unsigned int          idx;
-  midifile_t            *midifile = NULL;
-  list_t                track_list;
-  midifile_track_t      *midifile_track = NULL;
-  midifile_info_t       info = {MULTITRACK_MIDIFILE_USYNC, 500000, 120};
+  size_t           size = 0;
+  size_t           bsize = BUFFER_DEFAULT_SIZE;
+  byte_t           *buffer = NULL;
+  unsigned int     idx;
+  midifile_t       *midifile = NULL;
+  list_t           track_list;
+  midifile_track_t *midifile_track = NULL;
+  midifile_info_t  info = {MULTITRACK_MIDIFILE_USYNC, 500000, 120};
 
   bzero(&track_list, sizeof (list_t));
   info.type = midifile_hdr->format_type;
@@ -304,7 +350,7 @@ midifile_t *get_midifile_tracks(int fd,
       debug_midi("size read = %d\n", size);
       if (FALSE == get_midifile_track(&info, &(midifile_track), buffer, size))
         {
-          output_error(ERROR_FMT"Problem with track %i\n", ERROR_ARG, idx);
+          output_error("Problem with track %i\n", idx);
           free(buffer);
           return NULL;
         }
@@ -330,7 +376,7 @@ midifile_t *get_midifile_tracks(int fd,
   return midifile;
 }
 
-bool_t		get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr)
+bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr)
 {
   char		*str = ptr;
   unsigned char	*buffer = ptr;
@@ -353,43 +399,41 @@ bool_t		get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr)
   if (0x8000 & buffer[0])
     {
       mdhdr->time_division.flag = TRUE;
-      mdhdr->time_division.value.frame_per_sec.smpte_frames = buffer[0] & 127;
+      mdhdr->time_division.value.frame_per_sec.smpte_frames = buffer[0];
       mdhdr->time_division.value.frame_per_sec.ticks_per_frame = buffer[1];
     }
   else
     {
       mdhdr->time_division.flag = FALSE;
-      mdhdr->time_division.value.tick_per_beat = ((buffer[0] & 127) << 7) + buffer[1];
+      mdhdr->time_division.value.tick_per_beat = (buffer[0] << 8) + buffer[1];
     }
   return 1;
 }
 
-void    output_midifile_hdr(midifile_hdr_chunk_t *midifile_hdr)
+void output_midifile_hdr(midifile_hdr_chunk_t *midifile_hdr)
 {
-  debug_midi("Format type     : %s (type=%d)\n"
-        "Number of track : %d\n",
-        midifile_hdr->format_type == 0 ? "Single track"
-        : midifile_hdr->format_type == 1 ? "Multiple tracks, synchronous"
-        : midifile_hdr->format_type == 2 ? "Multiple tracks, asynchronous"
-        : "Unknown midifile format type",
-        midifile_hdr->format_type,
-        midifile_hdr->number_of_track);
+  output("Format type     : %s (type=%d)\n"
+         "Number of track : %d\n",
+         midifile_hdr->format_type == 0 ? "Single track"
+         : midifile_hdr->format_type == 1 ? "Multiple tracks, synchronous"
+         : midifile_hdr->format_type == 2 ? "Multiple tracks, asynchronous"
+         : "Unknown midifile format type",
+         midifile_hdr->format_type,
+         midifile_hdr->number_of_track);
   if (midifile_hdr->time_division.flag)
-    debug_midi("Time division: %d frames per second, %d ticks\n",
-          midifile_hdr->time_division.value.frame_per_sec.smpte_frames,
-          midifile_hdr->time_division.value.frame_per_sec.ticks_per_frame);
+    output("Time division: %d frames per second, %d ticks\n",
+           midifile_hdr->time_division.value.frame_per_sec.smpte_frames,
+           midifile_hdr->time_division.value.frame_per_sec.ticks_per_frame);
   else
-    debug_midi("Time division: %d ticks per beat\n",
-          midifile_hdr->time_division.value.tick_per_beat);
+    output("Time division: %d ticks per beat\n",
+           midifile_hdr->time_division.value.tick_per_beat);
 }
 
-midifile_t  *read_midifile_fd(int fd)
+midifile_t *read_midifile_fd(int fd)
 {
-  byte_t                buffer[14];
-  midifile_hdr_chunk_t  midifile_hdr;
-  size_t                size;
-
-
+  byte_t               buffer[14];
+  midifile_hdr_chunk_t midifile_hdr;
+  size_t               size;
 
   //  bzero(buffer, 14);
   size = read(fd, buffer, 14);
@@ -411,7 +455,7 @@ midifile_t  *read_midifile_fd(int fd)
       return NULL;
     }
 
-  output_midifile_hdr(&midifile_hdr);
+  /* output_midifile_hdr(&midifile_hdr); */
 
   return get_midifile_tracks(fd, &midifile_hdr);
 }
