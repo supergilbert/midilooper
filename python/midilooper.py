@@ -276,7 +276,7 @@ if __name__ == "__main__":
     def usage():
         print """\
 Usage:
-midilooper [-h] [-a | -j] [-n NAME] [-f filepath] [-i filepath] [FILENAME]
+midilooper [-h] [-a | -j] [-n NAME] [ [-f filepath] [-i filepath] | [FILENAME] ]
 
 Options:
 -h, --help
@@ -287,7 +287,9 @@ Options:
   Enable jack backend.
 -n, --name
   Set sequencer backend name.
--i, --import
+-i, --import filepath
+  Import midi file.
+-f, --file filepath
   Import midi file.
 
 FILENAME
@@ -301,8 +303,13 @@ FILENAME
 
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                                   "hjan:i:",
-                                   ["help", "jack", "alsa", "name", "import"])
+                                   "hjan:i:f:",
+                                   ["help",
+                                    "jack",
+                                    "alsa",
+                                    "name=",
+                                    "import=",
+                                    "file="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
