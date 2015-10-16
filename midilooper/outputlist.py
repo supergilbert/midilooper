@@ -82,7 +82,7 @@ class OutputList(gtk.Frame):
 
     def button_add_output(self, button):
         name = prompt_gettext("Enter new output name")
-        self.add_output(self, name)
+        self.add_output(name)
 
     def drag_data_get_data(self, treeview, context, selection, target_id, etime):
         if self.seq.isrunning():
