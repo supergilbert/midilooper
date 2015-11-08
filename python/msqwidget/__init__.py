@@ -25,8 +25,7 @@ if gtk.pygtk_version < (2, 8):
     print "PyGtk 2.8 or later required"
     raise SystemExit
 
-from wgttools import Xpos2Tick, Ypos2Note, MIDI_NOTEOFF_EVENT, MIDI_NOTEON_EVENT
-
+from wgttools import Xpos2Tick, Ypos2Note, MIDI_NOTEOFF_EVENT, MIDI_NOTEON_EVENT, evwr_to_repr_list
 
 # Quater note x size
 MIN_QNOTE_XSZ = 10
@@ -39,9 +38,8 @@ DEFAULT_FONT_NAME = "-misc-fixed-medium-r-normal--10-70-100-100-c-60-iso8859-1"
 
 NOTE_MAX = 127
 
-default_font       = gdk.Font(DEFAULT_FONT_NAME)
-DEFAULT_NOTE_YSZ   = default_font.string_height("C -10X") + 4
-DEFAULT_NOTEON_VAL = 64
+default_font        = gdk.Font(DEFAULT_FONT_NAME)
+DEFAULT_NOTE_YSZ    = default_font.string_height("C -10X") + 4
 
 
 class ProgressLineListener(object):
@@ -202,7 +200,7 @@ class MsqVBarNoteWidget(gtk.Widget, Ypos2Note):
         self.setting.track.play_note(self.setting.chan_num,
                                      MIDI_NOTEON_EVENT,
                                      note,
-                                     grid.setting.note_val_on)
+                                     int(grid.setting.note_valadj.get_value()))
         self.last_play_note = note
 
 
@@ -213,7 +211,7 @@ class MsqVBarNoteWidget(gtk.Widget, Ypos2Note):
         self.setting.track.play_note(self.setting.chan_num,
                                      MIDI_NOTEOFF_EVENT,
                                      note,
-                                     grid.setting.note_val_off)
+                                     DEFAULT_NOTEOFF_VAL)
         self.last_play_note = None
 
 
@@ -229,11 +227,11 @@ class MsqVBarNoteWidget(gtk.Widget, Ypos2Note):
             self.setting.track.play_note(self.setting.chan_num,
                                          MIDI_NOTEOFF_EVENT,
                                          self.last_play_note,
-                                         grid.setting.note_val_off)
+                                         DEFAULT_NOTEOFF_VAL)
             self.setting.track.play_note(self.setting.chan_num,
                                          MIDI_NOTEON_EVENT,
                                          note,
-                                         grid.setting.note_val_on)
+                                         int(grid.setting.note_valadj.get_value()))
             self.last_play_note = note
 
 
@@ -342,7 +340,7 @@ class MsqVBarNoteWidget(gtk.Widget, Ypos2Note):
 
 
 
-from notegridevt import MsqNGWEventHdl, evwr_to_repr_list
+from notegridevt import MsqNGWEventHdl, DEFAULT_NOTEON_VAL, DEFAULT_NOTEOFF_VAL
 
 NOTE_PX_SIZE = 8
 
@@ -376,8 +374,6 @@ class ChannelEditorSetting(object):
         self.qnxsz   = qnxsz
         self.noteysz = DEFAULT_NOTE_YSZ
 
-        self.note_val_on  = DEFAULT_NOTEON_VAL
-        self.note_val_off = 0
         self.mlen         = 4   # number of beat per measure
 
         self.tick_res = int(self.getppq() / 4)
@@ -385,6 +381,7 @@ class ChannelEditorSetting(object):
         self.chan_num = chan_num
         self.note_widget = None
         self.value_widget = None
+        self.note_valadj = gtk.Adjustment(DEFAULT_NOTEON_VAL, 0, 127, 1)
 
 
 class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2Tick, Ypos2Note):

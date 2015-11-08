@@ -31,6 +31,7 @@ NO_MODE     = 0
 EDIT_MODE   = 1
 WRITE_MODE  = 2
 SELECT_MODE = 3
+DEFVAL_MODE = 4
 
 class MsqValueWidget(gtk.Widget, Xpos2Tick):
     def resize_wgt(self):
@@ -139,26 +140,15 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         if len(ev_list): # tmp
             self.setting.track.add_evrepr_list(ev_list)
 
-    def __init__(self, setting):
-        gtk.Widget.__init__(self)
-        setting.value_widget = self
-        self.setting = setting
-        self.bar_width = 3
-        self._draw_val_func = self._draw_note_area
-        self._get_tick_func = self._get_note_tick
-        self._write_bar_func = self._write_notebar
-        self.param = MIDI_NOTEON_EVENT
-        self.wgt_mode = NO_MODE
-        self.data_cache = []
-        self.select_area = None
-        self.selection = None
-        self.ctrl_num = 0
-
     def set_note_mode(self):
         self._draw_val_func  = self._draw_note_area
         self._get_tick_func  = self._get_note_tick
         self._write_bar_func = self._write_notebar
         self.param = MIDI_NOTEON_EVENT
+        self.adjwgt.set_adjustment(self.setting.note_valadj)
+        if self.spinbut:
+            self.spinbut.set_adjustment(self.setting.note_valadj)
+        self.setting.note_valadj.value_changed()
 
     def set_ctrl_mode(self, ctrl_num):
         self._draw_val_func  = self._draw_ctrl_area
@@ -166,12 +156,38 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         self._write_bar_func = self._write_ctrlbar
         self.ctrl_num        = ctrl_num
         self.param = MIDI_CTRL_EVENT
+        self.adjwgt.set_adjustment(self.ctrl_adj)
+        if self.spinbut:
+            self.spinbut.set_adjustment(self.ctrl_adj)
+        self.ctrl_adj.value_changed()
 
     def set_pitch_mode(self):
         self._draw_val_func  = self._draw_pitch_area
         self._get_tick_func  = self._get_pitch_tick
         self._write_bar_func = self._write_pitchbar
         self.param = MIDI_PITCH_EVENT
+        self.adjwgt.set_adjustment(self.pitch_adj)
+        if self.spinbut:
+            self.spinbut.set_adjustment(self.pitch_adj)
+        self.pitch_adj.value_changed()
+
+    def __init__(self, setting, adjwgt):
+        gtk.Widget.__init__(self)
+        setting.value_widget = self
+        self.setting = setting
+        self.bar_width = 3
+        self.adjwgt = adjwgt
+        self.spinbut = None
+
+        self.ctrl_adj  = gtk.Adjustment(64.0, 0.0, 127.0, 1.0)
+        self.pitch_adj = gtk.Adjustment(8192.0, 0.0, 16384.0, 1.0)
+        self.set_note_mode()
+
+        self.wgt_mode = NO_MODE
+        self.data_cache = []
+        self.select_area = None
+        self.selection = None
+        self.ctrl_num = 0
 
     def draw_bar(self, tick, ypos):
         winsize = self.window.get_size()
@@ -223,6 +239,9 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         elif self.wgt_mode == NO_MODE and event.button == 1:
             self.data_cache = event.x
             self.wgt_mode = SELECT_MODE
+        elif self.wgt_mode == NO_MODE and event.button == 2:
+            self.wgt_mode = DEFVAL_MODE
+            self.window.set_cursor(cursor_pencil)
         elif self.wgt_mode == NO_MODE and event.button == 3:
             self.wgt_mode = EDIT_MODE
             self.window.set_cursor(cursor_pencil)
@@ -270,6 +289,13 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
                 self.wgt_mode = NO_MODE
                 self.data_cache = []
                 self.window.set_cursor(current_cursor)
+        elif event.button == 2 and self.wgt_mode == DEFVAL_MODE:
+            self.data_cache.sort(key=lambda bar: bar[0])
+            self._write_bar_func()
+            self.setting.note_widget.redraw_selection()
+            self.data_cache = []
+            self.wgt_mode = NO_MODE
+            self.window.set_cursor(current_cursor)
         else:
             self.wgt_mode = NO_MODE
             self.window.set_cursor(current_cursor)
@@ -311,6 +337,24 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
             cr.set_line_width(2)
             cr.rectangle(xmin, ymin + 1, xmax - xmin, ymax - 2)
             cr.stroke()
+        elif self.wgt_mode == DEFVAL_MODE:
+            if   self.param == MIDI_NOTEON_EVENT:
+                winheigt = self.window.get_size()[1] - 1
+                ypos = (127 - int(self.setting.note_valadj.get_value())) * winheigt / 127
+            elif self.param == MIDI_CTRL_EVENT:
+                winheigt = self.window.get_size()[1] - 1
+                ypos = (127 - int(self.ctrl_adj.get_value())) * winheigt / 127
+            elif self.param == MIDI_PITCH_EVENT:
+                winheigt = self.window.get_size()[1] - 1
+                ypos = (16383 - int(self.pitch_adj.get_value())) * winheigt / 16383
+            tick = self.xpos2tick(event.x)
+            bar = self.draw_value_at(tick, ypos)
+            if bar:
+                found_bar = self.bar_in_list(bar, self.data_cache)
+                if found_bar:
+                    found_bar[1] = bar[1]
+                else:
+                    self.data_cache.append(bar)
 
     def handle_key_release(self, widget, event):
         # Deleting control event
@@ -385,9 +429,10 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         tick_min = self.xpos2tick(area.x)
         tick_max = self.xpos2tick(area.x + area.width)
         ev_list = self.setting.track.getall_midicev(self.setting.chan_num, tick_min, tick_max)
-        winsize = self.window.get_size()
+        winheigt = self.window.get_size()[1] - 1 # keep one pixel to mark an event
         for ev in ev_list:
-            self._draw_val_func(ev, winsize[1], area)
+            self._draw_val_func(ev, winheigt, area)
+            # self._draw_val_func(ev, winsize[1], area)
 
     def draw_value_area(self, x, width):
         "Used for drawing the area without height limitation of the area"

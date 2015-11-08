@@ -45,6 +45,7 @@ PyObject *sel_pitch_evwr(track_ctx_t *trackctx,
                          uint_t tick_min,
                          uint_t tick_max);
 PyObject *getall_noteonoff_repr(list_t *tickev_list, byte_t channel);
+PyObject *getall_noteonoff_evwr(track_ctx_t *trackctx, byte_t channel);
 PyObject *getall_midicev_repr(list_t *tickev_list,
                               byte_t channel,
                               uint_t tickmin,

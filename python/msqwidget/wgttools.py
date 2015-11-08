@@ -77,6 +77,8 @@ def evrepr_is_in_notelist(evrepr, notelist):
         for x_noteon, x_noteoff in notelist:
             if is_the_same_list(x_noteon, evrepr):
                 return True
+            if is_the_same_list(x_noteoff, evrepr):
+                return True
     return False
 
 def is_in_notelist(noteon, noteoff, notelist):
@@ -88,17 +90,15 @@ def is_in_notelist(noteon, noteoff, notelist):
 
 def note_collision(tick_on, tick_off, channel, note, notelist, excl_list=None):
     for note_on, note_off in notelist:
-        if note_on[1] != channel:
-            continue
-        if note_on[3] == note and not is_in_notelist(note_on, note_off, excl_list):
-            if tick_on >= note_on[0] and tick_on < note_off[0]:
-                return (note_on, note_off)
-            elif tick_off > note_on[0] and tick_off <= note_off[0]:
-                return (note_on, note_off)
-            elif note_on[0] >= tick_on and note_on[0] < tick_off:
-                return (note_on, note_off)
-            elif note_off[0] > tick_on and note_off[0] <= tick_off:
-                return (note_on, note_off)
+        if note_on[1] == channel and note_on[3] == note and not is_in_notelist(note_on, note_off, excl_list):
+                if tick_on >= note_on[0] and tick_on < note_off[0]:
+                    return (note_on, note_off)
+                elif tick_off > note_on[0] and tick_off <= note_off[0]:
+                    return (note_on, note_off)
+                elif note_on[0] >= tick_on and note_on[0] < tick_off:
+                    return (note_on, note_off)
+                elif note_off[0] > tick_on and note_off[0] <= tick_off:
+                    return (note_on, note_off)
     return None
 
 __all__ = ["Xpos2Tick", "Ypos2Note", "MIDI_NOTEOFF_EVENT", "MIDI_NOTEON_EVENT", "MIDI_CTRL_EVENT", "MIDI_PITCH_EVENT", "cursor_pencil", "cursor_inc_l", "cursor_inc_r", "cursor_move", "current_cursor", "cursor_inc", "evwr_to_repr_list", "evrepr_is_in_notelist", "is_in_notelist", "note_collision"]

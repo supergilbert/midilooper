@@ -31,6 +31,7 @@ from outputlist import OutputList
 from tracklist import TrackList
 from msqwidget import MIDI_NOTEON_EVENT, MIDI_NOTEOFF_EVENT
 from msqwidget.wgttools import note_collision
+from tool import TRACK_MAX_LENGTH
 
 class MidiLooper(gtk.Window):
     def handle_record(self):
@@ -355,5 +356,5 @@ FILENAME
         output = mlooper.outputlist_frame.add_output("default")
         if output:
             mlooper.tracklist_frame.menu.set_output_all(output)
-            mlooper.tracklist_frame.menu.set_loop_all((0, 240))
+            mlooper.tracklist_frame.menu.set_loop_all((0, TRACK_MAX_LENGTH))
     gtk.main()

@@ -25,7 +25,6 @@ if gtk.pygtk_version < (2, 8):
 
 from wgttools import *
 
-
 NO_MODE     = 0
 EDIT_MODE   = 1
 SELECT_MODE = 2
@@ -45,6 +44,9 @@ HISTORY_MARK = 4242
 
 # Size of "note off" tick decrementation
 NOTEOFF_DEC = 1
+
+DEFAULT_NOTEON_VAL  = 64
+DEFAULT_NOTEOFF_VAL = 0
 
 
 class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
@@ -163,12 +165,12 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                    self.setting.chan_num,
                    MIDI_NOTEON_EVENT,
                    note,
-                   self.setting.note_val_on)
+                   int(self.setting.note_valadj.get_value()))
         note_off = (noteoff_tick,
                     self.setting.chan_num,
                     MIDI_NOTEOFF_EVENT,
                     note,
-                    self.setting.note_val_off)
+                    DEFAULT_NOTEOFF_VAL)
         return [(note_on, note_off)]
 
 
@@ -187,42 +189,27 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 ev_on_off_tick = self.coo_under_notelist(event.x,
                                                          event.y,
                                                          evwr_to_repr_list(self.selection))
-                if not ev_on_off_tick:
-                    new_selection = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
-                    if new_selection:
-                        ev_on_off_tick = self.coo_under_notelist(event.x,
-                                                                 event.y,
-                                                                 evwr_to_repr_list(new_selection))
-                        if ev_on_off_tick:
-                            selarea = self.get_notelist_area(evwr_to_repr_list(self.selection))
-                            self.selection = new_selection
-                            # self.draw_area(selarea)
-            else:
-                self.selection = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
-                ev_on_off_tick = self.coo_under_notelist(event.x,
-                                                         event.y,
-                                                         evwr_to_repr_list(self.selection)) if self.selection else None
-
-            if ev_on_off_tick:
-                self.draw_notelist(evwr_to_repr_list(self.selection), True)
-                self.wgt_mode = PASTE_MODE
-                self.paste_cache = evwr_to_repr_list(self.selection)
-                self.data_cache = (self.setting.quantify_tick(ev_on_off_tick[2]), ev_on_off_tick[0][3])
-                self.start_coo = (event.x, event.y)
+                if ev_on_off_tick:
+                    self.start_coo = (event.x, event.y)
+                    if event.state & gtk.gdk.CONTROL_MASK:
+                        self.ctrl_click = True
+                        self.wgt_mode = SELECT_MODE
+                    else:
+                        self.wgt_mode = PASTE_MODE
+                        self.paste_cache = evwr_to_repr_list(self.selection)
+                        self.data_cache = (self.setting.quantify_tick(ev_on_off_tick[2]), ev_on_off_tick[0][3])
+                else:
+                    if event.state & gtk.gdk.CONTROL_MASK:
+                        self.ctrl_click = True
+                    else:
+                        self.clear_selection()
+                    self.start_coo = (event.x, event.y)
+                    self.wgt_mode = SELECT_MODE
             else:
                 if event.state & gtk.gdk.CONTROL_MASK:
                     self.ctrl_click = True
                 self.start_coo = (event.x, event.y)
                 self.wgt_mode = SELECT_MODE
-                if (not self.ctrl_click) and self.selection:
-                    selarea = self.get_notelist_area(evwr_to_repr_list(self.selection))
-                    self.selection = None
-                    if selarea:    # clear previous selection
-                        selarea.x = selarea.x - 2
-                        selarea.y = selarea.y - 2
-                        selarea.width = selarea.width + 4
-                        selarea.height = selarea.height + 4
-                        self.draw_area(selarea)
 
         elif self.wgt_mode == NO_MODE and event.button == 3:
             self.window.set_cursor(cursor_pencil)
@@ -230,11 +217,12 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
         elif self.wgt_mode == INC_MODE or (self.wgt_mode == NO_MODE and event.button == 2):
             self.wgt_mode = INC_MODE
+            ev_on_off_tick = None
             if self.selection:
                 ev_on_off_tick = self.coo_under_notelist(event.x,
                                                          event.y,
                                                          evwr_to_repr_list(self.selection))
-                if ev_on_off_tick == None:
+                if ev_on_off_tick == None: # case of a click other note from selection
                     note_list = evwr_to_repr_list(self.selection)
                     self.selection = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
                     self.draw_notelist(note_list, False)
@@ -248,8 +236,6 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                     ev_on_off_tick = self.coo_under_notelist(event.x,
                                                              event.y,
                                                              evwr_to_repr_list(self.selection))
-                else:
-                    ev_on_off_tick = None
 
             if ev_on_off_tick:
                 if self._is_note_left_inc(ev_on_off_tick):
@@ -274,6 +260,8 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
     def notelist_collision(self, notelist, excl_list=None):
         track_notes = self.setting.track.getall_noteonoff(self.setting.chan_num)
         for note_on, note_off in notelist:
+            if note_on[0] < 0 or note_off[0] < 0:
+                return True
             if note_collision(note_on[0],
                               note_off[0],
                               note_on[1],
@@ -318,13 +306,31 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         return tick_diff, note_diff
 
 
-    def _paste_notes_at(self, xpos, ypos, note_list):
-        tick_diff, note_diff = self._get_diff_paste_note(xpos, ypos)
-        new_list = []
-        for note_on, note_off in self.paste_cache:
+    def gen_notelist_at(self, tick_diff, note_diff, note_list):
+        for note_on, note_off in note_list:
+            if note_on[0] + tick_diff < 0:
+                tick_diff = 0 - note_on[0]
+            if note_off[0] + tick_diff < 0:
+                tick_diff = 0 - note_off[0]
+            if note_on[3] + note_diff > 127:
+                note_diff = 127 - note_on[3]
+            elif note_on[3] + note_diff < 0:
+                note_diff = 0 - note_on[3]
+        tick_min = note_list[0][0][0] + tick_diff
+        tick_max = note_list[0][0][0] + tick_diff
+        note_min = note_list[0][0][3] + note_diff
+        note_max = note_list[0][0][3] + note_diff
+        diff_note_list = []
+        for note_on, note_off in note_list:
             diff_note_on = self.copy_note_at(note_on, tick_diff, note_diff)
             diff_note_off = self.copy_note_at(note_off, tick_diff, note_diff)
-            new_list.append((diff_note_on, diff_note_off))
+            diff_note_list.append((diff_note_on, diff_note_off))
+        return diff_note_list
+
+
+    def _paste_notes_at(self, xpos, ypos, note_list):
+        tick_diff, note_diff = self._get_diff_paste_note(xpos, ypos)
+        new_list = self.gen_notelist_at(tick_diff, note_diff, note_list)
         if self.notelist_collision(new_list):
             return None
         else:
@@ -367,13 +373,6 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
 
     def handle_button_release(self, widget, event):
-        def note_in_select(noteonoff, select):
-            ev1 = noteonoff[0]
-            for n_onoff in select:
-                if ev1 == n_onoff[0]:
-                    return True
-            return False
-
         if event.button == 3:
             self.window.set_cursor(current_cursor)
             self.wgt_mode = NO_MODE
@@ -416,15 +415,22 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                     self.buffer_refresh_area(self.select_area)
                 else:
                     self.select_area = gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1)
-
                 if self.ctrl_click:
                     new_sel = self.get_notes_evwr(self.select_area)
                     if new_sel and self.selection:
+                        final_sel = []
                         for noteonoff in new_sel:
-                            if not note_in_select(noteonoff, self.selection):
-                                self.selection.append(noteonoff)
+                            noteon, noteoff = evwr_to_repr_list([noteonoff])[0]
+                            if not is_in_notelist(noteon, noteoff, evwr_to_repr_list(self.selection)):
+                                final_sel.append(noteonoff)
+                        for noteonoff in self.selection:
+                            noteon, noteoff = evwr_to_repr_list([noteonoff])[0]
+                            if not is_in_notelist(noteon, noteoff, evwr_to_repr_list(new_sel)):
+                                final_sel.append(noteonoff)
+                        self.selection = final_sel
                     else:
                         self.selection = new_sel
+                    self.draw_notelist_area(evwr_to_repr_list(new_sel))
                 else:
                     self.selection = self.get_notes_evwr(self.select_area)
                 self.ctrl_click  = False
@@ -530,29 +536,18 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                                  ymax - ymin + self.setting.noteysz + 4)
 
 
-    def gen_notelist_at(self, tick_diff, note_diff, note_list):
-        tick_min = note_list[0][0][0] + tick_diff
-        tick_max = note_list[0][0][0] + tick_diff
-        note_min = note_list[0][0][3] + note_diff
-        note_max = note_list[0][0][3] + note_diff
-        diff_note_list = []
-        for note_on, note_off in note_list:
-            diff_note_on = self.copy_note_at(note_on, tick_diff, note_diff)
-            diff_note_off = self.copy_note_at(note_off, tick_diff, note_diff)
-            diff_note_list.append((diff_note_on, diff_note_off))
-        return diff_note_list
-
-
     def draw_paste_at(self, xpos, ypos, note_list, selected, excl_list=None):
         tick_diff, note_diff = self._get_diff_paste_note(xpos, ypos)
 
         if self.tmp_note_area:
             self.buffer_refresh_area(self.tmp_note_area)
             pass
+
         diff_note_list = self.gen_notelist_at(tick_diff, note_diff, note_list)
         if self.notelist_collision(diff_note_list, excl_list):
              self.tmp_note_area = None
              return
+
         self.draw_notelist(diff_note_list)
         self.tmp_note_area = self.get_notelist_area(diff_note_list)
 
@@ -779,6 +774,10 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                         self.wgt_mode = PASTE_MODE
                 if keyname == "z":
                     self.undo()
+                if keyname == "a":
+                    self.clear_selection() # clear last selection
+                    self.selection = self.setting.track.getall_noteonoff_evwr(self.setting.chan_num)
+                    self.draw_notelist_area(evwr_to_repr_list(self.selection))
             else:
                 if self.selection and (event.keyval == gtk.keysyms.Delete or
                                                     event.keyval == gtk.keysyms.BackSpace):

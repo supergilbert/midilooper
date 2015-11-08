@@ -112,7 +112,7 @@ Press any note (timeout in 5 sec)""" % name)
     dialog.destroy()
     return timeout_data[0]
 
-MAX_LENGTH = 240
+TRACK_MAX_LENGTH = 128
 
 def prompt_get_loop(loop_start, loop_len):
     def button_apply_cb(button, dialog, loop_pos, spinbut1, spinbut2):
@@ -129,20 +129,18 @@ def prompt_get_loop(loop_start, loop_len):
     label = gtk.Label(" Loop Start: ")
     spinadj = gtk.Adjustment(loop_start,
                              0,
-                             MAX_LENGTH - 1,
+                             TRACK_MAX_LENGTH - 1,
                              1)
     spinbut1 = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
-    spinbut1.set_tooltip_text("Set the track start")
     hbox.pack_start(label,   True, True, 0)
     hbox.pack_start(spinbut1, True, True, 0)
 
     label = gtk.Label(" Loop length: ")
     spinadj = gtk.Adjustment(loop_len,
                              1,
-                             MAX_LENGTH,
+                             TRACK_MAX_LENGTH,
                              1)
     spinbut2 = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
-    spinbut2.set_tooltip_text("Set the track length")
     hbox.pack_start(label,   True, True, 0)
     hbox.pack_start(spinbut2, True, True, 0)
 

@@ -140,6 +140,39 @@ PyObject *getall_noteonoff_repr(list_t *tickev_list, byte_t channel)
   return ret_obj;
 }
 
+PyObject *getall_noteonoff_evwr(track_ctx_t *trackctx, byte_t channel)
+{
+  ev_iterator_t evit_noteon, evit_noteoff;
+  PyObject      *ret_obj = NULL;
+  PyObject      *ev_repr = NULL;
+  /* seqev_t       *seqev   = NULL; */
+  midicev_t     *midicev_noteon = NULL, *midicev_noteoff = NULL;
+
+  ret_obj = PyList_New(0);
+
+  if (trackctx)
+    {
+      midicev_noteon = evit_init_noteon(&evit_noteon,
+                                        &(trackctx->track->tickev_list),
+                                        channel);
+      while (midicev_noteon)
+        {
+          evit_copy(&evit_noteon, &evit_noteoff);
+          midicev_noteoff = evit_next_noteoff_num(&evit_noteoff,
+                                                  channel,
+                                                  midicev_noteon->event.note.num);
+          if (midicev_noteoff)
+            {
+              ev_repr = PyList_New(0);
+              PyList_Append(ev_repr, build_evwr_from_evit(&evit_noteon,  trackctx));
+              PyList_Append(ev_repr, build_evwr_from_evit(&evit_noteoff, trackctx));
+              PyList_Append(ret_obj, ev_repr);
+            }
+          midicev_noteon = evit_next_noteon(&evit_noteon, channel);
+        }
+    }
+  return ret_obj;
+}
 
 /* bool_t _noteonoff_match_selection(uint_t tick_min, */
 /*                                   uint_t tick_max, */

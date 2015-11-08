@@ -16,6 +16,8 @@
 # along with gmidilooper.  If not, see <http://www.gnu.org/licenses/>.
 
 #import gobject
+import sys
+
 import pygtk
 pygtk.require("2.0")
 import gtk
@@ -27,7 +29,7 @@ if gtk.pygtk_version < (2, 8):
 
 from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, MIN_QNOTE_XSZ, DEFAULT_QNOTE_XSZ, MAX_QNOTE_XSZ
 from msqwidget.midivaluewgt import MsqValueWidget
-from msqwidget.wgttools import MIDI_CTRL_EVENT
+from msqwidget.wgttools import MIDI_CTRL_EVENT, MIDI_NOTEOFF_EVENT, MIDI_NOTEON_EVENT, MIDI_PITCH_EVENT
 from tool import prompt_get_loop, prompt_get_output
 
 
@@ -100,6 +102,77 @@ class TrackSettingTable(gtk.Table):
         self.attach(self.output_label, 2, 3, 0, 1)
         self.attach(button, 3, 4, 0, 1)
 
+def update_value_list(value_list, track_info, chan_num):
+    chan_key = "%i" % chan_num
+
+    viter = value_list.get_iter("0")
+    if track_info['note_chan'].has_key(chan_key):
+        value_list.set(viter, 1, "Note on *")
+    else:
+        value_list.set(viter, 1, "Note on")
+
+    viter = value_list.get_iter("1")
+    if track_info['pitch_chan'].has_key(chan_key):
+        value_list.set(viter, 1, "Pitch Bend *")
+    else:
+        value_list.set(viter, 1, "Pitch Bend")
+
+    if track_info['ctrl_chan'].has_key(chan_key):
+        ctrl_list = track_info['ctrl_chan'][chan_key]
+        viter = value_list.get_iter("2")
+        while viter:
+            ctrl_num = value_list.get_value(viter, 0)
+            if ctrl_num in ctrl_list:
+                value_list.set(viter, 1, "Ctrl %i *" % ctrl_num)
+            else:
+                value_list.set(viter, 1, "Ctrl %i" % ctrl_num)
+            viter = value_list.iter_next(viter)
+    else:
+        while viter:
+            ctrl_num = value_list.get_value(viter, 0)
+            value_list.set(viter, 1, "Ctrl %i" % ctrl_num)
+            viter = value_list.iter_next(viter)
+
+
+def get_track_info(track):
+    track_min = sys.maxint
+    track_max = 0
+    channel_list = []
+    channel_ctrl  = {}
+    channel_note  = {}
+    channel_pitch = {}
+    ev_len = 0
+
+    for event in track.getall_event():
+        ev_len += 1
+        if event[0] < track_min:
+            track_min = event[0]
+        if event[0] > track_max:
+            track_max = event[0]
+        chan_key = "%d" % event[1]
+        if not (event[1] in channel_list):
+            channel_list.append(event[1])
+            channel_ctrl[chan_key] = []
+        if event[2] == MIDI_CTRL_EVENT and not (event[3] in channel_ctrl[chan_key]):
+            channel_ctrl[chan_key].append(event[3])
+        elif event[2] == MIDI_NOTEOFF_EVENT or event[2] == MIDI_NOTEON_EVENT:
+            channel_note[chan_key] = True
+        elif event[2] == MIDI_PITCH_EVENT:
+            channel_pitch[chan_key] = True
+
+    channel_list.sort()
+    for key in channel_ctrl.keys():
+        channel_ctrl[key].sort()
+
+    return {'min': track_min,
+            'max': track_max,
+            'len': ev_len,
+            'channels': channel_list,
+            'note_chan': channel_note,
+            'pitch_chan': channel_pitch,
+            'ctrl_chan': channel_ctrl}
+
+
 class GridSettingTable(gtk.Table):
 
     def set_note_value_cb(self, widget):
@@ -115,26 +188,14 @@ class GridSettingTable(gtk.Table):
         citer = chan_list.get_iter_root()
         while citer:
             channel = chan_list.get_value(citer, 0)
-            if channel in track_info[2]:
+            if channel in track_info['channels']:
                 chan_list.set(citer, 1, "%i *" % channel)
             else:
                 chan_list.set(citer, 1, "%i" % channel)
             citer = chan_list.iter_next(citer)
 
         # Refreshing midivalue viewer combobox
-        chan_key = "%i" % self.chaned.setting.chan_num
-        if track_info[3].has_key(chan_key):
-            ctrl_list = track_info[3][chan_key]
-        else:
-            ctrl_list = []
-        viter = self.chaned.val_list.get_iter("2")
-        while viter:
-            ctrl_num = self.chaned.val_list.get_value(viter, 0)
-            if ctrl_num in ctrl_list:
-                self.chaned.val_list.set(viter, 1, "Ctrl %i *" % ctrl_num)
-            else:
-                self.chaned.val_list.set(viter, 1, "Ctrl %i" % ctrl_num)
-            viter = self.chaned.val_list.iter_next(viter)
+        update_value_list(self.chaned.val_list, track_info, self.chaned.setting.chan_num)
 
         self.chaned.redraw()
 
@@ -145,7 +206,7 @@ class GridSettingTable(gtk.Table):
 
     def __init__(self, chaned, chan_list):
         self.chaned = chaned
-        gtk.Table.__init__(self, 8, 1)
+        gtk.Table.__init__(self, 10, 1)
 
         label = gtk.Label("   Resolution: ")
         res_list = gtk.ListStore(int, str)
@@ -163,11 +224,10 @@ class GridSettingTable(gtk.Table):
         self.attach(label, 2, 3, 0, 1)
         self.attach(combo_res, 3, 4, 0, 1)
 
-        label = gtk.Label("   Value: ")
-        spinadj = gtk.Adjustment(self.chaned.setting.note_val_on, 0, 127, 1)
-        spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
+        label = gtk.Label(" Note on vel.: ")
+        spinbut = gtk.SpinButton(adjustment=self.chaned.setting.note_valadj, climb_rate=1)
         spinbut.set_numeric(True)
-        spinadj.connect("value-changed", self.set_note_value_cb)
+        self.chaned.setting.note_valadj.connect("value-changed", self.set_note_value_cb)
         self.attach(label, 4, 5, 0, 1)
         self.attach(spinbut, 5, 6, 0, 1)
 
@@ -187,28 +247,14 @@ class GridSettingTable(gtk.Table):
         self.attach(label, 6, 7, 0, 1)
         self.attach(chan_cbbox, 7, 8, 0, 1)
 
+        label = gtk.Label("  Default bar value: ")
+        spinbut = gtk.SpinButton(climb_rate=1)
+        spinbut.set_numeric(True)
+        self.chaned.value_wgt.spinbut = spinbut
+        self.attach(label, 8, 9, 0, 1)
+        self.attach(spinbut, 9, 10, 0, 1)
+        self.chaned.value_wgt.set_note_mode()
 
-def get_track_info(track):
-    track_min = 0
-    track_max = 0
-    channel_list = []
-    channel_ctrl = {}
-    for event in track.getall_event():
-        # event = evwr.get_event()
-        if event[0] < track_min:
-            track_min = event[0]
-        if event[0] > track_max:
-            track_max = event[0]
-        chan_key = "%d" % event[1]
-        if not (event[1] in channel_list):
-            channel_list.append(event[1])
-            channel_ctrl[chan_key] = []
-        if event[2] == MIDI_CTRL_EVENT and not (event[3] in channel_ctrl[chan_key]):
-            channel_ctrl[chan_key].append(event[3])
-    channel_list.sort()
-    for key in channel_ctrl.keys():
-        channel_ctrl[key].sort()
-    return (track_min, track_max, channel_list, channel_ctrl)
 
 def is_mask_to_bypass(evstate):
     if (evstate & gtk.gdk.CONTROL_MASK or
@@ -324,6 +370,12 @@ class ChannelEditor(gtk.VBox):
 
     def valuetype_changed(self, combobox):
         value_list = combobox.get_model()
+
+        # Refreshing midivalue type list
+        track_info = get_track_info(self.setting.track)
+        update_value_list(value_list, track_info, self.setting.chan_num)
+
+        # Updating "Value widget" mode and window
         list_idx   = combobox.get_active()
         if list_idx >= 0:
             value = value_list[list_idx][0]
@@ -343,7 +395,7 @@ class ChannelEditor(gtk.VBox):
         self.setting = self.grid.setting
 
         track_info = get_track_info(track)
-        self.setting.chan_num = track_info[2][0] if len(track_info[2]) else 0
+        self.setting.chan_num = track_info['channels'][0] if len(track_info['channels']) else 0
 
         self.hbar = MsqHBarTimeWidget(self.setting)
         self.hbar_vp = gtk.Viewport()
@@ -376,6 +428,7 @@ class ChannelEditor(gtk.VBox):
   (then in edit mode press left button to write notes)
 * Middle button to change note size
 * Suppr to delete selected notes""")
+        self.grid_vp.get_settings().set_long_property("gtk-tooltip-timeout", 3000, "midilooper:gridvp")
         evbox_grid = gtk.EventBox()
         evbox_grid.add(self.grid_vp)
         evbox_grid.connect("leave-notify-event", self.handle_leave_notify, self.hbar, vbar)
@@ -395,12 +448,19 @@ class ChannelEditor(gtk.VBox):
 
         self.val_list = gtk.ListStore(int, str)
         chan_key = "%i" % self.setting.chan_num
-        if track_info[3].has_key(chan_key):
-            ctrl_list = track_info[3][chan_key]
+        if track_info['ctrl_chan'].has_key(chan_key):
+            ctrl_list = track_info['ctrl_chan'][chan_key]
         else:
             ctrl_list = []
-        self.val_list.append([9, "Note on"])
-        self.val_list.append([14, "Pitch Bend"])
+
+        if track_info['note_chan'].has_key(chan_key):
+            self.val_list.append([9, "Note on *"])
+        else:
+            self.val_list.append([9, "Note on"])
+        if track_info['pitch_chan'].has_key(chan_key):
+            self.val_list.append([14, "Pitch Bend *"])
+        else:
+            self.val_list.append([14, "Pitch Bend"])
         for idx in range(128):
             self.val_list.append([idx,
                                   "Ctrl %i *" % idx if idx in ctrl_list else "Ctrl %i" % idx])
@@ -410,9 +470,19 @@ class ChannelEditor(gtk.VBox):
         valuetype_cbbox.pack_start(cell, True)
         valuetype_cbbox.add_attribute(cell, 'text', 1)
         valuetype_cbbox.connect("changed", self.valuetype_changed)
-        valuetype_cbbox.set_size_request(vbar.width, -1)
+        # valuetype_cbbox.set_size_request(vbar.width, -1)
 
-        self.value_wgt = MsqValueWidget(self.setting)
+        value_adjwgt = gtk.VScale()
+        value_adjwgt.set_inverted(True)
+        value_adjwgt.set_draw_value(False)
+
+        value_box = gtk.HBox()
+        value_box.pack_start(valuetype_cbbox)
+        value_box.pack_start(value_adjwgt, expand=False, fill=False)
+
+        value_box.set_size_request(vbar.width, -1)
+
+        self.value_wgt = MsqValueWidget(self.setting, value_adjwgt)
         self.value_vp = gtk.Viewport()
         self.value_vp.set_size_request(self.setting.min_width, -1)
         self.value_vp.connect("scroll_event", self.set_chaned_hadj, hadj, self.setting.qnxsz)
@@ -427,25 +497,24 @@ class ChannelEditor(gtk.VBox):
         self.grid.value_wgt = self.value_wgt
         self.value_wgt.grid = self.grid
 
-        zx_adj = gtk.Adjustment(15.0, 0.0, 32.0, 1.0, 1.0, 0.0)
+        zx_adj = gtk.Adjustment(15.0, 1.0, 25.0, 1.0)
         zx_adj.connect("value_changed", self.handle_zoom_x)
         zoom_x = gtk.HScale(zx_adj)
         zoom_x.set_draw_value(False)
         zoom_x.set_update_policy(gtk.UPDATE_DISCONTINUOUS)
 
-        table2 = gtk.Table(3, 2)
-        table2.attach(zoom_x, 0, 1, 1, 2, gtk.FILL, 0)
-        table2.attach(hsb,    1, 2, 1, 2, gtk.FILL, 0)
-        table2.attach(valuetype_cbbox, 0, 1, 0, 1, gtk.FILL, gtk.EXPAND|gtk.FILL)
+        table2 = gtk.Table(2, 2)
+        table2.attach(value_box,   0, 1, 0, 1, gtk.FILL,            gtk.EXPAND|gtk.FILL)
         table2.attach(evbox_value, 1, 2, 0, 1, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
+        table2.attach(zoom_x,      0, 1, 1, 2, gtk.FILL,            0)
+        table2.attach(hsb,         1, 2, 1, 2, gtk.FILL,            0)
 
         paned_tables = gtk.VPaned()
         paned_tables.pack1(table, resize=False, shrink=False)
         paned_tables.pack2(table2, resize=False, shrink=False)
 
-        chan_list = track_info[2]
         grid_setting_frame = gtk.Frame("Grid setting")
-        grid_setting_frame.add(GridSettingTable(self, chan_list))
+        grid_setting_frame.add(GridSettingTable(self, track_info['channels']))
 
         setting_box = gtk.HBox()
         setting_box.pack_start(grid_setting_frame, expand=False)
