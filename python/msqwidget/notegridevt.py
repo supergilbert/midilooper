@@ -98,10 +98,10 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 min_note = ev_noteon[3]
             if ev_noteon[3] > max_note:
                 max_note = ev_noteon[3]
-        xmax = max_tick * self.setting.qnxsz / self.setting.getppq()
-        xmin = min_tick * self.setting.qnxsz / self.setting.getppq()
-        ymax = ((127 - min_note) * self.setting.noteysz)
-        ymin = ((127 - max_note) * self.setting.noteysz)
+        xmax = self.tick2xpos(max_tick)
+        xmin = self.tick2xpos(min_tick)
+        ymax = self.note2ypos(min_note)
+        ymin = self.note2ypos(max_note)
         return gtk.gdk.Rectangle(xmin - 1, ymin - 1, xmax - xmin + 2, ymax - ymin + self.setting.noteysz + 2)
 
 
@@ -489,7 +489,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
 
     def coo_under_notelist(self, xpos, ypos, notelist):
-        note = self.ypos2note(int(ypos))
+        note = self.ypos2note(ypos)
         tick = self.xpos2tick(xpos)
         for ev_on, ev_off in notelist:
             note_on = ev_on[3]
@@ -548,8 +548,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
              self.tmp_note_area = None
              return
 
-        self.draw_notelist(diff_note_list)
-        self.tmp_note_area = self.get_notelist_area(diff_note_list)
+        self.tmp_note_area = self.draw_notelist(diff_note_list)
 
 
     def _is_note_left_inc(self, ev_on_off_tick):

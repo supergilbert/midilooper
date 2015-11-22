@@ -37,7 +37,7 @@ $(MSQ_LIB_OBJ): CFLAGS=-Wall -Werror -g -fPIC -I$(MSQ_LIB_DIR)
 $(MSQ_LIB_OBJ): CC=gcc
 
 $(MSQ_LIB): $(MSQ_LIB_OBJ)
-	ar -rvs $@ $^
+	ar -rs $@ $^
 
 .PHONY: clean_lib
 clean_lib:

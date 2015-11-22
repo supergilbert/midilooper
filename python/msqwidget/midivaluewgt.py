@@ -34,10 +34,6 @@ SELECT_MODE = 3
 DEFVAL_MODE = 4
 
 class MsqValueWidget(gtk.Widget, Xpos2Tick):
-    def resize_wgt(self):
-        width = self.setting.getmaxwidth()
-        self.set_size_request(width, -1)
-
     def draw_bar_area(self, tick, ypos, area):
         xpos = self.tick2xpos(tick)
         if area.y < ypos:
@@ -111,7 +107,6 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
                     value = self.ypos_to_val(bar[1], maxheight)
                     for evwr in evwr_list:
                         evwr.set_note_vel(value)
-        # return (bar[0], self.setting.chan_num, self.param, ???, self.ypos_to_val(bar[1]))
 
     def _write_ctrlbar(self):
         maxheight = self.window.get_size()[1]
@@ -175,6 +170,7 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         gtk.Widget.__init__(self)
         setting.value_widget = self
         self.setting = setting
+        Xpos2Tick.__init__(self)
         self.bar_width = 3
         self.adjwgt = adjwgt
         self.spinbut = None
@@ -432,7 +428,6 @@ class MsqValueWidget(gtk.Widget, Xpos2Tick):
         winheigt = self.window.get_size()[1] - 1 # keep one pixel to mark an event
         for ev in ev_list:
             self._draw_val_func(ev, winheigt, area)
-            # self._draw_val_func(ev, winsize[1], area)
 
     def draw_value_area(self, x, width):
         "Used for drawing the area without height limitation of the area"

@@ -31,16 +31,20 @@ from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, M
 from msqwidget.midivaluewgt import MsqValueWidget
 from msqwidget.wgttools import MIDI_CTRL_EVENT, MIDI_NOTEOFF_EVENT, MIDI_NOTEON_EVENT, MIDI_PITCH_EVENT
 from tool import prompt_get_loop, prompt_get_output
+from collections import namedtuple
 
 
 class TrackSettingTable(gtk.Table):
 
     def set_loop(self, loop_start, loop_len):
-        self.chaned.setting.track.set_start(loop_start * self.chaned.setting.getppq())
-        self.chaned.setting.track.set_len(loop_len * self.chaned.setting.getppq())
-        self.chaned.resize_all()
-        self.loop_label.set_text(self.loop_str % (self.chaned.setting.getstart() / self.chaned.setting.getppq(),
-                                                  self.chaned.setting.getlen()   / self.chaned.setting.getppq()))
+        ppq = self.chaned.setting.getppq()
+        self.chaned.setting.track.set_start(loop_start * ppq)
+        self.chaned.setting.track.set_len(loop_len * ppq)
+        self.chaned.redraw()
+        self.loop_label.set_text(self.loop_str % (self.chaned.setting.getstart() / ppq,
+                                                  self.chaned.setting.getlen()   / ppq))
+        upper_pos = (loop_start + loop_len + 1) * self.chaned.setting.qnxsz
+        self.chaned.setting.hadj.set_upper(upper_pos)
 
     def button_set_loop(self, button):
         loop_pos = prompt_get_loop(self.chaned.setting.getstart() / self.chaned.setting.getppq(),
@@ -106,19 +110,19 @@ def update_value_list(value_list, track_info, chan_num):
     chan_key = "%i" % chan_num
 
     viter = value_list.get_iter("0")
-    if track_info['note_chan'].has_key(chan_key):
+    if track_info.note_chan.has_key(chan_key):
         value_list.set(viter, 1, "Note on *")
     else:
         value_list.set(viter, 1, "Note on")
 
     viter = value_list.get_iter("1")
-    if track_info['pitch_chan'].has_key(chan_key):
+    if track_info.pitch_chan.has_key(chan_key):
         value_list.set(viter, 1, "Pitch Bend *")
     else:
         value_list.set(viter, 1, "Pitch Bend")
 
-    if track_info['ctrl_chan'].has_key(chan_key):
-        ctrl_list = track_info['ctrl_chan'][chan_key]
+    if track_info.ctrl_chan.has_key(chan_key):
+        ctrl_list = track_info.ctrl_chan[chan_key]
         viter = value_list.get_iter("2")
         while viter:
             ctrl_num = value_list.get_value(viter, 0)
@@ -164,13 +168,23 @@ def get_track_info(track):
     for key in channel_ctrl.keys():
         channel_ctrl[key].sort()
 
-    return {'min': track_min,
-            'max': track_max,
-            'len': ev_len,
-            'channels': channel_list,
-            'note_chan': channel_note,
-            'pitch_chan': channel_pitch,
-            'ctrl_chan': channel_ctrl}
+    trackinfo = namedtuple('MidiTrackInfo',
+                           ['tick_min',
+                            'tick_max',
+                            'tick_len',
+                            'channels',
+                            'note_chan',
+                            'pitch_chan',
+                            'ctrl_chan'],
+                           verbose=False)
+
+    return trackinfo(tick_min=track_min,
+                     tick_max=track_max,
+                     tick_len=ev_len,
+                     channels=channel_list,
+                     note_chan=channel_note,
+                     pitch_chan=channel_pitch,
+                     ctrl_chan=channel_ctrl)
 
 
 class GridSettingTable(gtk.Table):
@@ -188,7 +202,7 @@ class GridSettingTable(gtk.Table):
         citer = chan_list.get_iter_root()
         while citer:
             channel = chan_list.get_value(citer, 0)
-            if channel in track_info['channels']:
+            if channel in track_info.channels:
                 chan_list.set(citer, 1, "%i *" % channel)
             else:
                 chan_list.set(citer, 1, "%i" % channel)
@@ -265,84 +279,57 @@ def is_mask_to_bypass(evstate):
            return True
 
 def dec_adj(adj, pad):
-    value = adj.get_value()
-    new_val = value - pad
-    adj.set_value(new_val if new_val >= adj.lower else adj.lower)
+    value = adj.get_value() - pad
+    valmin = adj.get_lower()
+    adj.set_value(value if value >= valmin else valmin)
 
 def inc_adj(adj, pad):
-    value = adj.get_value()
-    new_val = value + pad
-    max_val = adj.upper - adj.page_size
-    adj.set_value(new_val if new_val <= max_val else max_val)
+    value = adj.get_value() + pad
+    valmax = adj.get_upper() - adj.get_page_size()
+    adj.set_value(value if value <= valmax else valmax)
 
 
 class ChannelEditor(gtk.VBox):
-    def resize_all(self):
-        self.hbar.resize_wgt()
-        self.grid.resize_wgt()
-        self.value_wgt.resize_wgt()
 
-    def set_chaned_vadj(self, widget, event, vadj, noteysz):
+    def vadj_value_cb(self, adj):
+        self.vbar.draw_all()
+        self.grid.draw_all()
+
+    def vadj_value_cb(self, adj):
+        self.hbar.draw_all()
+        self.grid.draw_all()
+        self.value_wgt.draw_all()
+
+    def scroll_adj_cb(self, widget, event, setting):
         if is_mask_to_bypass(event.state):
             return
-        yinc = noteysz * 5
-        if event.direction == gdk.SCROLL_DOWN:
-            inc_adj(vadj, yinc)
-        elif event.direction == gdk.SCROLL_UP:
-            dec_adj(vadj, yinc)
-
-    def set_chaned_hadj(self, widget, event, hadj, qnxsz):
-        if is_mask_to_bypass(event.state):
-            return
-        xinc = qnxsz * 5
-        if event.direction == gdk.SCROLL_RIGHT:
-            inc_adj(hadj, xinc)
-        elif event.direction == gdk.SCROLL_LEFT:
-            dec_adj(hadj, xinc)
-
-    def set_chaned_adj(self, widget, event, hadj, vadj, qnxsz, noteysz):
-        if is_mask_to_bypass(event.state):
-           return
-        xinc = qnxsz * 5
-        yinc = noteysz * 5
-
+        inc_mult = 4
         if event.direction == gdk.SCROLL_DOWN:
             if event.state & gtk.gdk.SHIFT_MASK:
-                xinc = qnxsz * 5
-                inc_adj(hadj, xinc)
+                xinc = setting.qnxsz * inc_mult
+                inc_adj(setting.hadj, xinc)
             else:
-                yinc = noteysz * 5
-                inc_adj(vadj, yinc)
-
+                yinc = setting.noteysz * inc_mult
+                inc_adj(setting.vadj, yinc)
         elif event.direction == gdk.SCROLL_UP:
             if event.state & gtk.gdk.SHIFT_MASK:
-                xinc = qnxsz * 5
-                dec_adj(hadj, xinc)
+                xinc = setting.qnxsz * inc_mult
+                dec_adj(setting.hadj, xinc)
             else:
-                yinc = noteysz * 5
-                dec_adj(vadj, yinc)
-
+                yinc = setting.noteysz * inc_mult
+                dec_adj(setting.vadj, yinc)
         elif event.direction == gdk.SCROLL_RIGHT:
-            xinc = qnxsz * 5
-            inc_adj(hadj, xinc)
+            xinc = setting.qnxsz * inc_mult
+            inc_adj(setting.hadj, xinc)
 
         elif event.direction == gdk.SCROLL_LEFT:
-            xinc = qnxsz * 5
-            dec_adj(hadj, xinc)
-
-    @staticmethod
-    def get_vp_area(vp):
-        hadj = vp.get_hadjustment()
-        vadj = vp.get_vadjustment()
-        return gtk.gdk.Rectangle(int(hadj.get_value()),
-                                 int(vadj.get_value()),
-                                 int(hadj.get_page_size()),
-                                 int(vadj.get_page_size()))
+            xinc = setting.qnxsz * inc_mult
+            dec_adj(setting.hadj, xinc)
 
     def redraw(self):
-        self.grid.draw_area(self.get_vp_area(self.grid_vp))
-        self.hbar.draw_area(self.get_vp_area(self.hbar_vp))
-        self.value_wgt.draw_area(self.get_vp_area(self.value_vp))
+        self.hbar.draw_all()
+        self.grid.draw_all()
+        self.value_wgt.draw_all()
 
     def debug_grid1(self, button, track):
         self.redraw()
@@ -352,7 +339,7 @@ class ChannelEditor(gtk.VBox):
 
     def handle_motion(self, widget, event, hbar, vbar):
         # tick = self.grid.xpos2tick(event.x)
-        note = self.grid.ypos2note(int(event.y))
+        note = vbar.ypos2note(int(event.y))
         # hbar.show_tick(tick)
         vbar.show_note(note)
 
@@ -360,12 +347,16 @@ class ChannelEditor(gtk.VBox):
         vbar.clear_note()
 
     def handle_zoom_x(self, adj):
-        val = adj.get_value()
-        if val <= 16.0:
-            self.setting.qnxsz = int(MIN_QNOTE_XSZ + ((DEFAULT_QNOTE_XSZ - MIN_QNOTE_XSZ) * val / 16.0))
+        zval = adj.get_value()
+        old_qnxsz = self.setting.qnxsz
+        old_pos = self.setting.hadj.get_value()
+        if zval <= 16.0:
+            self.setting.qnxsz = int(MIN_QNOTE_XSZ + ((DEFAULT_QNOTE_XSZ - MIN_QNOTE_XSZ) * zval / 16.0))
         else:
-            self.setting.qnxsz = int(DEFAULT_QNOTE_XSZ + ((MAX_QNOTE_XSZ - DEFAULT_QNOTE_XSZ) * (val - 16) / 16.0))
-        self.resize_all()
+            self.setting.qnxsz = int(DEFAULT_QNOTE_XSZ + ((MAX_QNOTE_XSZ - DEFAULT_QNOTE_XSZ) * (zval - 16) / 16.0))
+        self.setting.hadj.set_upper(self.setting.getmaxwidth())
+        pos = old_pos * self.setting.qnxsz / old_qnxsz
+        self.setting.hadj.set_value(pos)
         self.redraw()
 
     def valuetype_changed(self, combobox):
@@ -386,7 +377,7 @@ class ChannelEditor(gtk.VBox):
             else:
                 if list_idx > 1:
                     self.value_wgt.set_ctrl_mode(list_idx - 2)
-            self.value_wgt.draw_area(self.get_vp_area(self.value_vp))
+            self.value_wgt.draw_all()
 
     def __init__(self, track, sequencer):
         gtk.VBox.__init__(self)
@@ -395,69 +386,44 @@ class ChannelEditor(gtk.VBox):
         self.setting = self.grid.setting
 
         track_info = get_track_info(track)
-        self.setting.chan_num = track_info['channels'][0] if len(track_info['channels']) else 0
+        self.setting.chan_num = track_info.channels[0] if len(track_info.channels) else 0
 
         self.hbar = MsqHBarTimeWidget(self.setting)
-        self.hbar_vp = gtk.Viewport()
-        self.hbar_vp.set_size_request(self.setting.min_width, -1)
-        self.hbar_vp.add(self.hbar)
-        self.hbar_vp.set_shadow_type(gtk.SHADOW_NONE)
-        hadj = self.hbar_vp.get_hadjustment()
-        self.hbar_vp.connect("scroll_event", self.set_chaned_hadj, hadj, self.setting.qnxsz)
 
-        vbar = MsqVBarNoteWidget(self.setting)
-        vbar_vp = gtk.Viewport()
-        vbar_vp.set_size_request(-1, self.setting.min_height)
-        vbar_vp.add(vbar)
-        vbar_vp.set_shadow_type(gtk.SHADOW_NONE)
-        vadj = vbar_vp.get_vadjustment()
-        vbar_vp.connect("scroll_event", self.set_chaned_vadj, vadj, self.setting.noteysz)
+        self.vbar = MsqVBarNoteWidget(self.setting)
+        self.setting.vadj.connect("value-changed", self.vadj_value_cb)
 
-        self.grid.connect("motion_notify_event", self.handle_motion, self.hbar, vbar)
-        self.grid.vadj = vadj
-        self.grid_vp = gtk.Viewport()
-        self.grid_vp.set_size_request(self.setting.min_width, self.setting.min_height)
-        self.grid_vp.add(self.grid)
-        self.grid_vp.connect("scroll_event", self.set_chaned_adj, hadj, vadj, self.setting.qnxsz, self.setting.noteysz)
-        self.grid_vp.set_shadow_type(gtk.SHADOW_NONE)
-        self.grid_vp.set_hadjustment(hadj)
-        self.grid_vp.set_vadjustment(vadj)
-        self.grid_vp.set_tooltip_text("""\
+        self.grid.connect("motion_notify_event", self.handle_motion, self.hbar, self.vbar)
+        self.grid.set_tooltip_text("""\
 * Left button to select notes
 * Right button to enter in edit mode
   (then in edit mode press left button to write notes)
 * Middle button to change note size
 * Suppr to delete selected notes""")
-        self.grid_vp.get_settings().set_long_property("gtk-tooltip-timeout", 3000, "midilooper:gridvp")
-        evbox_grid = gtk.EventBox()
-        evbox_grid.add(self.grid_vp)
-        evbox_grid.connect("leave-notify-event", self.handle_leave_notify, self.hbar, vbar)
+        self.grid.get_settings().set_long_property("gtk-tooltip-timeout", 3000, "midilooper:gridvp")
+        self.grid.connect("leave-notify-event", self.handle_leave_notify, self.hbar, self.vbar)
 
-        vbar_vp.connect("button_press_event", vbar.handle_button_press, self.grid)
-        vbar_vp.connect("button_release_event", vbar.handle_button_release, self.grid)
-        vbar_vp.connect("motion_notify_event", vbar.handle_motion, self.grid)
-
-        hsb = gtk.HScrollbar(hadj)
-        vsb = gtk.VScrollbar(vadj)
+        hsb = gtk.HScrollbar(self.setting.hadj)
+        vsb = gtk.VScrollbar(self.setting.vadj)
 
         table = gtk.Table(3, 2)
-        table.attach(self.hbar_vp, 1, 2, 0, 1, gtk.FILL, 0)
-        table.attach(vbar_vp,      0, 1, 1, 2, 0, gtk.FILL)
-        table.attach(evbox_grid,   1, 2, 1, 2, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
-        table.attach(vsb,          2, 3, 1, 2, 0, gtk.FILL)
+        table.attach(self.hbar, 1, 2, 0, 1, gtk.FILL,            0)
+        table.attach(self.vbar, 0, 1, 1, 2, 0,                   gtk.FILL)
+        table.attach(self.grid, 1, 2, 1, 2, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
+        table.attach(vsb,       2, 3, 1, 2, 0,                   gtk.FILL)
 
         self.val_list = gtk.ListStore(int, str)
         chan_key = "%i" % self.setting.chan_num
-        if track_info['ctrl_chan'].has_key(chan_key):
-            ctrl_list = track_info['ctrl_chan'][chan_key]
+        if track_info.ctrl_chan.has_key(chan_key):
+            ctrl_list = track_info.ctrl_chan[chan_key]
         else:
             ctrl_list = []
 
-        if track_info['note_chan'].has_key(chan_key):
+        if track_info.note_chan.has_key(chan_key):
             self.val_list.append([9, "Note on *"])
         else:
             self.val_list.append([9, "Note on"])
-        if track_info['pitch_chan'].has_key(chan_key):
+        if track_info.pitch_chan.has_key(chan_key):
             self.val_list.append([14, "Pitch Bend *"])
         else:
             self.val_list.append([14, "Pitch Bend"])
@@ -470,7 +436,6 @@ class ChannelEditor(gtk.VBox):
         valuetype_cbbox.pack_start(cell, True)
         valuetype_cbbox.add_attribute(cell, 'text', 1)
         valuetype_cbbox.connect("changed", self.valuetype_changed)
-        # valuetype_cbbox.set_size_request(vbar.width, -1)
 
         value_adjwgt = gtk.VScale()
         value_adjwgt.set_inverted(True)
@@ -480,19 +445,10 @@ class ChannelEditor(gtk.VBox):
         value_box.pack_start(valuetype_cbbox)
         value_box.pack_start(value_adjwgt, expand=False, fill=False)
 
-        value_box.set_size_request(vbar.width, -1)
+        value_box.set_size_request(self.vbar.width, -1)
 
         self.value_wgt = MsqValueWidget(self.setting, value_adjwgt)
-        self.value_vp = gtk.Viewport()
-        self.value_vp.set_size_request(self.setting.min_width, -1)
-        self.value_vp.connect("scroll_event", self.set_chaned_hadj, hadj, self.setting.qnxsz)
-        self.value_vp.set_shadow_type(gtk.SHADOW_NONE)
-        self.value_vp.set_hadjustment(hadj)
-        # self.value_vp.set_vadjustment(vadj)
-        self.value_vp.add(self.value_wgt)
-        evbox_value = gtk.EventBox()
-        evbox_value.add(self.value_vp)
-        # evbox_value.connect("leave-notify-event", self.handle_leave_notify, self.hbar, vbar)
+        self.value_wgt.connect("leave-notify-event", self.handle_leave_notify, self.hbar, self.vbar)
 
         self.grid.value_wgt = self.value_wgt
         self.value_wgt.grid = self.grid
@@ -504,17 +460,21 @@ class ChannelEditor(gtk.VBox):
         zoom_x.set_update_policy(gtk.UPDATE_DISCONTINUOUS)
 
         table2 = gtk.Table(2, 2)
-        table2.attach(value_box,   0, 1, 0, 1, gtk.FILL,            gtk.EXPAND|gtk.FILL)
-        table2.attach(evbox_value, 1, 2, 0, 1, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
-        table2.attach(zoom_x,      0, 1, 1, 2, gtk.FILL,            0)
-        table2.attach(hsb,         1, 2, 1, 2, gtk.FILL,            0)
+        table2.attach(value_box,      0, 1, 0, 1, gtk.FILL,            gtk.EXPAND|gtk.FILL)
+        table2.attach(self.value_wgt, 1, 2, 0, 1, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
+        table2.attach(zoom_x,         0, 1, 1, 2, gtk.FILL,            0)
+        table2.attach(hsb,            1, 2, 1, 2, gtk.FILL,            0)
+
+        self.hbar.connect("scroll-event", self.scroll_adj_cb, self.setting)
+        self.vbar.connect("scroll-event", self.scroll_adj_cb, self.setting)
+        self.grid.connect("scroll-event", self.scroll_adj_cb, self.setting)
 
         paned_tables = gtk.VPaned()
         paned_tables.pack1(table, resize=False, shrink=False)
         paned_tables.pack2(table2, resize=False, shrink=False)
 
         grid_setting_frame = gtk.Frame("Grid setting")
-        grid_setting_frame.add(GridSettingTable(self, track_info['channels']))
+        grid_setting_frame.add(GridSettingTable(self, track_info.channels))
 
         setting_box = gtk.HBox()
         setting_box.pack_start(grid_setting_frame, expand=False)
@@ -536,7 +496,7 @@ class ChannelEditor(gtk.VBox):
         debug_frame.add(debug_hbox)
         self.pack_end(debug_frame, expand=False)
 
-        self.resize_all()
+        self.redraw()
 
 
 class TrackEditor(gtk.Window):

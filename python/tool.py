@@ -112,7 +112,7 @@ Press any note (timeout in 5 sec)""" % name)
     dialog.destroy()
     return timeout_data[0]
 
-TRACK_MAX_LENGTH = 128
+TRACK_MAX_LENGTH = 9999
 
 def prompt_get_loop(loop_start, loop_len):
     def button_apply_cb(button, dialog, loop_pos, spinbut1, spinbut2):
@@ -129,7 +129,7 @@ def prompt_get_loop(loop_start, loop_len):
     label = gtk.Label(" Loop Start: ")
     spinadj = gtk.Adjustment(loop_start,
                              0,
-                             TRACK_MAX_LENGTH - 1,
+                             TRACK_MAX_LENGTH,
                              1)
     spinbut1 = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
     hbox.pack_start(label,   True, True, 0)
@@ -185,6 +185,7 @@ def prompt_get_output(portlist, idx=None):
         dialog.response(gtk.RESPONSE_CANCEL)
 
     dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
+    dialog.set_position(gtk.WIN_POS_MOUSE)
 
     portlist_cbbox = gtk.ComboBox(portlist)
     cell = gtk.CellRendererText()

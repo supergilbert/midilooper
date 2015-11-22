@@ -36,23 +36,47 @@ MIDI_NOTEON_EVENT  = 0x9
 MIDI_CTRL_EVENT    = 0xB
 MIDI_PITCH_EVENT   = 0xE
 
-class Xpos2Tick(object):
+class DrawAllArea(object):
+    def draw_all(self):
+        if self.window:
+            xsz, ysz = self.window.get_size()
+            self.draw_area(gtk.gdk.Rectangle(0, 0, xsz, ysz))
+
+class Xpos2Tick(DrawAllArea):
     def xpos2tick(self, xpos):
-        tick = int(xpos * self.setting.getppq() / self.setting.qnxsz)
+        xadj_pos = xpos + self.xadj
+        tick = int(xadj_pos * self.setting.getppq() / self.setting.qnxsz)
         return tick if tick >= 0 else 0
 
     def tick2xpos(self, tick):
-        return tick * self.setting.qnxsz / self.setting.getppq()
+        return (tick * self.setting.qnxsz / self.setting.getppq()) - self.xadj
 
-class Ypos2Note(object):
+    def hadj_val_cb(self, adj):
+        self.xadj = int(self.setting.hadj.get_value())
+        self.draw_all()
+
+    def __init__(self):
+        self.xadj = 0
+        self.setting.hadj.connect("value-changed", self.hadj_val_cb)
+
+class Ypos2Note(DrawAllArea):
     def ypos2note(self, ypos):
-        note = int(127 - (ypos / self.setting.noteysz))
+        yadj_pos = ypos + self.yadj
+        note = 127 - int(yadj_pos / self.setting.noteysz)
         if note < 0:
             note = 0
         return note
 
     def note2ypos(self, note):
-        return (127 - note) * self.setting.noteysz
+        return ((127 - note) * self.setting.noteysz) - self.yadj
+
+    def vadj_val_cb(self, adj):
+        self.yadj = int(self.setting.vadj.get_value())
+        self.draw_all()
+
+    def __init__(self):
+        self.yadj = int(self.setting.vadj.get_value())
+        self.setting.vadj.connect("value-changed", self.vadj_val_cb)
 
 def evwr_to_repr_list(noteonoff_list):
     repr_list = []
