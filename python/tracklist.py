@@ -285,8 +285,8 @@ class TrackList(gtk.Frame):
 
     def toggle_mute_all(self, tv):
         def _toggle_mute(tvmodel, path, tv_iter):
-            tvmodel.get_value(tv_iter, 0).track.mute()
-            mute_val = not tvmodel.get_value(tv_iter, 3)
+            tvmodel.get_value(tv_iter, 0).track.toggle_mute()
+            mute_val = tvmodel.get_value(tv_iter, 0).track.get_mute_state()
             self.liststore.set_value(tv_iter, 3, mute_val)
         self.liststore.foreach(_toggle_mute)
 

@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-make -s
+make -C $(dirname $0) -s
 
 MIDILOOPER=$(dirname $0)/python/midilooper.py
 export PYTHONPATH=$(dirname $0)/python_module
