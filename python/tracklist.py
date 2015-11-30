@@ -283,12 +283,12 @@ class TrackList(gtk.Frame):
         for ent in self.liststore:
             ent[4] = False
 
-    def toggle_mute_all(self, tv):
-        def _toggle_mute(tvmodel, path, tv_iter):
-            tvmodel.get_value(tv_iter, 0).track.toggle_mute()
+    def mute_all(self, tv):
+        def _mute(tvmodel, path, tv_iter):
+            tvmodel.get_value(tv_iter, 0).track.mute()
             mute_val = tvmodel.get_value(tv_iter, 0).track.get_mute_state()
             self.liststore.set_value(tv_iter, 3, mute_val)
-        self.liststore.foreach(_toggle_mute)
+        self.liststore.foreach(_mute)
 
     def drag_data_get_data(self, treeview, context, selection, target_id, etime):
         if self.seq.isrunning():
@@ -369,7 +369,7 @@ class TrackList(gtk.Frame):
         tvcolumn = gtk.TreeViewColumn('M', cell_rdrr, active=3)
         tvcolumn.set_expand(False)
         tvcolumn.set_clickable(True)
-        tvcolumn.connect('clicked', self.toggle_mute_all)
+        tvcolumn.connect('clicked', self.mute_all)
         self.treev.append_column(tvcolumn)
 
         self.treev.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
