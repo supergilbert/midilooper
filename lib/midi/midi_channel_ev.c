@@ -39,11 +39,14 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
       return 3;
 
     case NOTEON:
-      chan_ev->type = type;
+      chan_ev->event.note.val = buffer[2];
+      if (chan_ev->event.note.val > 0)
+        chan_ev->type = type;
+      else
+        chan_ev->type = NOTEOFF;
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
       chan_ev->event.note.num = buffer[1];
-      chan_ev->event.note.val = buffer[2];
       debug_midi("*** NOTEON Event (channel:%d num:%d val:%d) ***",
                  chan_ev->chan,
                  chan_ev->event.note.num,
