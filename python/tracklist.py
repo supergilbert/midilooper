@@ -219,7 +219,7 @@ class TrackList(gtk.Frame):
         def update_tedit(tvmodel, path, tv_iter, tickpos):
             tedit = tvmodel.get_value(tv_iter, 0)
             if tedit.track.has_changed():
-                tedit.chaned.redraw()
+                tedit.chaned.draw_all()
             tedit.update_pos(tickpos)
             def get_percent(tick, track_len):
                 val = tick % track_len

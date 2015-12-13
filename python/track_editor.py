@@ -34,19 +34,19 @@ from tool import prompt_get_loop, prompt_get_output
 from collections import namedtuple
 
 
-class TrackSettingTable(gtk.Table):
+class TrackSettingTable(gtk.HBox):
 
     def set_loop(self, loop_start, loop_len):
         ppq = self.chaned.setting.getppq()
         self.chaned.setting.track.set_start(loop_start * ppq)
         self.chaned.setting.track.set_len(loop_len * ppq)
-        self.chaned.redraw()
-        self.loop_label.set_text(self.loop_str % (self.chaned.setting.getstart() / ppq,
+        self.chaned.draw_all()
+        self.loop_button.set_label(self.loop_str % (self.chaned.setting.getstart() / ppq,
                                                   self.chaned.setting.getlen()   / ppq))
         upper_pos = (loop_start + loop_len + 1) * self.chaned.setting.qnxsz
         self.chaned.setting.hadj.set_upper(upper_pos)
 
-    def button_set_loop(self, button):
+    def loop_button_cb(self, button):
         loop_pos = prompt_get_loop(self.chaned.setting.getstart() / self.chaned.setting.getppq(),
                                    self.chaned.setting.getlen()   / self.chaned.setting.getppq())
         if loop_pos:
@@ -60,11 +60,11 @@ class TrackSettingTable(gtk.Table):
                 output_port = model[1]
                 break
         if output_port:
-            self.output_label.set_text(self.output_str % output_port)
+            self.output_button.set_label(self.output_str % output_port)
         else:
-            self.output_label.set_text(self.output_str % "None")
+            self.output_button.set_label(self.output_str % "None")
 
-    def button_set_output(self, button):
+    def output_button_cb(self, button):
         port_idx = 0
         for idx, model in enumerate(self.portlist):
             if self.chaned.setting.track.has_output(model[0]):
@@ -75,36 +75,34 @@ class TrackSettingTable(gtk.Table):
             self.set_output(output_res[1])
 
     def __init__(self, chaned, portlist):
-        gtk.Table.__init__(self, 4, 1)
+        gtk.HBox.__init__(self)
+        self.set_border_width(10)
+        self.set_spacing(5)
         self.chaned = chaned
         self.loop_str = "Loop start:%d length:%d "
         self.output_str = "  Output Port: %s "
         self.portlist = portlist
-        self.loop_label = gtk.Label(self.loop_str % (self.chaned.setting.getstart() / self.chaned.setting.getppq(),
-                                                     self.chaned.setting.getlen()   / self.chaned.setting.getppq()))
-        self.attach(self.loop_label, 0, 1, 0, 1)
 
-        button = gtk.Button("Configure loop")
-        button.connect("clicked", self.button_set_loop)
+        self.loop_button = gtk.Button(self.loop_str % (self.chaned.setting.getstart() / self.chaned.setting.getppq(),
+                                                       self.chaned.setting.getlen()   / self.chaned.setting.getppq()))
+        self.loop_button.connect("clicked", self.loop_button_cb)
+        self.loop_button.set_tooltip_text("Press to configure")
+        self.pack_start(self.loop_button)
 
-        self.attach(button, 1, 2, 0, 1)
 
-        self.output_label = gtk.Label()
+        self.output_button = gtk.Button()
+        self.output_button.connect("clicked", self.output_button_cb)
+        self.output_button.set_tooltip_text("Press to configure")
         output_port = None
         for idx, model in enumerate(self.portlist):
             if self.chaned.setting.track.has_output(model[0]):
                 output_port = model[1]
                 break
         if output_port:
-            self.output_label.set_text(self.output_str % output_port)
+            self.output_button.set_label(self.output_str % output_port)
         else:
-            self.output_label.set_text(self.output_str % "None")
-
-        button = gtk.Button("Configure output")
-        button.connect("clicked", self.button_set_output)
-
-        self.attach(self.output_label, 2, 3, 0, 1)
-        self.attach(button, 3, 4, 0, 1)
+            self.output_button.set_label(self.output_str % "None")
+        self.pack_start(self.output_button)
 
 def update_value_list(value_list, track_info, chan_num):
     chan_key = "%i" % chan_num
@@ -187,8 +185,7 @@ def get_track_info(track):
                      ctrl_chan=channel_ctrl)
 
 
-class GridSettingTable(gtk.Table):
-
+class GridSettingTable(gtk.HBox):
     def set_note_value_cb(self, widget):
         self.chaned.setting.note_val_on = int(widget.get_value())
 
@@ -211,18 +208,49 @@ class GridSettingTable(gtk.Table):
         # Refreshing midivalue viewer combobox
         update_value_list(self.chaned.val_list, track_info, self.chaned.setting.chan_num)
 
-        self.chaned.redraw()
+        self.chaned.draw_all()
 
     def res_changed(self, cbbox):
         val_int = cbbox.get_model()[cbbox.get_active()][0]
         self.chaned.grid.setting.tick_res = val_int
-        self.chaned.redraw()
+        self.chaned.draw_all()
+
+    def scale_changed(self, cbbox):
+        val_int = cbbox.get_model()[cbbox.get_active()][0]
+        self.chaned.grid.set_scale(val_int)
+        self.chaned.grid.draw_all()
 
     def __init__(self, chaned, chan_list):
+        gtk.HBox.__init__(self)
+        self.set_border_width(10)
         self.chaned = chaned
-        gtk.Table.__init__(self, 10, 1)
 
-        label = gtk.Label("   Resolution: ")
+        label = gtk.Label("Scale: ")
+        scale_list = gtk.ListStore(int, str)
+        scale_str_list = ("C",
+                          "C#",
+                          "D",
+                          "D#",
+                          "E",
+                          "F",
+                          "F#",
+                          "G",
+                          "G#",
+                          "A",
+                          "A#",
+                          "B")
+        for idx, note in enumerate(scale_str_list):
+            scale_list.append((idx, note))
+        combo_scale = gtk.ComboBox(scale_list)
+        combo_scale.set_active(0)
+        cell = gtk.CellRendererText()
+        combo_scale.pack_start(cell, True)
+        combo_scale.add_attribute(cell, 'text', 1)
+        combo_scale.connect("changed", self.scale_changed)
+        self.pack_start(label)
+        self.pack_start(combo_scale)
+
+        label = gtk.Label(" Resolution: ")
         res_list = gtk.ListStore(int, str)
         ppq = self.chaned.setting.sequencer.getppq()
         for val in [1, 2, 4, 8, 16, 32, 64, 3, 6, 12, 24, 48]:
@@ -234,16 +262,15 @@ class GridSettingTable(gtk.Table):
         combo_res.pack_start(cell, True)
         combo_res.add_attribute(cell, 'text', 1)
         combo_res.connect("changed", self.res_changed)
-
-        self.attach(label, 2, 3, 0, 1)
-        self.attach(combo_res, 3, 4, 0, 1)
+        self.pack_start(label)
+        self.pack_start(combo_res)
 
         label = gtk.Label(" Note on vel.: ")
         spinbut = gtk.SpinButton(adjustment=self.chaned.setting.note_valadj, climb_rate=1)
         spinbut.set_numeric(True)
         self.chaned.setting.note_valadj.connect("value-changed", self.set_note_value_cb)
-        self.attach(label, 4, 5, 0, 1)
-        self.attach(spinbut, 5, 6, 0, 1)
+        self.pack_start(label)
+        self.pack_start(spinbut)
 
         label = gtk.Label("  Channel: ")
         chan_liststore = gtk.ListStore(int, str)
@@ -258,21 +285,20 @@ class GridSettingTable(gtk.Table):
         chan_cbbox.add_attribute(cell, 'text', 1)
         chan_cbbox.set_active(self.chaned.setting.chan_num)
         chan_cbbox.connect("changed", self.chan_changed_cb)
-        self.attach(label, 6, 7, 0, 1)
-        self.attach(chan_cbbox, 7, 8, 0, 1)
+        self.pack_start(label)
+        self.pack_start(chan_cbbox)
 
         label = gtk.Label("  Default bar value: ")
         spinbut = gtk.SpinButton(climb_rate=1)
         spinbut.set_numeric(True)
         self.chaned.value_wgt.spinbut = spinbut
-        self.attach(label, 8, 9, 0, 1)
-        self.attach(spinbut, 9, 10, 0, 1)
+        self.pack_start(label)
+        self.pack_start(spinbut)
         self.chaned.value_wgt.set_note_mode()
 
 
 def is_mask_to_bypass(evstate):
-    if (evstate & gtk.gdk.CONTROL_MASK or
-        evstate & gtk.gdk.MOD1_MASK or
+    if (evstate & gtk.gdk.MOD1_MASK or
         evstate & gtk.gdk.MOD3_MASK or
         evstate & gtk.gdk.MOD4_MASK or
         evstate & gtk.gdk.MOD5_MASK):
@@ -283,6 +309,7 @@ def dec_adj(adj, pad):
     valmin = adj.get_lower()
     adj.set_value(value if value >= valmin else valmin)
 
+
 def inc_adj(adj, pad):
     value = adj.get_value() + pad
     valmax = adj.get_upper() - adj.get_page_size()
@@ -290,7 +317,6 @@ def inc_adj(adj, pad):
 
 
 class ChannelEditor(gtk.VBox):
-
     def vadj_value_cb(self, adj):
         self.vbar.draw_all()
         self.grid.draw_all()
@@ -308,6 +334,11 @@ class ChannelEditor(gtk.VBox):
             if event.state & gtk.gdk.SHIFT_MASK:
                 xinc = setting.qnxsz * inc_mult
                 inc_adj(setting.hadj, xinc)
+            elif event.state & gtk.gdk.CONTROL_MASK:
+                step = self.zx_adj.get_step_increment()
+                val = self.zx_adj.get_value() - step
+                if val >= self.zx_adj.get_lower():
+                    self.zx_adj.set_value(val)
             else:
                 yinc = setting.noteysz * inc_mult
                 inc_adj(setting.vadj, yinc)
@@ -315,6 +346,11 @@ class ChannelEditor(gtk.VBox):
             if event.state & gtk.gdk.SHIFT_MASK:
                 xinc = setting.qnxsz * inc_mult
                 dec_adj(setting.hadj, xinc)
+            elif event.state & gtk.gdk.CONTROL_MASK:
+                step = self.zx_adj.get_step_increment()
+                val = self.zx_adj.get_value() + step
+                if val <= self.zx_adj.get_upper():
+                    self.zx_adj.set_value(val)
             else:
                 yinc = setting.noteysz * inc_mult
                 dec_adj(setting.vadj, yinc)
@@ -326,13 +362,13 @@ class ChannelEditor(gtk.VBox):
             xinc = setting.qnxsz * inc_mult
             dec_adj(setting.hadj, xinc)
 
-    def redraw(self):
+    def draw_all(self):
         self.hbar.draw_all()
         self.grid.draw_all()
         self.value_wgt.draw_all()
 
     def debug_grid1(self, button, track):
-        self.redraw()
+        self.draw_all()
 
     def debug_grid2(self, button, track):
         track._dump()
@@ -357,7 +393,7 @@ class ChannelEditor(gtk.VBox):
         self.setting.hadj.set_upper(self.setting.getmaxwidth())
         pos = old_pos * self.setting.qnxsz / old_qnxsz
         self.setting.hadj.set_value(pos)
-        self.redraw()
+        self.draw_all()
 
     def valuetype_changed(self, combobox):
         value_list = combobox.get_model()
@@ -399,7 +435,10 @@ class ChannelEditor(gtk.VBox):
 * Right button to enter in edit mode
   (then in edit mode press left button to write notes)
 * Middle button to change note size
-* Suppr to delete selected notes""")
+* Suppr to delete selected notes
+* Ctrl-a Select all notes
+* Ctrl-c Copy selected
+* Ctrl-v Paste copied notes""")
         self.grid.get_settings().set_long_property("gtk-tooltip-timeout", 3000, "midilooper:gridvp")
         self.grid.connect("leave-notify-event", self.handle_leave_notify, self.hbar, self.vbar)
 
@@ -453,9 +492,9 @@ class ChannelEditor(gtk.VBox):
         self.grid.value_wgt = self.value_wgt
         self.value_wgt.grid = self.grid
 
-        zx_adj = gtk.Adjustment(15.0, 1.0, 25.0, 1.0)
-        zx_adj.connect("value_changed", self.handle_zoom_x)
-        zoom_x = gtk.HScale(zx_adj)
+        self.zx_adj = gtk.Adjustment(15.0, 1.0, 25.0, 1.0)
+        self.zx_adj.connect("value_changed", self.handle_zoom_x)
+        zoom_x = gtk.HScale(self.zx_adj)
         zoom_x.set_draw_value(False)
         zoom_x.set_update_policy(gtk.UPDATE_DISCONTINUOUS)
 
@@ -496,7 +535,7 @@ class ChannelEditor(gtk.VBox):
         debug_frame.add(debug_hbox)
         self.pack_end(debug_frame, expand=False)
 
-        self.redraw()
+        self.draw_all()
 
 
 class TrackEditor(gtk.Window):
