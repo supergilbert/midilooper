@@ -42,7 +42,7 @@ NO_LOGMODE   = 0
 UNDO_LOGMODE = 1
 HISTORY_MARK = 4242
 
-# Size of "note off" tick decrementation
+# Size of "note off" tick decrementation (position of note off)
 NOTEOFF_DEC = 1
 
 DEFAULT_NOTEON_VAL  = 64
@@ -177,47 +177,41 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 self.wgt_mode = NO_MODE
 
         elif self.wgt_mode == NO_MODE and event.button == 1:
+            self.start_coo = (event.x, event.y)
+            if event.state & gtk.gdk.CONTROL_MASK:
+                self.ctrl_click = True
+            else:
+                new_sel = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
+                if new_sel:
+                    note_on  = new_sel[0][0].get_event()
+                    note_off = new_sel[0][1].get_event()
+                    if self.selection:
+                        if not is_in_notelist(note_on,
+                                              note_off,
+                                              evwr_to_repr_list(self.selection)):
+                            old_sel_area = self.get_notelist_area(evwr_to_repr_list(self.selection))
+                            self.selection = new_sel
+                            self.draw_area(old_sel_area)
+                    else:
+                        self.selection = new_sel
+
             if self.selection:
                 ev_on_off_tick = self.coo_under_notelist(event.x,
                                                          event.y,
                                                          evwr_to_repr_list(self.selection))
                 if ev_on_off_tick:
-                    self.start_coo = (event.x, event.y)
-                    if event.state & gtk.gdk.CONTROL_MASK:
-                        self.ctrl_click = True
+                    if self.ctrl_click == True:
                         self.wgt_mode = SELECT_MODE
                     else:
                         self.wgt_mode = PASTE_MODE
                         self.paste_cache = evwr_to_repr_list(self.selection)
                         self.data_cache = (self.setting.quantify_tick(ev_on_off_tick[2]), ev_on_off_tick[0][3])
                 else:
-                    if event.state & gtk.gdk.CONTROL_MASK:
-                        self.ctrl_click = True
-                    else:
+                    if not self.ctrl_click == True:
                         self.clear_selection()
-                    self.start_coo = (event.x, event.y)
                     self.wgt_mode = SELECT_MODE
             else:
-                self.start_coo = (event.x, event.y)
-                new_sel = None
-                old_sel_area = None
-                if event.state & gtk.gdk.CONTROL_MASK:
-                    self.ctrl_click = True
-                else:
-                    if self.selection:
-                        old_sel_area = self.get_notelist_area(evwr_to_repr_list(self.selection))
-                    new_sel = self.get_notes_evwr(gtk.gdk.Rectangle(int(event.x), int(event.y), 1, 1))
-                if new_sel:
-                    self.selection = new_sel
-                    if old_sel_area:
-                        self.draw_area(old_sel_area)
-                    self.draw_notelist_area(evwr_to_repr_list(self.selection))
-                    self.paste_cache = evwr_to_repr_list(self.selection)
-                    evrepr = self.selection[0][0].get_event()
-                    self.data_cache = (self.setting.quantify_tick(evrepr[0]), evrepr[3])
-                    self.wgt_mode = PASTE_MODE
-                else:
-                    self.wgt_mode = SELECT_MODE
+                self.wgt_mode = SELECT_MODE
 
         elif self.wgt_mode == NO_MODE and event.button == 3:
             self.window.set_cursor(cursor_pencil)

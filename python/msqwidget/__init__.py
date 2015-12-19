@@ -82,6 +82,22 @@ class ProgressLineListener(object):
 
 
 class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
+    def realize_hbar_pixmap(self):
+        height = self.font_height + 3
+        ypos = self.font_height + 2
+
+        start_str = " Start "
+        startmark_width = default_font.string_width(start_str)
+        self.start_pixmap = gtk.gdk.Pixmap(self.window, startmark_width, height, -1)
+        self.start_pixmap.draw_rectangle(self.fg_gc, True, 0, 0, startmark_width, height)
+        self.start_pixmap.draw_string(default_font, self.dark_gc, 0, ypos, start_str)
+
+        end_str = " End "
+        endmark_width = default_font.string_width(end_str)
+        self.end_pixmap = gtk.gdk.Pixmap(self.window, endmark_width,   height, -1)
+        self.end_pixmap.draw_rectangle(self.fg_gc, True, 0, 0, endmark_width, height)
+        self.end_pixmap.draw_string(default_font, self.dark_gc, 0, ypos, end_str)
+
     def do_realize(self):
         self.set_flags(gtk.REALIZED)
         self.window = gdk.Window(self.get_parent_window(),
@@ -102,6 +118,7 @@ class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
                                   0,
                                   0,
                                   self.window.get_size()[0])
+        self.realize_hbar_pixmap()
 
     def do_unrealize(self):
         self.window.set_user_data(None)
@@ -114,6 +131,39 @@ class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
         self.setting.hadj.set_page_size(self.allocation.width)
         if self.flags() & gtk.REALIZED:
             self.window.move_resize(*self.allocation)
+
+    def drawable_draw_pixmap_in_area(self, drawable, area, pixmap, xpos, ypos):
+        width  = pixmap.get_size()[0]
+        xend = xpos + width
+        xmax = area.x + area.width
+        height = pixmap.get_size()[1]
+        yend = ypos + height
+        ymax = area.y + area.height
+        if area.x < xend and xpos < xmax and area.y < yend and ypos < ymax:
+            xsrc = 0
+            if xpos < area.x:
+                xsrc = area.x
+                width -= area.x - xpos
+            if xmax < xend:
+                width -= xend - xmax
+            ysrc = 0
+            if ypos < area.y:
+                ysrc = area.y
+                height -= area.y - ypos
+            if ymax < yend:
+                height -= yend - ymax
+            drawable.draw_drawable(self.fg_gc, pixmap, xsrc, ysrc, xpos, ypos, width, height)
+
+    def draw_hbar_mark(self, area):
+        ypos = self.font_height * 2
+
+        start_tick = self.setting.getstart()
+        xpos       = self.tick2xpos(start_tick)
+        self.drawable_draw_pixmap_in_area(self.window, area, self.start_pixmap, xpos, ypos)
+
+        end_tick = start_tick + self.setting.getlen()
+        xpos  = self.tick2xpos(end_tick)
+        self.drawable_draw_pixmap_in_area(self.window, area, self.end_pixmap, xpos, ypos)
 
     def draw_area(self, area):
         self.window.draw_rectangle(self.dark_gc,
@@ -146,6 +196,7 @@ class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
 
         ypos = self.height - 1
         self.window.draw_line(self.fg_gc, area.x, ypos, area.x + area.width, ypos)
+        self.draw_hbar_mark(area)
 
     def do_expose_event(self, event):
         self.draw_area(event.area)
