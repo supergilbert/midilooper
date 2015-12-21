@@ -140,6 +140,7 @@ bool_t get_midifile_track(midifile_info_t *info,
   midicev_t        chan_ev;
   midimev_t        meta_ev;
   byte_t           status_byte = 0;
+  bool_t           tempo_set = FALSE;
 
   midifile_track->sysex_portid = -1;
   debug_midi("!!! start=%p end=%p\n", buffer, &(buffer[size]));
@@ -191,6 +192,7 @@ bool_t get_midifile_track(midifile_info_t *info,
                     break;
                   case ME_SETTEMPO:
                     info->tempo = meta_ev.val;
+                    tempo_set = TRUE;
                     break;
                   }
                 status_byte = 0;
@@ -272,7 +274,7 @@ bool_t get_midifile_track(midifile_info_t *info,
 
   if (buffer != end)
     output_error("Unexpected size of track buffer=%p end=%p\n", buffer, end);
-  if (LIST_HEAD(&(midifile_track->track.tickev_list)) != NULL)
+  if (LIST_HEAD(&(midifile_track->track.tickev_list)) != NULL || tempo_set == FALSE)
     {
       debug_midi(">> channel name \"%s\" number of event = %i\n", midifile_track->track.name, midifile_track->track.tickev_list.len);
       *addr = midifile_track;
