@@ -105,7 +105,7 @@ class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
                                  height=self.allocation.height,
                                  window_type=gdk.WINDOW_CHILD,
                                  wclass=gdk.INPUT_OUTPUT,
-                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK)
+                                 event_mask=self.get_events() | gdk.EXPOSURE_MASK | gdk.BUTTON_PRESS_MASK | gdk.BUTTON_RELEASE_MASK | gdk.POINTER_MOTION_MASK | gdk.POINTER_MOTION_HINT_MASK)
         self.window.set_user_data(self)
         self.window.move_resize(*self.allocation)
 
@@ -133,28 +133,27 @@ class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
             self.window.move_resize(*self.allocation)
 
     def drawable_draw_pixmap_in_area(self, drawable, area, pixmap, xpos, ypos):
-        width  = pixmap.get_size()[0]
+        width, height  = pixmap.get_size()
         xend = xpos + width
         xmax = area.x + area.width
-        height = pixmap.get_size()[1]
         yend = ypos + height
         ymax = area.y + area.height
         if area.x < xend and xpos < xmax and area.y < yend and ypos < ymax:
             xsrc = 0
             if xpos < area.x:
-                xsrc = area.x
-                width -= area.x - xpos
+                xsrc = area.x - xpos
+                width -= xsrc
             if xmax < xend:
                 width -= xend - xmax
             ysrc = 0
             if ypos < area.y:
-                ysrc = area.y
-                height -= area.y - ypos
+                ysrc = area.y - ypos
+                height -= ysrc
             if ymax < yend:
                 height -= yend - ymax
             drawable.draw_drawable(self.fg_gc, pixmap, xsrc, ysrc, xpos, ypos, width, height)
 
-    def draw_hbar_mark(self, area):
+    def draw_hbar_loop(self, area):
         ypos = self.font_height * 2
 
         start_tick = self.setting.getstart()
@@ -165,7 +164,7 @@ class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
         xpos  = self.tick2xpos(end_tick)
         self.drawable_draw_pixmap_in_area(self.window, area, self.end_pixmap, xpos, ypos)
 
-    def draw_area(self, area):
+    def draw_hbar_timeline(self, area):
         self.window.draw_rectangle(self.dark_gc,
                                    True,
                                    area.x,
@@ -196,19 +195,94 @@ class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
 
         ypos = self.height - 1
         self.window.draw_line(self.fg_gc, area.x, ypos, area.x + area.width, ypos)
-        self.draw_hbar_mark(area)
+
+    def draw_area(self, area):
+        self.draw_hbar_timeline(area)
+        self.draw_hbar_loop(area)
+
+    def handle_button_press(self, widget, event):
+        if event.button == 1:
+            start_tick = self.setting.getstart()
+            start_xpos = self.tick2xpos(start_tick)
+            start_w    = self.start_pixmap.get_size()[0]
+            if start_xpos <= event.x and event.x <= start_xpos + start_w:
+                self.hbar_mode = 1
+                self.last_tick = start_tick
+            else:
+                end_tick = start_tick + self.setting.getlen()
+                end_xpos = self.tick2xpos(end_tick)
+                end_w    = self.end_pixmap.get_size()[0]
+                if end_xpos <= event.x and event.x <= end_xpos + end_w:
+                    self.hbar_mode = 2
+                    self.last_tick = end_tick
+
+    def hbar_update_pixmap(self, last_tick, new_tick, pixmap):
+        ypos  = self.font_height * 2
+        width, height = pixmap.get_size()
+        xpos = self.tick2xpos(last_tick)
+        area = gtk.gdk.Rectangle(xpos, ypos, width, height + 3)
+        self.draw_hbar_timeline(area)
+        xpos = self.tick2xpos(new_tick)
+        self.window.draw_drawable(self.fg_gc, pixmap, 0, 0, xpos, ypos, -1, -1)
+
+    def handle_button_release(self, widget, event):
+        if event.button == 1:
+            if self.hbar_mode == 1:
+                start_tick = self.setting.getstart()
+                if self.last_tick != start_tick:
+                    new_len = self.setting.getlen() + start_tick - self.last_tick
+                    self.setting.track.set_start(self.last_tick)
+                    self.setting.track.set_len(new_len)
+                    self.grid.draw_all()
+            elif self.hbar_mode == 2:
+                start_tick = self.setting.getstart()
+                end_tick = self.setting.getstart() + self.setting.getlen()
+                if self.last_tick != end_tick:
+                    new_len = self.setting.getlen() + self.last_tick - end_tick
+                    self.setting.track.set_start(start_tick)
+                    self.setting.track.set_len(new_len)
+                    self.grid.draw_all()
+        self.hbar_mode = 0
+
+    def handle_motion(self, widget, event):
+        if self.hbar_mode:
+            tick = self.xpos2tick(event.x)
+            ppq = self.setting.getppq()
+            mod = tick % ppq
+            if mod:
+                tick = tick - mod
+
+            if self.hbar_mode == 1:
+                end_tick = self.setting.getstart() + self.setting.getlen()
+                if tick < end_tick:
+                    self.hbar_update_pixmap(self.last_tick, tick, self.start_pixmap)
+                    self.last_tick = tick
+            elif self.hbar_mode == 2:
+                start_tick = self.setting.getstart()
+                if start_tick < tick:
+                    self.hbar_update_pixmap(self.last_tick, tick, self.end_pixmap)
+                    self.last_tick = tick
 
     def do_expose_event(self, event):
         self.draw_area(event.area)
 
-    def __init__(self, setting):
+    def __init__(self, grid):
         gtk.Widget.__init__(self)
 
-        self.setting = setting
+        self.grid    = grid
+        self.setting = self.grid.setting
 
         self.font_height = default_font.string_height("3600")
         self.height = (self.font_height + 1) * 3
+
         Xpos2Tick.__init__(self)
+
+        self.hbar_mode = 0      # 0 NO MODE, 1 MOVE START, 2 MOVE END
+        self.last_tick = self.setting.getstart()
+
+        self.connect("button_press_event", self.handle_button_press)
+        self.connect("button_release_event", self.handle_button_release)
+        self.connect("motion_notify_event", self.handle_motion)
 
 class MsqVBarNoteWidget(gtk.Widget, Ypos2Note):
     def clear_note(self):
@@ -331,10 +405,11 @@ class MsqVBarNoteWidget(gtk.Widget, Ypos2Note):
 
         self.last_play_note = None
 
+        Ypos2Note.__init__(self)
+
         self.connect("button_press_event", self.handle_button_press)
         self.connect("button_release_event", self.handle_button_release)
         self.connect("motion_notify_event", self.handle_motion)
-        Ypos2Note.__init__(self)
 
     def do_realize(self):
         self.set_flags(gtk.REALIZED)
@@ -674,6 +749,10 @@ class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
 
         xstart = self.tick2xpos(tickstart)
         if area.x < xstart:
+            if xmax < xstart:
+                cr.rectangle(area.x, area.y, area.width, area.height)
+                cr.fill()
+                return
             cr.rectangle(area.x, area.y, xstart - area.x, area.height)
             cr.fill()
 

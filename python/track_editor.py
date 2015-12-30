@@ -40,11 +40,11 @@ class TrackSettingTable(gtk.HBox):
         ppq = self.chaned.setting.getppq()
         self.chaned.setting.track.set_start(loop_start * ppq)
         self.chaned.setting.track.set_len(loop_len * ppq)
-        self.chaned.draw_all()
         self.loop_button.set_label(self.loop_str % (self.chaned.setting.getstart() / ppq,
-                                                  self.chaned.setting.getlen()   / ppq))
+                                                    self.chaned.setting.getlen()   / ppq))
         upper_pos = (loop_start + loop_len + 1) * self.chaned.setting.qnxsz
         self.chaned.setting.hadj.set_upper(upper_pos)
+        self.chaned.draw_all()
 
     def loop_button_cb(self, button):
         loop_pos = prompt_get_loop(self.chaned.setting.getstart() / self.chaned.setting.getppq(),
@@ -424,7 +424,7 @@ class ChannelEditor(gtk.VBox):
         track_info = get_track_info(track)
         self.setting.chan_num = track_info.channels[0] if len(track_info.channels) else 0
 
-        self.hbar = MsqHBarTimeWidget(self.setting)
+        self.hbar = MsqHBarTimeWidget(self.grid)
 
         self.vbar = MsqVBarNoteWidget(self.setting)
         self.setting.vadj.connect("value-changed", self.vadj_value_cb)

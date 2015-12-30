@@ -348,6 +348,10 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             selarea.y = selarea.y - 2
             selarea.width = selarea.width + 4
             selarea.height = selarea.height + 4
+            if selarea.x < 0:
+                selarea.x = 0
+            if selarea.y < 0:
+                selarea.y = 0
             self.draw_area(selarea)
 
         if logtype == UNDO_LOGMODE:
@@ -362,6 +366,10 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         selarea = self.get_notelist_area(notelist)
         selarea.x = selarea.x - 2
         selarea.y = selarea.y - 2
+        if selarea.x < 0:
+            selarea.x = 0
+        if selarea.y < 0:
+            selarea.y = 0
         selarea.width = selarea.width + 4
         selarea.height = selarea.height + 4
         self.draw_area(selarea)
@@ -423,8 +431,10 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                                 final_sel.append(noteonoff)
                         self.selection = final_sel
                     else:
-                        self.selection = new_sel
-                    self.draw_notelist_area(evwr_to_repr_list(new_sel))
+                        if new_sel:
+                            self.selection = new_sel
+                    if new_sel:
+                        self.draw_notelist_area(evwr_to_repr_list(new_sel))
                 else:
                     self.selection = self.get_notes_evwr(self.select_area)
                 self.ctrl_click  = False
@@ -521,8 +531,14 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         xmax = self.tick2xpos(tick_max)
         ymin = self.note2ypos(note_max)
         ymax = self.note2ypos(note_min)
-        return gtk.gdk.Rectangle(xmin - 2,
-                                 ymin - 2,
+        xpos = xmin - 2
+        ypos = ymin - 2
+        if xpos < 0:
+            xpos = 0
+        if ypos < 0:
+            ypos = 0
+        return gtk.gdk.Rectangle(xpos,
+                                 ypos,
                                  xmax - xmin + 4,
                                  ymax - ymin + self.setting.noteysz + 4)
 
