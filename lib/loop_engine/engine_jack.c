@@ -174,6 +174,7 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
       if (running == TRUE)
         {
           if (be_hdl->tick != tick64) {
+            be_hdl->tick = tick64;
             output_error("!!! Missing tick !!! "
                          "last:%llu != current:%llu (nframes:%llu position:%llu last_frame:%llu)",
                          be_hdl->tick,
@@ -181,7 +182,6 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
                          nframes,
                          position.frame,
                          be_hdl->cur_frame);
-            be_hdl->tick = tick64;
           }
         }
       else

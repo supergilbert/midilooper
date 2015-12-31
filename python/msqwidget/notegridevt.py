@@ -48,6 +48,7 @@ NOTEOFF_DEC = 1
 DEFAULT_NOTEON_VAL  = 64
 DEFAULT_NOTEOFF_VAL = 0
 
+# (note: Playing to much with selection (and event wrapper) is not handled)
 
 class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
     def set_history_mark(self):
@@ -736,6 +737,59 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             self.selection = None
             self.draw_notelist_area(note_list)
 
+    def quantify_selection(self):
+        notelist_quantified = []
+        notelist_todel = []
+        for noteon, noteoff in self.selection:
+            noteon_ev  = noteon.get_event()
+            noteoff_ev = noteoff.get_event()
+            tickon = None
+            tickoff = None
+
+            tick_mod = noteon_ev[0] % self.setting.tick_res
+            if tick_mod != 0:
+                quantified = True
+                new_tick = None
+                if tick_mod > (self.setting.tick_res / 2):
+                    new_tick = noteon_ev[0] + (self.setting.tick_res - tick_mod)
+                else:
+                    new_tick = noteon_ev[0] - tick_mod
+                tickon = new_tick
+                tickoff = noteoff_ev[0]
+
+            tick_mod = (noteoff_ev[0] + NOTEOFF_DEC) % self.setting.tick_res
+            if tick_mod != 0:
+                quantified = True
+                new_tick = None
+                if tick_mod >= (self.setting.tick_res / 2):
+                    new_tick = noteoff_ev[0] + (self.setting.tick_res - tick_mod)
+                else:
+                    new_tick = noteoff_ev[0] - tick_mod
+                tickoff = new_tick
+                if tickon == None:
+                    tickon = noteon_ev[0]
+
+            if tickon != None:
+                if tickoff <= tickon:
+                    tickoff = tickon + self.setting.tick_res - NOTEOFF_DEC
+                notelist_quantified.append(((tickon,
+                                             noteon_ev[1],
+                                             noteon_ev[2],
+                                             noteon_ev[3],
+                                             noteon_ev[4]),
+                                            (tickoff,
+                                             noteoff_ev[1],
+                                             noteoff_ev[2],
+                                             noteoff_ev[3],
+                                             noteoff_ev[4])))
+                notelist_todel.append((noteon, noteoff))
+        if len(notelist_quantified) > 0:
+            self.selection = None
+            self.delete_notes(notelist_todel)
+            self.selection = self.add_note_on_off_list(notelist_quantified)
+            self.set_history_mark()
+            self.redraw_selection()
+
     def handle_key_release(self, widget, event):
         if self.wgt_mode == PASTE_MODE:
             pass
@@ -749,13 +803,13 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             if event.state & gtk.gdk.CONTROL_MASK:
                 keyname = gtk.gdk.keyval_name(event.keyval)
                 if self.selection:
-                    if keyname == "x":
+                    if keyname in ("x", "X"):
                         self.note_clipboard = evwr_to_repr_list(self.selection)
                         self.delete_selection()
                         self.set_history_mark()
-                    elif keyname == "c":
+                    elif keyname in ("c", "C"):
                         self.note_clipboard = evwr_to_repr_list(self.selection)
-                if keyname == "v":
+                if keyname in ("v", "V"):
                     if self.note_clipboard:
                         self.paste_cache = self.note_clipboard
                         self.data_cache = self.get_paste_data(self.paste_cache)
@@ -766,17 +820,21 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                                            self.paste_cache,
                                            True)
                         self.wgt_mode = PASTE_MODE
-                if keyname == "z":
+                if keyname in ("z", "Z"):
                     self.undo()
-                if keyname == "a":
+                if keyname in ("a", "A"):
                     self.clear_selection() # clear last selection
                     self.selection = self.setting.track.getall_noteonoff_evwr(self.setting.chan_num)
                     self.draw_notelist_area(evwr_to_repr_list(self.selection))
             else:
-                if self.selection and (event.keyval == gtk.keysyms.Delete or
-                                                    event.keyval == gtk.keysyms.BackSpace):
-                    self.delete_selection()
-                    self.set_history_mark()
+                if self.selection:
+                    if event.keyval == gtk.keysyms.Delete or event.keyval == gtk.keysyms.BackSpace:
+                        self.delete_selection()
+                        self.set_history_mark()
+                    else:
+                        keyname = gtk.gdk.keyval_name(event.keyval)
+                        if keyname in ("q", "Q"):
+                            self.quantify_selection()
 
     def _delete_noterepr_list(self, noterepr_list):
         evrepr_list = []
