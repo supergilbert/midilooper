@@ -261,7 +261,7 @@ midicev_t *evit_searchev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev)
           if (ev->type == MIDICEV)
             {
               midicev = (midicev_t *) ev->addr;
-              if (compare_midicev(midicev, mcev))
+              if (compare_midicev_type(midicev, mcev))
                 return midicev;
             }
           for (ev = _it_next_seqev(&(evit->seqevit));
@@ -271,7 +271,7 @@ midicev_t *evit_searchev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev)
               if (ev->type == MIDICEV)
                 {
                   midicev = (midicev_t *) ev->addr;
-                  if (compare_midicev(midicev, mcev))
+                  if (compare_midicev_type(midicev, mcev))
                     return midicev;
                 }
             }

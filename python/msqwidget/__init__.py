@@ -231,16 +231,18 @@ class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
                 start_tick = self.setting.getstart()
                 if self.last_tick != start_tick:
                     new_len = self.setting.getlen() + start_tick - self.last_tick
-                    self.setting.track.set_start(self.last_tick)
-                    self.setting.track.set_len(new_len)
+                    start_tick = self.last_tick / self.setting.getppq()
+                    new_len /= self.setting.getppq()
+                    self.setting.set_loop(start_tick, new_len)
                     self.grid.draw_all()
             elif self.hbar_mode == 2:
                 start_tick = self.setting.getstart()
                 end_tick = self.setting.getstart() + self.setting.getlen()
                 if self.last_tick != end_tick:
                     new_len = self.setting.getlen() + self.last_tick - end_tick
-                    self.setting.track.set_start(start_tick)
-                    self.setting.track.set_len(new_len)
+                    start_tick /= self.setting.getppq()
+                    new_len /= self.setting.getppq()
+                    self.setting.set_loop(start_tick, new_len)
                     self.grid.draw_all()
         self.hbar_mode = 0
 
@@ -476,6 +478,10 @@ class ChannelEditorSetting(object):
     def getstart(self):
         return self.track.get_start()
 
+    def set_loop(self, loop_start, loop_len):
+        if self.setting_table:
+            self.setting_table.set_loop(loop_start, loop_len)
+
     def quantify_tick(self, tick):
         return int(tick / self.tick_res) * self.tick_res
 
@@ -497,6 +503,8 @@ class ChannelEditorSetting(object):
 
         self.hadj = gtk.Adjustment()
         self.vadj = gtk.Adjustment()
+
+        self.setting_table = None
 
 
 class MsqNoteGridWidget(gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2Tick, Ypos2Note):

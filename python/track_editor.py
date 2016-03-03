@@ -102,6 +102,7 @@ class TrackSettingTable(gtk.HBox):
             self.output_button.set_label(self.output_str % output_port)
         else:
             self.output_button.set_label(self.output_str % "None")
+        self.chaned.setting.setting_table = self
         self.pack_start(self.output_button)
 
 def update_value_list(value_list, track_info, chan_num):
