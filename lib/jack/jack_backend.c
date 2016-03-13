@@ -92,7 +92,11 @@ void jbe_output_set_name(void *hdl, const char *name)
 {
   jbe_output_t *output = (jbe_output_t *) hdl;
 
+#ifdef __MLP_OLD_JACK
   jack_port_set_name(output->port, name);
+#else
+  jack_port_rename(output->client, output->port, name);
+#endif
 }
 
 bool_t jbe_output_write(struct midioutput *output,

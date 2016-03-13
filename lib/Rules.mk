@@ -27,14 +27,19 @@ MSQ_LIB_OBJ=$(MSQ_LIB_SRC:.c=.o)
 
 MSQ_LIB_DEPS=$(MSQ_LIB_SRC:.c=.d)
 
-$(MSQ_LIB_DEPS): CFLAGS=-Wall -Werror -g -fPIC -I$(MSQ_LIB_DIR)
-$(MSQ_LIB_DEPS): CC=gcc
+ifneq ($(OLDJACKAPI),)
+$(info !! Using old jack api !!)
+MSG_LIB_CFLAGS=-Wall -Werror -g -fPIC -I$(MSQ_LIB_DIR) -D__MLP_OLD_JACK
+else
+MSG_LIB_CFLAGS=-Wall -Werror -g -fPIC -I$(MSQ_LIB_DIR)
+endif
+MSG_LIB_CC=gcc
 
-$(MSQ_LIB): CFLAGS=-Wall -Werror -g -fPIC -I$(MSQ_LIB_DIR)
-$(MSQ_LIB): CC=gcc
+$(MSQ_LIB_DEPS): CFLAGS=$(MSG_LIB_CFLAGS)
+$(MSQ_LIB_DEPS): CC=$(MSG_LIB_CC)
 
-$(MSQ_LIB_OBJ): CFLAGS=-Wall -Werror -g -fPIC -I$(MSQ_LIB_DIR)
-$(MSQ_LIB_OBJ): CC=gcc
+$(MSQ_LIB_OBJ): CFLAGS=$(MSG_LIB_CFLAGS)
+$(MSQ_LIB_OBJ): CC=$(MSG_LIB_CC)
 
 $(MSQ_LIB): $(MSQ_LIB_OBJ)
 	ar -rs $@ $^
