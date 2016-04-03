@@ -34,7 +34,7 @@ buf_node_t *_append_sysex_port(buf_node_t *tail, output_t *output, uint_t idx)
 
   set_be32b_uint(buf, idx);
   set_be16b_uint(&(buf[4]), (uint_t) name_len);
-  node = init_buf_node(buf, 6);
+  node = add_buf_node(buf, 6);
 
   node->next = sysex_buf_node_end((byte_t *) port_name, name_len);
   tail = _append_sysex_header(tail,
@@ -74,22 +74,6 @@ void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
   free_buf_list(node);
 }
 
-
-void write_trackctx2midifile(int fd, track_ctx_t *ctx, int_t portidx)
-{
-  midifile_track_t mtrack;
-
-  bzero(&mtrack, sizeof (midifile_track_t));
-
-  COPY_LIST_NODE(&(ctx->track->tickev_list), &(mtrack.track.tickev_list));
-  mtrack.track.name = ctx->track->name;
-
-  mtrack.sysex_loop_start = ctx->loop_start;
-  mtrack.sysex_loop_len = ctx->loop_len;
-  mtrack.sysex_portid = portidx;
-  write_midifile_track(fd, &mtrack);
-}
-
 int_t get_outputid(list_t *output_list, output_t *output)
 {
    list_iterator_t iter;
@@ -109,12 +93,141 @@ int_t get_outputid(list_t *output_list, output_t *output)
    return -1;
 }
 
+void _set_track_val_list(track_ctx_t *trackctx,
+                         list_t *bindings,
+                         byte_t *val_list,
+                         size_t *list_sz)
+{
+  list_iterator_t iter_binding, iter_track;
+  uint_t          idx;
+  track_ctx_t     *trackctx_ptr = NULL;
+  binding_t       *binding = NULL;
+
+  memset(val_list, 0, 256);
+  for (iter_init(&iter_binding, bindings), idx = 0;
+       iter_node(&iter_binding);
+       iter_next(&iter_binding))
+    {
+      binding = iter_node_ptr(&iter_binding);
+      for (iter_init(&iter_track, &(binding->tracks));
+           iter_node(&iter_track);
+           iter_next(&iter_track))
+        {
+          trackctx_ptr = iter_node_ptr(&iter_track);
+          if (trackctx == trackctx_ptr)
+            {
+              val_list[idx] = binding->val;
+              idx++;
+              break;
+            }
+        }
+    }
+  *list_sz = idx;
+}
+
+void set_midifile_track(track_ctx_t *trackctx,
+                        midifile_track_t *mtrack)
+{
+  engine_ctx_t *ctx = trackctx->engine;
+
+  bzero(mtrack, sizeof (midifile_track_t));
+
+  COPY_LIST_NODE(&(trackctx->track->tickev_list), &(mtrack->track.tickev_list));
+  mtrack->track.name = trackctx->track->name;
+
+  mtrack->sysex_loop_start = trackctx->loop_start;
+  mtrack->sysex_loop_len = trackctx->loop_len;
+  mtrack->sysex_portid = trackctx->output != NULL ?
+    get_outputid(&(ctx->output_list),
+                 trackctx->output) :
+    -1;
+
+  _set_track_val_list(trackctx,
+                      &(ctx->bindings.notepress),
+                      mtrack->bindings.notes,
+                      &(mtrack->bindings.notes_sz));
+  _set_track_val_list(trackctx,
+                      &(ctx->bindings.keypress),
+                      mtrack->bindings.keys,
+                      &(mtrack->bindings.keys_sz));
+}
+
+void gen_midinote_bindings_str(char *mnb_str,
+                               byte_t *notes,
+                               size_t notes_sz)
+{
+  const char *notes_name[] =
+    {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+  const char *name;
+  uint_t     idx, note_idx;
+  int_t      note_oct;
+
+  for (idx = 0; idx < notes_sz; idx++)
+    {
+      note_idx = notes[idx] % 12;
+      name = notes_name[note_idx];
+      while (*name)
+        {
+          *mnb_str = *name;
+          mnb_str++;
+          name++;
+        }
+      note_oct = (notes[idx] / 12) - 1;
+      if (note_oct < 0)
+        {
+          *mnb_str = '-';
+          mnb_str++;
+          *mnb_str = '1';
+          mnb_str++;
+        }
+      else
+        {
+          *mnb_str = '0' + note_oct;
+          mnb_str++;
+        }
+    }
+  *mnb_str = '\0';
+}
+
+void gen_miditrack_info(char *ret_str,
+                        engine_ctx_t *ctx,
+                        track_ctx_t *trackctx)
+{
+  midifile_track_t mtrack;
+  char             mnb_str[256];
+
+  set_midifile_track(trackctx, &mtrack);
+  /* Marking "end of string" */
+  mtrack.bindings.keys[mtrack.bindings.keys_sz] = '\0';
+  if (mtrack.bindings.notes_sz == 0)
+    strcpy(mnb_str, "none");
+  else
+    gen_midinote_bindings_str(mnb_str,
+                              mtrack.bindings.notes,
+                              mtrack.bindings.notes_sz);
+#define _TRACK_INFO_FORMAT                              \
+  "%s loop[%d-%d] out[%s]\nbindings[%s|%s]"
+  sprintf(ret_str,
+          _TRACK_INFO_FORMAT,
+          trackctx->track->name,
+          mtrack.sysex_loop_start / ctx->ppq,
+          mtrack.sysex_loop_len / ctx->ppq,
+          trackctx->output != NULL ?
+          output_get_name(trackctx->output) :
+          "none",
+          mtrack.bindings.keys_sz != 0 ?
+          (char *) mtrack.bindings.keys :
+          "none",
+          mnb_str);
+}
+
 #include <errno.h>
 void engine_save_project(engine_ctx_t *ctx, char *file_path)
 {
-  int             fd;
-  list_iterator_t iter;
-  track_ctx_t     *trackctx = NULL;
+  int              fd;
+  list_iterator_t  iter;
+  track_ctx_t      *trackctx = NULL;
+  midifile_track_t mtrack;
 
   if (ctx->track_list.len > 0)
     {
@@ -140,12 +253,8 @@ void engine_save_project(engine_ctx_t *ctx, char *file_path)
            iter_next(&iter))
         {
           trackctx = iter_node_ptr(&iter);
-          write_trackctx2midifile(fd,
-                                  trackctx,
-                                  trackctx->output != NULL ?
-                                  get_outputid(&(ctx->output_list),
-                                               trackctx->output) :
-                                  -1);
+          set_midifile_track(trackctx, &mtrack);
+          write_midifile_track(fd, &mtrack);
         }
       close(fd);
     }

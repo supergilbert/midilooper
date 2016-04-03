@@ -156,6 +156,22 @@ track_ctx_t *engine_copy_trackctx(engine_ctx_t *ctx,
   return trackctx_dst;
 }
 
+void engine_set_miditrack_bindings(engine_ctx_t *ctx,
+                                   midifile_track_t *mtrack,
+                                   track_ctx_t *trackctx)
+{
+  uint_t idx;
+
+  for (idx = 0; idx < mtrack->bindings.keys_sz; idx++)
+    _add_binding(&(ctx->bindings.keypress),
+                 mtrack->bindings.keys[idx],
+                 trackctx);
+  for (idx = 0; idx < mtrack->bindings.notes_sz; idx++)
+    _add_binding(&(ctx->bindings.notepress),
+                 mtrack->bindings.notes[idx],
+                 trackctx);
+}
+
 track_ctx_t *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrack)
 {
   track_ctx_t *trackctx = NULL;
@@ -175,6 +191,7 @@ track_ctx_t *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrac
                                   track,
                                   loop_start,
                                   loop_len);
+  engine_set_miditrack_bindings(ctx, mtrack, trackctx);
   push_to_list_tail(&(ctx->track_list), trackctx);
   return trackctx;
 }

@@ -53,11 +53,11 @@ void output_add_req(output_t *output, midicev_t *midicev);
 
 typedef struct
 {
-  list_t keypress;
   byte_t rec_note;
   bool_t midib_updating;
   bool_t midib_reading;
   list_t notepress;
+  list_t keypress;
 } bindings_t;
 
 typedef struct
@@ -146,13 +146,23 @@ bool_t      engine_delete_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
 track_ctx_t *engine_copy_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
 void        engine_read_midifile(engine_ctx_t *engine, midifile_t *midifile);
 void        engine_save_project(engine_ctx_t *engine, char *file_path);
+void        gen_miditrack_info(char *retstr,
+                                engine_ctx_t *ctx,
+                                track_ctx_t *trackctx);
 void        engine_prepare_tracklist(engine_ctx_t *ctx);
 void        engine_clean_tracklist(engine_ctx_t *ctx);
 void        _engine_free_trash(engine_ctx_t *ctx);
 
+typedef struct
+{
+  byte_t val;
+  list_t tracks;
+} binding_t;
+
 void engine_del_track_bindings(engine_ctx_t *engine, track_ctx_t *track_ctx);
 void engine_clear_all_bindings(engine_ctx_t *engine);
 void engine_call_notepress_b(engine_ctx_t *engine, byte_t key);
+void _add_binding(list_t *bindings, byte_t val, track_ctx_t *track_ctx);
 void engine_add_notebinding(engine_ctx_t *engine,
                             byte_t key,
                             track_ctx_t *track_ctx);

@@ -84,6 +84,17 @@ static PyObject *midiseq_track_play_note(PyObject *obj, PyObject *args)
   Py_RETURN_NONE;
 }
 
+static PyObject *midiseq_track_get_info(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self = (midiseq_trackObject *) obj;
+  char                track_info[256];
+
+  gen_miditrack_info(track_info,
+                     self->trackctx->engine,
+                     self->trackctx);
+  return Py_BuildValue("s", track_info);
+}
+
 static PyObject *midiseq_track_get_name(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
@@ -559,6 +570,7 @@ static PyObject *midiseq_track_dump(PyObject *obj,
 }
 
 static PyMethodDef midiseq_track_methods[] = {
+  {"get_info",              midiseq_track_get_info,          METH_NOARGS,  "Get track information"},
   {"get_name",              midiseq_track_get_name,          METH_NOARGS,  "Get track name"},
   {"set_name",              midiseq_track_set_name,          METH_VARARGS, "Set track name"},
   {"get_len",               midiseq_track_get_len,           METH_NOARGS,  "Get track len"},

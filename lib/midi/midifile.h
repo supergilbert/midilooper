@@ -82,10 +82,19 @@ typedef struct
 
 typedef struct
 {
-  uint_t sysex_loop_start;
-  uint_t sysex_loop_len;
-  int    sysex_portid;
-  track_t track;
+  byte_t notes[256];
+  byte_t keys[256];
+  size_t notes_sz;
+  size_t keys_sz;
+} midif_trackb_t;
+
+typedef struct
+{
+  uint_t         sysex_loop_start;
+  uint_t         sysex_loop_len;
+  int            sysex_portid;
+  midif_trackb_t bindings;
+  track_t        track;
 } midifile_track_t;
 
 typedef struct
@@ -107,7 +116,7 @@ typedef struct buf_node_s
 void set_be16b_uint(byte_t *buf, uint_t val);
 void set_be32b_uint(byte_t *buf, uint_t val);
 buf_node_t *sysex_buf_node_end(byte_t *buffer, size_t len);
-buf_node_t *init_buf_node(byte_t *buffer, size_t len);
+buf_node_t *add_buf_node(byte_t *buffer, size_t len);
 size_t get_buf_list_size(buf_node_t *buff);
 buf_node_t *get_var_len_buf(uint_t tick);
 buf_node_t *_append_sysex_header(buf_node_t *tail, size_t len, byte_t type);
@@ -117,6 +126,8 @@ buf_node_t *get_midifile_trackhdr(size_t track_size);
 
 #define MSQ_SYSEX_TRACK_LOOPSTART 0   /* 4 byte track sequence length */
 #define MSQ_SYSEX_TRACK_LOOPLEN   1   /* 4 byte track sequence length */
+#define MSQ_SYSEX_TRACK_KEYPRESS  2   /* bytes list of key bindings */
+#define MSQ_SYSEX_TRACK_NOTEPRESS 3   /* bytes list of note bindings */
 
 #define MSQ_SYSEX_PORTNAME        128 /* 4 byte portid
                                          2 byte namelen

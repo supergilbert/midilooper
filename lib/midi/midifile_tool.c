@@ -60,7 +60,7 @@ buf_node_t *sysex_buf_node_end(byte_t *buffer, size_t len)
   return new_node;
 }
 
-buf_node_t *init_buf_node(byte_t *buffer, size_t len)
+buf_node_t *add_buf_node(byte_t *buffer, size_t len)
 {
   buf_node_t *new_node = myalloc(sizeof (buf_node_t));
 
@@ -98,7 +98,7 @@ buf_node_t *get_midifile_trackhdr(size_t track_size)
   track_buffer[6] = (track_size >> 8) & 0xFF;
   track_buffer[7] = track_size & 0xFF;
 
-  return init_buf_node(track_buffer, 8);
+  return add_buf_node(track_buffer, 8);
 }
 
 #define set_first_bit(_byte) ((_byte) | 0x80)
@@ -138,7 +138,7 @@ buf_node_t *get_var_len_buf(uint_t tick)
       output_error("unexpected variable len");
       return NULL;
     }
-  return init_buf_node(buffer, size);
+  return add_buf_node(buffer, size);
 }
 
 buf_node_t *get_midicev_buf(midicev_t *midicev)
@@ -146,7 +146,7 @@ buf_node_t *get_midicev_buf(midicev_t *midicev)
   byte_t buffer[3];
 
   convert_midicev_to_mididata(midicev, buffer);
-  return init_buf_node(buffer, 3);
+  return add_buf_node(buffer, 3);
 }
 
 midicev_t *get_next_midicev(list_iterator_t *iter)
@@ -224,11 +224,11 @@ buf_node_t *_append_metaev_track_name(buf_node_t *tail, char *name)
     return tail;
 
   name_len = strlen(name);
-  tail->next = init_buf_node(me_name_type, 3);
+  tail->next = add_buf_node(me_name_type, 3);
   tail = tail->next;
   tail->next = get_var_len_buf(name_len);
   tail = tail->next;
-  tail->next = init_buf_node((byte_t *) name, name_len);
+  tail->next = add_buf_node((byte_t *) name, name_len);
   return tail->next;
 }
 
@@ -237,7 +237,7 @@ buf_node_t *_append_metaev_set_tempo(buf_node_t *tail, uint_t tempo)
   byte_t me_name_type[3] = {0, 0xFF, 0x51};
   byte_t bp_buf[4];
 
-  tail->next = init_buf_node(me_name_type, 3);
+  tail->next = add_buf_node(me_name_type, 3);
   tail = tail->next;
 
   bp_buf[0] = 3;
@@ -245,7 +245,7 @@ buf_node_t *_append_metaev_set_tempo(buf_node_t *tail, uint_t tempo)
   bp_buf[2] = (tempo >> 8) & 0xFF;
   bp_buf[3] = tempo & 0xFF;
 
-  tail->next = init_buf_node(bp_buf, 4);
+  tail->next = add_buf_node(bp_buf, 4);
   return tail->next;
 }
 
@@ -254,11 +254,11 @@ buf_node_t *_append_sysex_header(buf_node_t *tail, size_t buflen, byte_t type)
   byte_t hdr[2] = {0, 0xF0};
   byte_t msq_hdr[5] = {0, 'M', 'S', 'Q', type};
 
-  tail->next = init_buf_node(hdr, 2);
+  tail->next = add_buf_node(hdr, 2);
   tail = tail->next;
   tail->next = get_var_len_buf(buflen + 5);
   tail = tail->next;
-  tail->next = init_buf_node(msq_hdr, 5);
+  tail->next = add_buf_node(msq_hdr, 5);
   return tail->next;
 }
 
@@ -283,7 +283,7 @@ buf_node_t *_append_sysex_loopstart(buf_node_t *tail, uint_t start)
   tail = _append_sysex_header(tail, 5, MSQ_SYSEX_TRACK_LOOPSTART);
   set_be32b_uint(buf, start);
   buf[4] = 0xF7;
-  tail->next = init_buf_node(buf, 5);
+  tail->next = add_buf_node(buf, 5);
   return tail->next;
 }
 
@@ -294,8 +294,39 @@ buf_node_t *_append_sysex_looplen(buf_node_t *tail, uint_t len)
   tail = _append_sysex_header(tail, 5, MSQ_SYSEX_TRACK_LOOPLEN);
   set_be32b_uint(buf, len);
   buf[4] = 0xF7;
-  tail->next = init_buf_node(buf, 5);
+  tail->next = add_buf_node(buf, 5);
   return tail->next;
+}
+
+buf_node_t *_append_sysex_type_bindings(buf_node_t *tail, uint_t type, byte_t *array, size_t sz)
+{
+  byte_t array_sz = sz;
+  tail = _append_sysex_header(tail,
+                              sz + 1,
+                              type);
+  /* Add size */
+  tail->next = add_buf_node(&array_sz, 1);
+  tail = tail->next;
+  /* Marking end of sysex array size < 256 */
+  array[sz] = 0xF7;
+  /* Add array with sysex end */
+  tail->next = add_buf_node(array, sz + 1);
+  return tail->next;
+}
+
+buf_node_t *_append_sysex_bindings(buf_node_t *tail, midif_trackb_t *bindings)
+{
+  if (bindings->keys_sz > 0)
+    tail = _append_sysex_type_bindings(tail,
+                                       MSQ_SYSEX_TRACK_KEYPRESS,
+                                       bindings->keys,
+                                       bindings->keys_sz);
+  if (bindings->notes_sz > 0)
+    tail = _append_sysex_type_bindings(tail,
+                                       MSQ_SYSEX_TRACK_NOTEPRESS,
+                                       bindings->notes,
+                                       bindings->notes_sz);
+  return tail;
 }
 
 buf_node_t *_append_sysex_portid(buf_node_t *tail, int sysex_portid)
@@ -305,7 +336,7 @@ buf_node_t *_append_sysex_portid(buf_node_t *tail, int sysex_portid)
   tail = _append_sysex_header(tail, 5, MSQ_TRACK_PORTID);
   set_be32b_uint(buf, sysex_portid);
   buf[4] = 0xF7;
-  tail->next = init_buf_node(buf, 5);
+  tail->next = add_buf_node(buf, 5);
   return tail->next;
 }
 
@@ -318,7 +349,7 @@ buf_node_t *_append_metaev_eot(buf_node_t *tail)
   buffer[1] = 0xFF;
   buffer[2] = 0x2F;
   buffer[3] = 0;
-  tail->next = init_buf_node(buffer, 4);
+  tail->next = add_buf_node(buffer, 4);
   return tail->next;
 }
 
@@ -355,6 +386,7 @@ void write_midifile_track(int fd, midifile_track_t *mtrack)
 
   tail = _append_sysex_loopstart(tail, mtrack->sysex_loop_start);
   tail = _append_sysex_looplen(tail, mtrack->sysex_loop_len);
+  tail = _append_sysex_bindings(tail, &(mtrack->bindings));
   if (mtrack->sysex_portid != -1)
     tail = _append_sysex_portid(tail, mtrack->sysex_portid);
 

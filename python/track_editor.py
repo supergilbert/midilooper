@@ -45,6 +45,7 @@ class TrackSettingTable(gtk.HBox):
         upper_pos = (loop_start + loop_len + 1) * self.chaned.setting.qnxsz
         self.chaned.setting.hadj.set_upper(upper_pos)
         self.chaned.draw_all()
+        self.tracklist.update_all_info()
 
     def loop_button_cb(self, button):
         loop_pos = prompt_get_loop(self.chaned.setting.getstart() / self.chaned.setting.getppq(),
@@ -63,6 +64,7 @@ class TrackSettingTable(gtk.HBox):
             self.output_button.set_label(self.output_str % output_port)
         else:
             self.output_button.set_label(self.output_str % "None")
+        self.tracklist.update_all_info()
 
     def output_button_cb(self, button):
         port_idx = 0
@@ -74,14 +76,15 @@ class TrackSettingTable(gtk.HBox):
         if output_res[0]:
             self.set_output(output_res[1])
 
-    def __init__(self, chaned, portlist):
+    def __init__(self, chaned, tracklist):
         gtk.HBox.__init__(self)
         self.set_border_width(10)
         self.set_spacing(5)
         self.chaned = chaned
         self.loop_str = "Loop start:%d length:%d "
         self.output_str = "  Output Port: %s "
-        self.portlist = portlist
+        self.portlist = tracklist.portlist
+        self.tracklist = tracklist
 
         self.loop_button = gtk.Button(self.loop_str % (self.chaned.setting.getstart() / self.chaned.setting.getppq(),
                                                        self.chaned.setting.getlen()   / self.chaned.setting.getppq()))
@@ -434,7 +437,8 @@ class ChannelEditor(gtk.VBox):
         self.grid.set_tooltip_text("""\
 * Left button to select notes
 * Right button to enter in edit mode
-  (then in edit mode press left button to write notes)
+  then in edit mode press left button to write notes
+  (do not release the button to increase size)
 * Middle button to change note size
 * Suppr to delete selected notes
 * Ctrl-a Select all notes
@@ -551,11 +555,11 @@ class TrackEditor(gtk.Window):
     def clear_progress(self):
         self.chaned.grid.clear_progress()
 
-    def __init__(self, track, sequencer, portlist=None):
+    def __init__(self, track, tracklist):
         gtk.Window.__init__(self)
         self.track = track
 
-        self.chaned = ChannelEditor(self.track, sequencer)
+        self.chaned = ChannelEditor(self.track, tracklist.seq)
 
         self.set_title("Track %s" % self.track.get_name())
         def hide_tracked(win, event):
@@ -563,7 +567,7 @@ class TrackEditor(gtk.Window):
             return True
         self.connect('delete-event', hide_tracked)
 
-        self.track_setting = TrackSettingTable(self.chaned, portlist)
+        self.track_setting = TrackSettingTable(self.chaned, tracklist)
         track_setting_frame = gtk.Frame("Track setting")
         track_setting_frame.add(self.track_setting)
 

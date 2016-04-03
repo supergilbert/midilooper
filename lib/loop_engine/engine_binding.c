@@ -1,11 +1,5 @@
 #include "./engine.h"
 
-typedef struct
-{
-  byte_t val;
-  list_t tracks;
-} binding_t;
-
 void free_binding(void *addr)
 {
   binding_t *binding = addr;

@@ -100,25 +100,33 @@ void get_msq_sysex(midifile_info_t *info, midifile_track_t *track, byte_t *buffe
       switch (buffer[4])
         {
         case MSQ_SYSEX_TRACK_LOOPSTART:
-          track->sysex_loop_start = buffer[5];
-          track->sysex_loop_start = (track->sysex_loop_start << 8) + buffer[6];
-          track->sysex_loop_start = (track->sysex_loop_start << 8) + buffer[7];
-          track->sysex_loop_start = (track->sysex_loop_start << 8) + buffer[8];
+          track->sysex_loop_start =  buffer[5] << 24;
+          track->sysex_loop_start += buffer[6] << 16;
+          track->sysex_loop_start += buffer[7] << 8;
+          track->sysex_loop_start += buffer[8];
           break;
         case MSQ_SYSEX_TRACK_LOOPLEN:
-          track->sysex_loop_len = buffer[5];
-          track->sysex_loop_len = (track->sysex_loop_len << 8) + buffer[6];
-          track->sysex_loop_len = (track->sysex_loop_len << 8) + buffer[7];
-          track->sysex_loop_len = (track->sysex_loop_len << 8) + buffer[8];
+          track->sysex_loop_len =  buffer[5] << 24;
+          track->sysex_loop_len += buffer[6] << 16;
+          track->sysex_loop_len += buffer[7] << 8;
+          track->sysex_loop_len += buffer[8];
           break;
         case MSQ_SYSEX_PORTNAME:
           get_sysex_portname(&(info->portinfo_list), &(buffer[5]));
           break;
         case MSQ_TRACK_PORTID:
-          track->sysex_portid = buffer[5];
-          track->sysex_portid = (track->sysex_portid << 8) + buffer[6];
-          track->sysex_portid = (track->sysex_portid << 8) + buffer[7];
-          track->sysex_portid = (track->sysex_portid << 8) + buffer[8];
+          track->sysex_portid =  buffer[5] << 24;
+          track->sysex_portid += buffer[6] << 16;
+          track->sysex_portid += buffer[7] << 8;
+          track->sysex_portid += buffer[8];
+          break;
+        case MSQ_SYSEX_TRACK_KEYPRESS:
+          track->bindings.keys_sz = (size_t) buffer[5];
+          memcpy(track->bindings.keys, &(buffer[6]), track->bindings.keys_sz);
+          break;
+        case MSQ_SYSEX_TRACK_NOTEPRESS:
+          track->bindings.notes_sz = (size_t) buffer[5];
+          memcpy(track->bindings.notes, &(buffer[6]), track->bindings.notes_sz);
           break;
         default:
           output_error("Unexpected SYSEX 0x%X", buffer[4]);

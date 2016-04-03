@@ -277,7 +277,7 @@ if __name__ == "__main__":
     def usage():
         print """\
 Usage:
-midilooper [-h] [-a | -j] [-n NAME] [ [-f filepath] [-i filepath] | [FILENAME] ]
+midilooper [-h] [-a | -j] [-n NAME] [ [-f filepath] [-i filepath] | [filepath] ]
 
 Options:
 -h, --help

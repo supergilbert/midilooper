@@ -97,8 +97,8 @@ midifile_t *read_midifile_path(char *filepath)
 }
 
 static int midiseq_file_init(midiseq_fileObject *self,
-                                   PyObject *args,
-                                   PyObject *kwds)
+                             PyObject *args,
+                             PyObject *kwds)
 {
   char *filepath = NULL;
 
