@@ -48,6 +48,8 @@ NOTEOFF_DEC = 1
 DEFAULT_NOTEON_VAL  = 64
 DEFAULT_NOTEOFF_VAL = 0
 
+NOTE_CLIPBOARD = None
+
 # (note: Playing to much with selection (and event wrapper) is not handled)
 
 class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
@@ -57,7 +59,6 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
     def __init__(self):
         self.wgt_mode    = NO_MODE
         self.paste_cache = None
-        self.note_clipboard = None
         self.tmp_note_area  = None # Changer le nom de cette variable
         self.start_coo   = None
         self.select_area = None
@@ -791,6 +792,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             self.redraw_selection()
 
     def handle_key_release(self, widget, event):
+        global NOTE_CLIPBOARD
         if self.wgt_mode == PASTE_MODE:
             pass
         elif self.wgt_mode == INC_MODE:
@@ -804,14 +806,14 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 keyname = gtk.gdk.keyval_name(event.keyval)
                 if self.selection:
                     if keyname in ("x", "X"):
-                        self.note_clipboard = evwr_to_repr_list(self.selection)
+                        NOTE_CLIPBOARD = evwr_to_repr_list(self.selection)
                         self.delete_selection()
                         self.set_history_mark()
                     elif keyname in ("c", "C"):
-                        self.note_clipboard = evwr_to_repr_list(self.selection)
+                        NOTE_CLIPBOARD = evwr_to_repr_list(self.selection)
                 if keyname in ("v", "V"):
-                    if self.note_clipboard:
-                        self.paste_cache = self.note_clipboard
+                    if NOTE_CLIPBOARD:
+                        self.paste_cache = NOTE_CLIPBOARD
                         self.data_cache = self.get_paste_data(self.paste_cache)
                         self.clear_selection() # clear last selection
                         pointer = self.window.get_pointer()
