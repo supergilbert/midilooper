@@ -108,7 +108,6 @@ class TrackListMenu(MsqListMenu):
             if note:
                 self.tracklist.seq.add_notebinding(note, tedit.track)
                 self.tracklist.liststore.set_value(tv_iter, 1, tedit.track.get_info())
-            # print "yoyoyo", type(key)
 
     def del_track_bindings(self, menuitem):
         if self.path:
@@ -148,12 +147,12 @@ class TrackListMenu(MsqListMenu):
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
             new_track = self.tracklist.seq.copy_track(tedit.track)
-            new_name = "%s (copy)" % new_track.get_name()
+            new_name = "%s_bis" % new_track.get_name()
             new_tedit = TrackEditor(new_track,
                                     self.tracklist)
             new_tedit.set_name(new_name)
             self.tracklist.liststore.append([new_tedit,
-                                             repr(new_track),
+                                             new_track.get_info(),
                                              0,
                                              new_tedit.track.get_mute_state(),
                                              False])
@@ -368,7 +367,6 @@ class TrackList(gtk.Frame):
         self.treev.append_column(tvcolumn)
 
         cell_rdrr = gtk.CellRendererProgress()
-        print "cell renderer progress before", cell_rdrr.get_size(self)
         cell_rdrr.set_fixed_size(-1, cell_rdrr.get_size(self)[3] * 2)
         tvcolumn = gtk.TreeViewColumn('Track', cell_rdrr, text=1, value=2)
         tvcolumn.set_expand(True)
@@ -376,7 +374,6 @@ class TrackList(gtk.Frame):
         self.treev.append_column(tvcolumn)
         self.treev.connect('button-press-event', self.tvbutton_press_event)
         self.treev.connect('row-activated', self.tvbutton_row_activated)
-        print "cell renderer progress", cell_rdrr.get_size(self)
 
         cell_rdrr = gtk.CellRendererToggle()
         # cell_rdrr.set_property('activatable', True)
