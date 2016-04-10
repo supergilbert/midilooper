@@ -414,6 +414,10 @@ bool_t init_engine(engine_ctx_t *engine, char *name, int type)
   bzero(engine, sizeof (engine_ctx_t));
   engine->rbuff = init_midiringbuff(400);
 
+  /* Setting pulsation and tempo to prevent error */
+  engine->ppq = 192;
+  engine->tempo = 500;
+
   if (type == 0)
     {
       if (nns_init_engine(engine, name) != TRUE)
@@ -425,8 +429,6 @@ bool_t init_engine(engine_ctx_t *engine, char *name, int type)
         return FALSE;
     }
 
-  /* Setting pulsation to prevent error */
-  engine->ppq = 192;
   engine_set_tempo(engine, 500);
   return TRUE;
 }

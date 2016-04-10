@@ -193,7 +193,8 @@ void nns_handle_input(engine_ctx_t *ctx)
                 }
               break;
             default:
-              output("%s: %d %d %d\n", __FUNCTION__, snd_ev->type, SND_SEQ_EVENT_NOTEON, SND_SEQ_EVENT_NOTEOFF);
+              /* output("%s: %d %d %d\n", __FUNCTION__, snd_ev->type, SND_SEQ_EVENT_NOTEON, SND_SEQ_EVENT_NOTEOFF); */
+              ;
             }
         }
       else if (nns_is_running(ctx) == TRUE
