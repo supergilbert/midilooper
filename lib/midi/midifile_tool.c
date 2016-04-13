@@ -302,7 +302,7 @@ buf_node_t *_append_sysex_type_bindings(buf_node_t *tail, uint_t type, byte_t *a
 {
   byte_t array_sz = sz;
   tail = _append_sysex_header(tail,
-                              sz + 1,
+                              sz + 2, /* array + sz (8b) + 0xF7 */
                               type);
   /* Add size */
   tail->next = add_buf_node(&array_sz, 1);
