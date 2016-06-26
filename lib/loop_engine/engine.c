@@ -266,15 +266,16 @@ void engine_prepare_tracklist(engine_ctx_t *ctx)
   track_ctx_t     *track_ctx = NULL;
   list_iterator_t trackit;
   uint_t          current_tick = engine_get_tick(ctx);
+  uint_t          track_tick;
 
   for (iter_init(&trackit, &(ctx->track_list));
        iter_node(&trackit) != NULL;
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
+      track_tick = trackctx_loop_pos(track_ctx, current_tick);
       goto_next_available_tick(&(track_ctx->current_tickev),
-                               current_tick);
-      /* iter_head(&(track_ctx->current_tickev)); */
+                               track_tick);
     }
 }
 
