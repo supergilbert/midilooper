@@ -56,16 +56,27 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
     def set_history_mark(self):
         self.history_list.append(HISTORY_MARK)
 
-    def __init__(self):
-        self.wgt_mode    = NO_MODE
-        self.paste_cache = None
+    def init_mode(self):
+        self.wgt_mode       = NO_MODE
+        self.paste_cache    = None
         self.tmp_note_area  = None # Changer le nom de cette variable
-        self.start_coo   = None
-        self.select_area = None
-        self.ctrl_click  = False
-        self.data_cache    = None
+        self.start_coo      = None
+        self.select_area    = None
+        self.ctrl_click     = False
+        self.data_cache     = None
+
+    def reset_mode(self):
+        self.init_mode()
+        self.window.set_cursor(current_cursor)
+
+    def focus_cb_reset(self, wgt, evt):
+        self.reset_mode()
+
+    def __init__(self):
+        self.init_mode()
         self.set_flags(gtk.CAN_DEFAULT)
         self.history_list = []
+        self.connect("focus-in-event", self.focus_cb_reset)
 
     def get_notes_evwr(self, rectangle):
         tick_min = self.xpos2tick(rectangle.x)
@@ -176,7 +187,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             if self.data_cache:
                 self.draw_notelist(self.data_cache, True)
             else:
-                self.wgt_mode = NO_MODE
+                self.reset_mode()
 
         elif self.wgt_mode == NO_MODE and event.button == 1:
             self.start_coo = (event.x, event.y)
@@ -249,8 +260,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                     self.window.set_cursor(cursor_inc_r)
                     self.data_cache = self.rightinc_getdata(ev_on_off_tick)
             else:
-                self.window.set_cursor(current_cursor)
-                self.wgt_mode = NO_MODE
+                self.reset_mode()
 
         elif self.wgt_mode == NO_MODE and event.button == 2:
             self.wgt_mode = INC_MODE
@@ -378,8 +388,10 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
     def handle_button_release(self, widget, event):
         if event.button == 3:
-            self.window.set_cursor(current_cursor)
-            self.wgt_mode = NO_MODE
+            if self.data_cache:
+                if self.tmp_note_area:
+                    self.buffer_refresh_area(self.tmp_note_area)
+            self.reset_mode()
 
         elif event.button == 1 and self.wgt_mode != INC_MODE:
 
@@ -444,7 +456,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 self.start_coo   = None
                 if self.selection: # render new selection
                     self.draw_notelist_area(evwr_to_repr_list(self.selection))
-                self.wgt_mode = NO_MODE
+                self.reset_mode()
                 self.setting.value_widget.unset_selection()
 
             elif self.wgt_mode == PASTE_MODE:
@@ -463,7 +475,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 else:
                     print "Can not move note at this position"
                 self.data_cache = None
-                self.wgt_mode = NO_MODE
+                self.reset_mode()
 
         elif self.wgt_mode == INC_MODE:
             if self.tmp_note_area:
@@ -491,7 +503,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                     self.set_history_mark()
                     self.draw_notelist_area(notelist)
                 self.data_cache = None
-                self.wgt_mode = NO_MODE
+                self.reset_mode()
 
     def coo_under_notelist(self, xpos, ypos, notelist):
         note = self.ypos2note(ypos)
@@ -714,7 +726,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 self.window.set_cursor(current_cursor)
 
     def handle_key_press(self, widget, event):
-        if event.keyval == gtk.keysyms.Alt_L or event.keyval == gtk.keysyms.Alt_R:
+        if event.keyval == gtk.keysyms.Control_L or event.keyval == gtk.keysyms.Control_R:
             self.wgt_mode = EDIT_MODE
             self.window.set_cursor(cursor_pencil)
         elif event.keyval == gtk.keysyms.Shift_L or event.keyval == gtk.keysyms.Shift_R:
@@ -797,11 +809,12 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             pass
         elif self.wgt_mode == INC_MODE:
             if not self.data_cache:
-                self.wgt_mode = NO_MODE
-                self.window.set_cursor(current_cursor)
+                self.reset_mode()
         else:
-            self.wgt_mode = NO_MODE
-            self.window.set_cursor(current_cursor)
+            if self.data_cache:
+                if self.tmp_note_area:
+                    self.buffer_refresh_area(self.tmp_note_area)
+            self.reset_mode()
             if event.state & gtk.gdk.CONTROL_MASK:
                 keyname = gtk.gdk.keyval_name(event.keyval)
                 if self.selection:
@@ -813,6 +826,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                         NOTE_CLIPBOARD = evwr_to_repr_list(self.selection)
                 if keyname in ("v", "V"):
                     if NOTE_CLIPBOARD:
+                        print "Clipboard found"
                         self.paste_cache = NOTE_CLIPBOARD
                         self.data_cache = self.get_paste_data(self.paste_cache)
                         self.clear_selection() # clear last selection
@@ -863,11 +877,6 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             print "No more event in history"
 
     def realize_noteonoff_handler(self):
-        self.connect("button_press_event", self.handle_button_press)
-        self.connect("button_release_event", self.handle_button_release)
-        self.connect("key_press_event", self.handle_key_press)
-        self.connect("key_release_event", self.handle_key_release)
-        self.connect("motion_notify_event", self.handle_motion)
         cursor_pencil = gtk.gdk.Cursor(gtk.gdk.PENCIL)
         cursor_inc = gtk.gdk.Cursor(gtk.gdk.SB_H_DOUBLE_ARROW)
         cursor_inc_l = gtk.gdk.Cursor(gtk.gdk.SB_LEFT_ARROW)
@@ -875,4 +884,9 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         cursor_move = gtk.gdk.Cursor(gtk.gdk.FLEUR)
         current_cursor = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
         self.window.set_cursor(current_cursor)
+        self.connect("button_press_event", self.handle_button_press)
+        self.connect("button_release_event", self.handle_button_release)
+        self.connect("key_press_event", self.handle_key_press)
+        self.connect("key_release_event", self.handle_key_release)
+        self.connect("motion_notify_event", self.handle_motion)
         self.set_can_focus(True)
