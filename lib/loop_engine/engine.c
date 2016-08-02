@@ -401,6 +401,9 @@ byte_t engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size)
         case MMC_PAUSE:
           return MMC_PAUSE;
           break;
+        case MMC_RECS:
+          return MMC_RECS;
+          break;
         default:
           /* output_warning("Unhandled MMC (id:%d)", sysex[4]); */
           /* print_bin(stdout, sysex, size); */
@@ -408,6 +411,25 @@ byte_t engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size)
         }
     }
   return 0;
+}
+
+bool_t engine_toggle_rec(engine_ctx_t *ctx)
+{
+  if (ctx->rec == TRUE)
+    ctx->rec = FALSE;
+  else
+    {
+      if (ctx->track_rec == NULL)
+        {
+          if (ctx->track_list.len > 0)
+            ctx->track_rec = ctx->track_list.head->addr;
+          else
+            return FALSE;
+        }
+      ctx->rec = TRUE;
+    }
+  ctx->rec_state_changed = TRUE;
+  return TRUE;
 }
 
 bool_t init_engine(engine_ctx_t *engine, char *name, int type)

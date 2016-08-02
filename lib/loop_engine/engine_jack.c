@@ -250,6 +250,11 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
             case MMC_PAUSE:
               jbe_start(ctx);
               break;
+            case MMC_RECS:
+              engine_toggle_rec(ctx);
+              break;
+            default:
+              break;
             }
         }
       else

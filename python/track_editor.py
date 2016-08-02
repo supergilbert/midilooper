@@ -76,6 +76,15 @@ class TrackSettingTable(gtk.HBox):
         if output_res[0]:
             self.set_output(output_res[1])
 
+    def toggle_rec(self, button):
+        self.tracklist.set_trackrec(self.chaned.setting.track,
+                                    button.get_active())
+
+    def rec_button_set_active(self, active=True):
+        self.rec_button.handler_block(self.rec_button_hdlid)
+        self.rec_button.set_active(active)
+        self.rec_button.handler_unblock(self.rec_button_hdlid)
+
     def __init__(self, chaned, tracklist):
         gtk.HBox.__init__(self)
         self.set_border_width(10)
@@ -92,7 +101,6 @@ class TrackSettingTable(gtk.HBox):
         self.loop_button.set_tooltip_text("Press to configure")
         self.pack_start(self.loop_button)
 
-
         self.output_button = gtk.Button()
         self.output_button.connect("clicked", self.output_button_cb)
         self.output_button.set_tooltip_text("Press to configure")
@@ -107,6 +115,11 @@ class TrackSettingTable(gtk.HBox):
             self.output_button.set_label(self.output_str % "None")
         self.chaned.setting.setting_table = self
         self.pack_start(self.output_button)
+
+        self.rec_button = gtk.ToggleButton()
+        self.rec_button.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_RECORD,  gtk.ICON_SIZE_BUTTON))
+        self.rec_button_hdlid = self.rec_button.connect("toggled", self.toggle_rec)
+        self.pack_start(self.rec_button)
 
 def update_value_list(value_list, track_info, chan_num):
     chan_key = "%i" % chan_num

@@ -29,73 +29,13 @@ import sys
 import midiseq
 from outputlist import OutputList
 from tracklist import TrackList
-from msqwidget import MIDI_NOTEON_EVENT, MIDI_NOTEOFF_EVENT
 from msqwidget.wgttools import note_collision
 from tool import TRACK_MAX_LENGTH
 
 class MidiLooper(gtk.Window):
-    def handle_record(self):
-        rec_list = self.msq.getrecbuf()
-        track = self.msq.getrectrack()
-        if not track:
-            self.rec_noteon_list = []
-            return
-        note_to_add = []
-        ev_to_add = []
-        for ev in rec_list:
-            # print ev
-            if ev[2] == MIDI_NOTEON_EVENT:
-                tick  = track.get_loop_pos(ev[0])
-                ev_on = (tick, ev[1], ev[2], ev[3], ev[4])
-                self.rec_noteon_list.append(ev_on)
-            elif ev[2] == MIDI_NOTEOFF_EVENT:
-                for ev_on in self.rec_noteon_list:
-                    if ev_on[3] == ev[3]:
-                        tick_off = track.get_loop_pos(ev[0])
-                        if ev_on[0] < tick_off:
-                            ev_off = (tick_off, ev[1], ev[2], ev[3], ev[4])
-                            note_to_add.append((ev_on, ev_off))
-                            self.rec_noteon_list.remove(ev_on)
-                            break
-                        else:
-                            self.rec_noteon_list.remove(ev_on)
-            else:
-                tick = track.get_loop_pos(ev[0])
-                new_ev = (tick, ev[1], ev[2], ev[3], ev[4])
-                ev_to_add.append(new_ev)
-        if len(note_to_add):
-            for note_on, note_off in note_to_add:
-                note_col_list = track.sel_noteonoff_evwr(note_on[1],
-                                                         note_on[0],
-                                                         note_off[0],
-                                                         note_on[3],
-                                                         note_on[3])
-                if len(note_col_list) > 0:
-                    print "Deleting previous notes"
-                    notes_to_del = []
-                    for col_note_on, col_note_off in note_col_list:
-                        notes_to_del.append(col_note_on)
-                        notes_to_del.append(col_note_off)
-                    track._delete_evwr_list(notes_to_del)
-                ev_to_add.append(note_on)
-                ev_to_add.append(note_off)
-                # if note_collision(note_on[0],
-                #                   note_off[0],
-                #                   note_on[1],
-                #                   note_on[3],
-                #                   track.getall_noteonoff(note_on[1])):
-                #     print "Can not rec note", note_on, note_off
-                # else:
-                #     print "Adding note", note_on, note_off
-                #     ev_to_add.append(note_on)
-                #     ev_to_add.append(note_off)
-            # print "note on at least %d\n" % len(self.rec_noteon_list)
-        if len(ev_to_add):
-            track.add_evrepr_list(ev_to_add)
-
     def run_progression(self):
         if self.msq.isrunning():
-            self.handle_record()
+            self.tracklist_frame.handle_record()
             tickpos = self.msq.gettickpos()
             self.tracklist_frame.update_pos(tickpos)
             self.progress_running = True
@@ -112,6 +52,8 @@ class MidiLooper(gtk.Window):
                 gobject.timeout_add(25, self.run_progression)
         if self.msq.mute_state_changed():
             self.tracklist_frame.refresh_mute_state()
+        if self.msq.rec_state_changed():
+            self.tracklist_frame.refresh_rec_state()
         return True
 
     def key_press(self, widget, event):
@@ -134,15 +76,6 @@ class MidiLooper(gtk.Window):
 
     def stop_msq(self, button):
         self.msq.stop()
-        return True
-
-    def record_msq(self, button):
-        if button.get_active():
-            self.msq.setrecmode()
-            print "Rec mode set"
-        else:
-            self.msq.unsetrecmode()
-            print "Rec mode unset"
         return True
 
     def file_save_as(self, menuitem):
@@ -201,11 +134,6 @@ class MidiLooper(gtk.Window):
         button_stop.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_STOP,  gtk.ICON_SIZE_BUTTON))
         button_stop.connect("clicked", self.stop_msq)
 
-        button_record = gtk.ToggleButton()
-        button_record.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_RECORD,  gtk.ICON_SIZE_BUTTON))
-        button_record.connect("toggled", self.record_msq)
-        self.rec_noteon_list = []
-
         def spincb(widget, msq):
             value = widget.get_value()
             msq.settempo(int(60000000/value))
@@ -218,7 +146,6 @@ class MidiLooper(gtk.Window):
         hbox = gtk.HBox()
         hbox.pack_start(button_start)
         hbox.pack_start(button_stop)
-        hbox.pack_start(button_record)
         hbox.pack_start(self.spinbut)
 
         save_mi = gtk.MenuItem("Save (Experimental)")

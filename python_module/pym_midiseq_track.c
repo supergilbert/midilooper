@@ -569,6 +569,8 @@ static PyObject *midiseq_track_dump(PyObject *obj,
   Py_RETURN_NONE;
 }
 
+static PyObject *midiseq_track_isequal(PyObject *obj, PyObject *args);
+
 static PyMethodDef midiseq_track_methods[] = {
   {"get_info",              midiseq_track_get_info,          METH_NOARGS,  "Get track information"},
   {"get_name",              midiseq_track_get_name,          METH_NOARGS,  "Get track name"},
@@ -601,6 +603,7 @@ static PyMethodDef midiseq_track_methods[] = {
   {"sel_ctrl_evwr",         msq_track_sel_ctrl_evwr,         METH_VARARGS, "select control event number (event wrapper list)"},
   {"sel_pitch_evwr",        msq_track_sel_pitch_evwr,        METH_VARARGS, "select pitch bend event (event wrapper list)"},
   {"_dump",                 midiseq_track_dump,              METH_NOARGS,  "Dump track event(s)"},
+  {"is_equal",              midiseq_track_isequal,           METH_VARARGS, "Compare two tracks for equality"},
   {NULL,                    NULL,                            0,            NULL}
 };
 
@@ -664,6 +667,23 @@ static PyTypeObject midiseq_trackType = {
     0,                             /* tp_alloc */
     PyType_GenericNew,             /* tp_new */
 };
+
+static PyObject *midiseq_track_isequal(PyObject *obj, PyObject *args)
+{
+  midiseq_trackObject *self    = (midiseq_trackObject *) obj, *track2 = NULL;
+  PyObject            *obj2cmp = NULL;
+
+  if (!PyArg_ParseTuple(args , "O", &obj2cmp))
+    return NULL;
+  if (! PyObject_TypeCheck(obj2cmp, &midiseq_trackType))
+    {
+      Py_RETURN_FALSE;
+    }
+  track2 = (midiseq_trackObject *) obj2cmp;
+  if (self->trackctx == track2->trackctx)
+    Py_RETURN_TRUE;
+  Py_RETURN_FALSE;
+}
 
 PyObject *create_pym_track(track_ctx_t *trackctx)
 {

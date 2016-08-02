@@ -92,6 +92,7 @@ typedef struct engine_ctx
   uint_t           tempo;             /* Quater note in micro second */
   bindings_t       bindings;
   bool_t           mute_state_changed; /* Ask to update interface */
+  bool_t           rec_state_changed;  /* Ask for recording track */
   bool_t           (*is_running)(struct engine_ctx *engine);
   void             (*destroy_hdl)(struct engine_ctx *engine);
   void             (*start)(struct engine_ctx *engine);
@@ -182,6 +183,7 @@ void output_evlist(output_t *output,
 void output_pending_notes(output_t *output, byte_t *notes_on_state);
 
 byte_t engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size);
+bool_t engine_toggle_rec(engine_ctx_t *ctx);
 
 bool_t nns_init_engine(engine_ctx_t *ctx, char *name);
 bool_t jbe_init_engine(engine_ctx_t *ctx, char *name);

@@ -532,6 +532,20 @@ static PyObject *midiseq_mute_state_changed(PyObject *obj,
     Py_RETURN_FALSE;
 }
 
+static PyObject *midiseq_rec_state_changed(PyObject *obj,
+                                           PyObject *args)
+{
+  midiseq_Object      *self = (midiseq_Object *) obj;
+
+  if (self->engine_ctx.rec_state_changed == TRUE)
+    {
+      self->engine_ctx.rec_state_changed = FALSE;
+      Py_RETURN_TRUE;
+    }
+  else
+    Py_RETURN_FALSE;
+}
+
 static PyMethodDef midiseq_methods[] = {
   {"read_msqfile", midiseq_read_msqfile_tracks, METH_VARARGS,
    "Copy the track of a midifile"},
@@ -603,6 +617,8 @@ static PyMethodDef midiseq_methods[] = {
    "Call keypress binding function"},
   {"mute_state_changed", midiseq_mute_state_changed, METH_NOARGS,
    "Interface need update mute state"},
+  {"rec_state_changed", midiseq_rec_state_changed, METH_NOARGS,
+   "Interface need update recording state"},
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
   /* {"getname", midiseq_readtrack, METH_NOARGS, "get track name"}, */
   {NULL, NULL, 0, NULL}
