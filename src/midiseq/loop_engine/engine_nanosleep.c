@@ -188,6 +188,9 @@ void nns_handle_input(engine_ctx_t *ctx)
                 case MMC_PAUSE:
                   nns_start(ctx);
                   break;
+                case MMC_RECS:
+                  engine_toggle_rec(ctx);
+                  break;
                 default:
                   break;
                 }

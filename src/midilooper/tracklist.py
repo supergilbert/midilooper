@@ -22,9 +22,11 @@ import pygtk
 pygtk.require("2.0")
 import gtk
 
+from msqwidget import MIDI_NOTEON_EVENT, MIDI_NOTEOFF_EVENT
 from track_editor import TrackEditor
 from tool import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu, prompt_get_loop, prompt_get_output
 
+import time
 
 # xpm_button_add = ["8 8 2 1",
 #                   "  c None",
@@ -208,6 +210,65 @@ class TrackListMenu(MsqListMenu):
 
 
 class TrackList(gtk.Frame):
+    def handle_record(self):
+        rec_list = self.seq.getrecbuf()
+        track = self.seq.getrectrack()
+        if not track:
+            self.rec_noteon_list = []
+            return
+        note_to_add = []
+        ev_to_add = []
+        for ev in rec_list:
+            # print ev
+            if ev[2] == MIDI_NOTEON_EVENT:
+                tick  = track.get_loop_pos(ev[0])
+                ev_on = (tick, ev[1], ev[2], ev[3], ev[4])
+                self.rec_noteon_list.append(ev_on)
+            elif ev[2] == MIDI_NOTEOFF_EVENT:
+                for ev_on in self.rec_noteon_list:
+                    if ev_on[3] == ev[3]:
+                        tick_off = track.get_loop_pos(ev[0])
+                        if ev_on[0] < tick_off:
+                            ev_off = (tick_off, ev[1], ev[2], ev[3], ev[4])
+                            note_to_add.append((ev_on, ev_off))
+                            self.rec_noteon_list.remove(ev_on)
+                            break
+                        else:
+                            self.rec_noteon_list.remove(ev_on)
+            else:
+                tick = track.get_loop_pos(ev[0])
+                new_ev = (tick, ev[1], ev[2], ev[3], ev[4])
+                ev_to_add.append(new_ev)
+        if len(note_to_add):
+            for note_on, note_off in note_to_add:
+                note_col_list = track.sel_noteonoff_evwr(note_on[1],
+                                                         note_on[0],
+                                                         note_off[0],
+                                                         note_on[3],
+                                                         note_on[3])
+                if len(note_col_list) > 0:
+                    print "Deleting previous notes"
+                    notes_to_del = []
+                    for col_note_on, col_note_off in note_col_list:
+                        notes_to_del.append(col_note_on)
+                        notes_to_del.append(col_note_off)
+                    track._delete_evwr_list(notes_to_del)
+                ev_to_add.append(note_on)
+                ev_to_add.append(note_off)
+                # if note_collision(note_on[0],
+                #                   note_off[0],
+                #                   note_on[1],
+                #                   note_on[3],
+                #                   track.getall_noteonoff(note_on[1])):
+                #     print "Can not rec note", note_on, note_off
+                # else:
+                #     print "Adding note", note_on, note_off
+                #     ev_to_add.append(note_on)
+                #     ev_to_add.append(note_off)
+            # print "note on at least %d\n" % len(self.rec_noteon_list)
+        if len(ev_to_add):
+            track.add_evrepr_list(ev_to_add)
+
     def refresh_mute_state(self):
         def update_mute_state(tvmodel, path, tv_iter):
             tedit = tvmodel.get_value(tv_iter, 0)
@@ -216,6 +277,21 @@ class TrackList(gtk.Frame):
         tvmodel = self.treev.get_model()
         if tvmodel:
             tvmodel.foreach(update_mute_state)
+
+    def refresh_rec_state(self):
+        if self.seq.recmode():
+            rectrack = self.seq.getrectrack()
+            for ent in self.liststore:
+                if ent[0].track.is_equal(rectrack):
+                    ent[0].track_setting.rec_button_set_active(True)
+                    ent[4] = True
+                else:
+                    ent[0].track_setting.rec_button_set_active(False)
+                    ent[4] = False
+        else:
+            for ent in self.liststore:
+                ent[0].track_setting.rec_button_set_active(False)
+                ent[4] = False
 
     def update_pos(self, tickpos):
         def update_tedit(tvmodel, path, tv_iter, tickpos):
@@ -278,20 +354,39 @@ class TrackList(gtk.Frame):
         model[path][0].track.toggle_mute()
         model[path][3] = not model[path][3]
 
-    def set_trackrec(self, cell, path, model):
-        val = True
-        if model[path][4]:
-            self.seq.unsettrackrec()
-            val = False
+    def set_trackrec(self, track, record_request=True):
+        if self.seq.recmode():
+            self.seq.unsetrecmode()
+            time.sleep(.5)
+        track_ent = None
+        for ent in self.liststore:
+            if ent[0].track == track:
+                track_ent = ent
+            else:
+                ent[4] = False
+                ent[0].track_setting.rec_button_set_active(False)
+        if record_request:
+            self.seq.settrackrec(track)
+            self.seq.setrecmode()
+            track_ent[4] = True
         else:
-            self.seq.settrackrec(model[path][0].track)
-        for ent in model:
-            ent[4] = False
-        model[path][4] = val
+            self.seq.unsetrecmode()
+            track_ent[4] = False
 
-    def unset_trackrec(self, tv):
+    def set_trackrec_cb(self, cell, path, model):
+        # beginning by unsetting all checkboxes
+        if model[path][4]:
+            self.set_trackrec(model[path][0].chaned.setting.track, False)
+            model[path][0].track_setting.rec_button_set_active(False)
+        else:
+            self.set_trackrec(model[path][0].chaned.setting.track, True)
+            model[path][0].track_setting.rec_button_set_active(True)
+
+    def unset_trackrec_cb(self, tv):
         self.seq.unsettrackrec()
         for ent in self.liststore:
+            if ent[4] == True:
+                ent[0].track_setting.unset_rec()
             ent[4] = False
 
     def mute_all(self, tv):
@@ -321,14 +416,14 @@ class TrackList(gtk.Frame):
             if (position == gtk.TREE_VIEW_DROP_BEFORE or position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
                 self.seq.move_track_before(tedit.track, self.dnd_tedit.track)
                 model.insert_before(iterator, [self.dnd_tedit,
-                                               repr(self.dnd_tedit.track),
+                                               self.dnd_tedit.track.get_info(),
                                                0,
                                                self.dnd_tedit.track.get_mute_state(),
                                                self.dnd_tedit.track.is_in_recmode()])
             else:
                 self.seq.move_track_after(tedit.track, self.dnd_tedit.track)
                 model.insert_after(iterator, [self.dnd_tedit,
-                                              repr(self.dnd_tedit.track),
+                                              self.dnd_tedit.track.get_info(),
                                               0,
                                               self.dnd_tedit.track.get_mute_state(),
                                               self.dnd_tedit.track.is_in_recmode()])
@@ -339,7 +434,7 @@ class TrackList(gtk.Frame):
                 tedit = model.get_value(iterator, 0)
                 self.seq.move_track_after(tedit.track, self.dnd_tedit.track)
                 model.insert_after(iterator, [self.dnd_tedit,
-                                              repr(self.dnd_tedit.track),
+                                              self.dnd_tedit.track.get_info(),
                                               0,
                                               self.dnd_tedit.track.get_mute_state(),
                                               self.dnd_tedit.track.is_in_recmode()])
@@ -359,12 +454,13 @@ class TrackList(gtk.Frame):
 
         cell_rdrr = gtk.CellRendererToggle()
         # cell_rdrr.set_property('activatable', True)
-        cell_rdrr.connect('toggled', self.set_trackrec, self.liststore)
+        cell_rdrr.connect('toggled', self.set_trackrec_cb, self.liststore)
         tvcolumn = gtk.TreeViewColumn('R', cell_rdrr, active=4)
         tvcolumn.set_expand(False)
         tvcolumn.set_clickable(True)
-        tvcolumn.connect('clicked', self.unset_trackrec)
+        tvcolumn.connect('clicked', self.unset_trackrec_cb)
         self.treev.append_column(tvcolumn)
+        self.rec_noteon_list = []
 
         cell_rdrr = gtk.CellRendererProgress()
         cell_rdrr.set_fixed_size(-1, cell_rdrr.get_size(self)[3] * 2)
