@@ -23,8 +23,12 @@ pygtk.require("2.0")
 import gtk
 
 def prompt_gettext(label, prev_text=None):
+
     def emit_resp(entry, dialog):
         dialog.response(gtk.RESPONSE_OK)
+
+    def emit_cancel(entry, evt, dialog):
+        dialog.response(gtk.RESPONSE_CANCEL)
 
     dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
     dialog.set_decorated(False)
@@ -35,6 +39,7 @@ def prompt_gettext(label, prev_text=None):
     if prev_text:
         entry.set_text(prev_text)
     entry.connect("activate", emit_resp, dialog)
+    entry.connect("focus-out-event", emit_cancel, dialog)
     dialog.vbox.pack_start(label, True, True, 0)
     dialog.vbox.pack_end(entry, True, True, 0)
     dialog.show_all()
@@ -115,6 +120,7 @@ Press any note (timeout in 5 sec)""" % name)
 TRACK_MAX_LENGTH = 9999
 
 def prompt_get_loop(loop_start, loop_len):
+
     def button_apply_cb(button, dialog, loop_pos, spinbut1, spinbut2):
         loop_pos[0] = int(spinbut1.get_value())
         loop_pos[1] = int(spinbut2.get_value())
@@ -122,6 +128,9 @@ def prompt_get_loop(loop_start, loop_len):
 
     def button_cancel_cb(button, loop_pos):
         loop_pos[0] = None
+        dialog.response(gtk.RESPONSE_CANCEL)
+
+    def emit_cancel(dialog, evt):
         dialog.response(gtk.RESPONSE_CANCEL)
 
     hbox = gtk.HBox()
@@ -161,6 +170,8 @@ def prompt_get_loop(loop_start, loop_len):
     button.connect("clicked", button_cancel_cb, loop_pos)
     hbox.pack_start(button, True, True, 0)
 
+    dialog.connect("focus-out-event", emit_cancel)
+
     dialog.vbox.pack_start(hbox, True, True, 0)
 
     dialog.show_all()
@@ -182,6 +193,9 @@ def prompt_get_output(portlist, idx=None):
         dialog.response(gtk.RESPONSE_OK)
 
     def button_cancel_cb(button, loop_ptr):
+        dialog.response(gtk.RESPONSE_CANCEL)
+
+    def emit_cancel(dialog, evt):
         dialog.response(gtk.RESPONSE_CANCEL)
 
     dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
@@ -210,6 +224,8 @@ def prompt_get_output(portlist, idx=None):
     hbox.pack_start(button, True, True, 0)
 
     dialog.vbox.pack_start(hbox, True, True, 0)
+
+    dialog.connect("focus-out-event", emit_cancel)
 
     dialog.show_all()
     dialog.run()
