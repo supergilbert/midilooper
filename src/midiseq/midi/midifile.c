@@ -328,7 +328,7 @@ midifile_t *get_midifile_tracks(int fd,
        idx++)
     {
       debug_midi("\033[33m\n### Reading track %i ###\033[0m\n", idx);
-      read(fd, buffer, 8);
+      size = read(fd, buffer, 8);
 #ifdef DEBUG_MIDI_MODE
       print_bin(stdout, buffer, 8);
 #endif

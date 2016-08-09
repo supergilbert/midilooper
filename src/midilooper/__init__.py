@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # Copyright 2012-2014 Gilbert Romer
 
 # This file is part of gmidilooper.
@@ -172,7 +170,6 @@ class MidiLooper(gtk.Window):
             self.msq = midiseq.midiseq(seq_name, engine_type)
         except:
             print "Error initialising midi sequencer", "alsa" if engine_type == 0 else "jack"
-            import sys
             sys.exit(-1)
         gobject.timeout_add(200, self.check_if_running)
 
@@ -182,7 +179,7 @@ class MidiLooper(gtk.Window):
                 mfile = midiseq.midifile(self.filename)
             except:
                 print "Unable to find file \"%s\"" % self.filename
-                import sys; sys.exit()
+                sys.exit()
             self.msq.read_msqfile(mfile)
         else:
             self.filename = None
@@ -242,119 +239,3 @@ class MidiLooper(gtk.Window):
         self.connect("key_press_event", self.key_press)
         self.connect('delete_event', gtk.main_quit)
         self.show_all()
-
-import getopt
-
-if __name__ == "__main__":
-#     gtk.rc_parse_string("""
-# style "midiseq_default_style"
-# {
-#         bg[NORMAL]        = "black"
-#         fg[NORMAL]        = "white"
-#         base[NORMAL]      = "black"
-#         text[NORMAL]      = "dark green"
-#         bg[PRELIGHT]      = "black"
-#         fg[PRELIGHT]      = "white"
-#         base[PRELIGHT]    = "black"
-#         text[PRELIGHT]    = "dark green"
-#         bg[ACTIVE]        = "black"
-#         fg[ACTIVE]        = "white"
-#         base[ACTIVE]      = "black"
-#         text[ACTIVE]      = "dark green"
-#         bg[INSENSITIVE]   = "black"
-#         fg[INSENSITIVE]   = "white"
-#         base[INSENSITIVE] = "black"
-#         text[INSENSITIVE] = "dark green"
-#         bg[SELECTED]      = "black"
-#         fg[SELECTED]      = "white"
-#         base[SELECTED]    = "black"
-#         text[SELECTED]    = "dark green"
-# }
-# widget "*" style "midiseq_default_style"
-# """)
-#    gtk.rc_parse("")
-
-    def usage():
-        print """\
-Usage:
-midilooper [-h] [-a | -j] [-n NAME] [ [-f filepath] [-i filepath] | [filepath] ]
-
-Options:
--h, --help
-  Display this help.
--a, --alsa
-  Enable alsa sequencer backend (default).
--j, --jack
-  Enable jack backend.
--n, --name
-  Set sequencer backend name.
--i, --import filepath
-  Import midi file.
--f, --file filepath
-  Import midi file.
-
-FILENAME
-  The midifile to load (unstable).
-"""
-
-    engine_type = None
-    engine_name = "MidiLooper"
-    file_name = None
-    import_midi = False
-
-    try:
-        opts, args = getopt.getopt(sys.argv[1:],
-                                   "hjan:i:f:",
-                                   ["help",
-                                    "jack",
-                                    "alsa",
-                                    "name=",
-                                    "import=",
-                                    "file="])
-    except getopt.GetoptError as err:
-        print str(err)
-        usage()
-        sys.exit(1)
-    if len(args) > 1:
-        usage()
-        sys.exit(1)
-    elif len(args) == 1:
-        file_name = args[0]
-
-    for opt, arg in opts:
-        if opt in ["-h", "--help"]:
-            usage()
-            sys.exit()
-        elif opt in ["-a", "--alsa"]:
-            if engine_type:
-                usage()
-                sys.exit(1)
-            engine_type = 0
-        elif opt in ["-j", "--jack"]:
-            if engine_type:
-                usage()
-                sys.exit(1)
-            engine_type = 1
-        elif opt in ["-f", "--file"]:
-            if file_name:
-                usage()
-                sys.exit(1)
-            file_name = arg
-        elif opt in ["-n", "--name"]:
-            engine_name = arg
-        elif opt in ["-i", "--import"]:
-            import_midi = True
-            file_name = arg
-        else:
-            assert False, "Unhandled option"
-
-    if not engine_type:
-        engine_type = 0
-
-    mlooper = MidiLooper(seq_name=engine_name, filename=file_name, engine_type=engine_type)
-    if import_midi:
-        output = mlooper.outputlist_frame.add_output("default")
-        if output:
-            mlooper.tracklist_frame.menu.set_output_all(output)
-            mlooper.tracklist_frame.menu.set_loop_all((0, TRACK_MAX_LENGTH))
-    gtk.main()

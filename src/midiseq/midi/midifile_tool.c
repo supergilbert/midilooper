@@ -22,7 +22,7 @@
 #include "midi/midi_tool.h"
 #include "midi/midifile.h"
 
-void write_midifile_header(int fd, uint_t track_list_len, uint_t ppq)
+size_t write_midifile_header(int fd, uint_t track_list_len, uint_t ppq)
 {
   byte_t midi_header_chunk[14];
 
@@ -45,7 +45,7 @@ void write_midifile_header(int fd, uint_t track_list_len, uint_t ppq)
     }
   else
     output_error("Error ppq is too high (ppq=%d)", ppq);
-  write(fd, midi_header_chunk, 14);
+  return write(fd, midi_header_chunk, 14);
 }
 
 buf_node_t *sysex_buf_node_end(byte_t *buffer, size_t len)
@@ -353,13 +353,16 @@ buf_node_t *_append_metaev_eot(buf_node_t *tail)
   return tail->next;
 }
 
-void write_buf_list(int fd, buf_node_t *buff)
+size_t write_buf_list(int fd, buf_node_t *buff)
 {
+  size_t size = 0;
+
   while (buff)
     {
-      write(fd, buff->buffer, buff->len);
+      size += write(fd, buff->buffer, buff->len);
       buff = buff->next;
     }
+  return size;
 }
 
 size_t get_buf_list_size(buf_node_t *buff)
