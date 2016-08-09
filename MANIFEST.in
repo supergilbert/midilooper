@@ -1,2 +1,0 @@
-recursive-include src/midiseq *.h
-recursive-include src/midiseq_ext *.h
