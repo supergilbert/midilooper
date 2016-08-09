@@ -1,0 +1,78 @@
+#!/bin/sh -e
+
+CURRENT_DIR=$(dirname $0)
+
+make -f ${CURRENT_DIR}/midiseq.mk -s
+
+MIDILOOPER=${CURRENT_DIR}/midilooper/scripts/midilooper
+export PYTHONPATH=${CURRENT_DIR}
+SYNOPSIS="\
+$(basename $0) [COMMAND]
+
+COMMAND:
+ ipython   ipython with midilooper environment
+ gdb       gdb with midilooper
+ gdbcore   gdb with midilooper core file
+ gdbemacs  gdb in emacs with midilooper
+ emacscore gdb in emacs with midilooper core file.
+ emacs     emacs with midilooper environment
+ valgrind  valgrind with midilooper
+ help      show this help"
+
+if [ $# -lt 1 ]; then
+    ulimit -c unlimited
+    $MIDILOOPER
+else
+    case $1 in
+        "ipython")
+            ipython
+            ;;
+        "gdbcore")
+            if [ $# -ne 2 ]; then
+                echo "\033[31mgdbcore need an argument.\033[0m"
+                exit 2
+            fi
+            echo "\033[32mLanching core file with gdb.\033[0m"
+            shift 1
+            gdb --core=$1 --args python
+            ;;
+        "gdb")
+            echo "\033[32mLanching midilooper with gdb.\033[0m"
+            shift 1
+            gdb --args python $MIDILOOPER $@
+            ;;
+        "gdbemacs")
+            echo "\033[32mLanching midilooper with gdb in emacs.\033[0m"
+            shift 1
+            emacs --eval "(gdb \"gdb -i=mi --args python $MIDILOOPER $@\")"
+            ;;
+        "emacscore")
+            if [ $# -ne 2 ]; then
+                echo "\033[31memacscore need an argument.\033[0m"
+                exit 3
+            fi
+            echo "\033[32mLanching midilooper with gdb in emacs.\033[0m"
+            shift 1
+            emacs --eval "(gdb \"gdb -i=mi --core=$1 --args python\")"
+            ;;
+        "emacs")
+            echo "\033[32mLanching emacs with midilooper environment.\033[0m"
+            shift 1
+            emacs
+            ;;
+        "valgrind")
+            echo "\033[32mLanching midilooper with valgrind.\033[0m"
+            shift 1
+            valgrind -v --track-origins=yes --log-file=/tmp/midilooper_valgrind.log --leak-check=full --show-reachable=yes python $MIDILOOPER $@
+            ;;
+        "help")
+            echo "$SYNOPSIS"
+            echo "\n... or the following midilooper options.\n"
+            $MIDILOOPER --help
+            ;;
+        *)
+            ulimit -c unlimited
+            $MIDILOOPER $@
+            ;;
+    esac
+fi

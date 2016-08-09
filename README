@@ -5,5 +5,7 @@ To test you need the following packages:
 
 Use src/setup.py to build the project.
 
+Type "make help" for quick usage.
+
 For old jack api, the environment variable OLDJACKAPI must be set.
 ex: export OLDJACKAPI=yes

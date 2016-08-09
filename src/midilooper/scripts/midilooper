@@ -58,24 +58,24 @@ if __name__ == "__main__":
     def usage():
         print """\
 Usage:
-midilooper [-h] [-a | -j] [-n NAME] [ [-f filepath] [-i filepath] | [filepath] ]
+ midilooper [-h] [-a | -j] [-n NAME] [[-f filepath] [-i filepath] | [filepath]]
 
 Options:
--h, --help
+ -h, --help
   Display this help.
--a, --alsa
+ -a, --alsa
   Enable alsa sequencer backend (default).
--j, --jack
+ -j, --jack
   Enable jack backend.
--n, --name
+ -n, --name
   Set sequencer backend name.
--i, --import filepath
+ -i, --import filepath
   Import midi file.
--f, --file filepath
+ -f, --file filepath
   Import midi file.
 
 FILENAME
-  The midifile to load (unstable).
+ The midifile to load (unstable).
 """
 
     engine_type = None
