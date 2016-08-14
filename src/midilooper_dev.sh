@@ -2,7 +2,12 @@
 
 CURRENT_DIR=$(dirname $0)
 
-make -f ${CURRENT_DIR}/midiseq.mk -s
+echo "Checking compilation"
+if make -f ${CURRENT_DIR}/midiseq.mk -s; then
+    echo "Compilation OK"
+else
+    exit 1
+fi
 
 MIDILOOPER=${CURRENT_DIR}/midilooper/scripts/midilooper
 export PYTHONPATH=${CURRENT_DIR}

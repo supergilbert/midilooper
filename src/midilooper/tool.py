@@ -22,24 +22,28 @@ import pygtk
 pygtk.require("2.0")
 import gtk
 
+class FocusOutDialog(gtk.Dialog):
+    "Cancel on focus out gtk.Dialog"
+    def __init__(self):
+        def emit_cancel(dialog, evt):
+            dialog.response(gtk.RESPONSE_CANCEL)
+        gtk.Dialog.__init__(self, flags=gtk.DIALOG_MODAL)
+        self.connect("focus-out-event", emit_cancel)
+
 def prompt_gettext(label, prev_text=None):
 
     def emit_resp(entry, dialog):
         dialog.response(gtk.RESPONSE_OK)
 
-    def emit_cancel(entry, evt, dialog):
-        dialog.response(gtk.RESPONSE_CANCEL)
 
-    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
+    dialog = FocusOutDialog()
     dialog.set_decorated(False)
     dialog.set_position(gtk.WIN_POS_MOUSE)
     label = gtk.Label(label)
-    # dialog.set_markup(label)
     entry = gtk.Entry()
     if prev_text:
         entry.set_text(prev_text)
     entry.connect("activate", emit_resp, dialog)
-    entry.connect("focus-out-event", emit_cancel, dialog)
     dialog.vbox.pack_start(label, True, True, 0)
     dialog.vbox.pack_end(entry, True, True, 0)
     dialog.show_all()
@@ -63,7 +67,7 @@ Press any alpha-numeric key (timeout in 5 sec)""" % name)
     def timeout_func(dialog):
         dialog.response(gtk.RESPONSE_CANCEL)
 
-    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
+    dialog = FocusOutDialog()
     dialog.set_decorated(False)
     dialog.set_position(gtk.WIN_POS_MOUSE)
     dialog.vbox.pack_start(label, True, True, 0)
@@ -100,7 +104,7 @@ Press any note (timeout in 5 sec)""" % name)
         timeout_data[1] += check_period
         return True
 
-    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
+    dialog = FocusOutDialog()
     dialog.set_decorated(False)
     dialog.set_position(gtk.WIN_POS_MOUSE)
     dialog.vbox.pack_start(label, True, True, 0)
@@ -130,9 +134,6 @@ def prompt_get_loop(loop_start, loop_len):
         loop_pos[0] = None
         dialog.response(gtk.RESPONSE_CANCEL)
 
-    def emit_cancel(dialog, evt):
-        dialog.response(gtk.RESPONSE_CANCEL)
-
     hbox = gtk.HBox()
 
     label = gtk.Label(" Loop Start: ")
@@ -153,9 +154,8 @@ def prompt_get_loop(loop_start, loop_len):
     hbox.pack_start(label,   True, True, 0)
     hbox.pack_start(spinbut2, True, True, 0)
 
-    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
+    dialog = FocusOutDialog()
     dialog.set_position(gtk.WIN_POS_MOUSE)
-    # dialog.set_decorated(False)
     dialog.vbox.pack_start(hbox, True, True, 0)
 
     hbox = gtk.HBox()
@@ -169,8 +169,6 @@ def prompt_get_loop(loop_start, loop_len):
     button = gtk.Button(stock=gtk.STOCK_CANCEL)
     button.connect("clicked", button_cancel_cb, loop_pos)
     hbox.pack_start(button, True, True, 0)
-
-    dialog.connect("focus-out-event", emit_cancel)
 
     dialog.vbox.pack_start(hbox, True, True, 0)
 
@@ -195,10 +193,7 @@ def prompt_get_output(portlist, idx=None):
     def button_cancel_cb(button, loop_ptr):
         dialog.response(gtk.RESPONSE_CANCEL)
 
-    def emit_cancel(dialog, evt):
-        dialog.response(gtk.RESPONSE_CANCEL)
-
-    dialog = gtk.Dialog(flags=gtk.DIALOG_MODAL)
+    dialog = FocusOutDialog()
     dialog.set_position(gtk.WIN_POS_MOUSE)
 
     portlist_cbbox = gtk.ComboBox(portlist)
@@ -224,8 +219,6 @@ def prompt_get_output(portlist, idx=None):
     hbox.pack_start(button, True, True, 0)
 
     dialog.vbox.pack_start(hbox, True, True, 0)
-
-    dialog.connect("focus-out-event", emit_cancel)
 
     dialog.show_all()
     dialog.run()
