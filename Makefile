@@ -16,7 +16,7 @@ debpkg:
 	find $(current_dir)/src/deb_dist -iname "*.deb" -exec cp {} ./ \;
 
 clean:
-	@make -f $(current_dir)/src/midiseq.mk clean
+	@make -f $(current_dir)/src/midiseq_ext_dev.mk clean
 	@cd src && $(current_dir)/setup.py clean && cd -
 	@rm -rf $(current_dir)/src/build $(current_dir)/src/MANIFEST \
 	$(current_dir)/src/deb_dist $(current_dir)/src/dist \

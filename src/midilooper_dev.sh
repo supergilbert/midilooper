@@ -3,7 +3,7 @@
 CURRENT_DIR=$(dirname $0)
 
 echo "Checking compilation"
-if make -f ${CURRENT_DIR}/midiseq.mk -s; then
+if make -f ${CURRENT_DIR}/midiseq_ext_dev.mk -s; then
     echo "Compilation OK"
 else
     exit 1
