@@ -1,11 +1,14 @@
 This code is in development.
 
-To test you need the following packages:
-"python-dev", "libasound2-dev", "libjack-dev or libjack-jackd2-dev", "make", "gcc"
+Dependencies (exemple with Debian packages):
+"python-dev", "libasound2-dev", "libjack-dev or libjack-jackd2-dev", "make",
+"gcc", ("python-stdeb" for debian package build)
 
-Use src/setup.py to build the project.
+For a quick test use "src/midilooper_dev.sh".
 
-Type "make help" for quick usage.
+Type "make help" for quick usage. Or move to src directory and use "./setup.py"
+to build or package the project (see "./setup.py --help" and Python Distutils
+for more information).
 
 For old jack api, the environment variable OLDJACKAPI must be set.
 ex: export OLDJACKAPI=yes
