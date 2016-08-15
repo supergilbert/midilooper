@@ -1,0 +1,30 @@
+.TH midilooper 1
+.SH NAME
+midilooper \- midi loop sequencer
+.SH SYNOPSIS
+.B midilooper
+[\fI\,OPTION\/\fR] ... [\fI\,FILEPATH\/\fR]
+.SH DESCRIPTION
+.PP
+Loop sequencer that can be controlled via keyboard and (or) midi shortcut.
+.SH OPTION
+.TP
+\fB\-j\fR, \fB\-\-jack\fR
+Enable jack backend
+.TP
+\fB\-a\fR, \fB\-\-alsa\fR
+Enable alsa sequencer backend (default).
+.TP
+\fB\-i\fR, \fB\-\-import\fR \fIFILEPATH\fR
+Import midi file
+.TP
+\fB\-f\fR, \fB\-\-file\fR \fIFILEPATH\fR
+Import midi file
+.TP
+\fB\-n\fR, \fB\-\-name \fINAME\fR
+Set sequencer backend name
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Show the help
+.SH AUTHOR
+Written by Gilbert Romer
