@@ -2,7 +2,7 @@
 
 CURRENT_DIR=$(dirname $0)
 
-echo "Checking compilation"
+echo "Testing compilation"
 if make -f ${CURRENT_DIR}/midiseq_ext_dev.mk -s; then
     echo "Compilation OK"
 else

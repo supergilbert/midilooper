@@ -163,7 +163,8 @@ def prompt_get_loop(loop_start, loop_len):
     loop_pos = [loop_start, loop_len]
 
     button = gtk.Button(stock=gtk.STOCK_APPLY)
-    button.connect("clicked", button_apply_cb, dialog, loop_pos, spinbut1, spinbut2)
+    button.connect("clicked",
+                   button_apply_cb, dialog, loop_pos, spinbut1, spinbut2)
     hbox.pack_start(button, True, True, 0)
 
     button = gtk.Button(stock=gtk.STOCK_CANCEL)
@@ -179,7 +180,6 @@ def prompt_get_loop(loop_start, loop_len):
         return None
     return loop_pos
 
-
 def prompt_get_output(portlist, idx=None):
 
     def button_apply_cb(button, portlist_cbbox, port_res):
@@ -193,7 +193,10 @@ def prompt_get_output(portlist, idx=None):
     def button_cancel_cb(button, loop_ptr):
         dialog.response(gtk.RESPONSE_CANCEL)
 
-    dialog = FocusOutDialog()
+    # Temp hack: can not use FocusOutDialog class because combox window focus-in
+    # send focus-out signal to the class (and that create dependencies problem).
+    # dialog = FocusOutDialog()
+    dialog = gtk.Dialog()
     dialog.set_position(gtk.WIN_POS_MOUSE)
 
     portlist_cbbox = gtk.ComboBox(portlist)

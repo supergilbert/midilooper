@@ -1,8 +1,8 @@
 This code is in development.
 
 Dependencies (exemple with Debian packages):
-"python-dev", "libasound2-dev", "libjack-dev or libjack-jackd2-dev", "make",
-"gcc", ("python-stdeb" for debian package build)
+"python-dev", "libasound-dev", "libjack-dev-session", "make", "gcc" (and
+"python-stdeb" for debian package build)
 
 For a quick test use "src/midilooper_dev.sh".
 
