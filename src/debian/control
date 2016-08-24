@@ -1,0 +1,14 @@
+Source: midilooper
+Maintainer: Gilbert Romer <gilbux@gmail.com>
+Section: python
+Priority: optional
+Build-Depends: dh-python, python-all-dev (>= 2.6.6-3), debhelper (>= 9), python-dev, libasound-dev, libjack-dev-session
+Standards-Version: 3.9.6
+Homepage: https://github.com/supergilbert/midiseq
+
+Package: midilooper
+Architecture: any
+Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}
+Description: Midi loop sequencer
+ Midi loop sequencer that can be controlled via keyboard and (or) midi shortcut.
+

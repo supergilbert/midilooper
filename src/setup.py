@@ -65,7 +65,7 @@ midilooper_module = Extension("midilooper/midiseq",
                               define_macros = macros)
 
 setup(name = "midilooper",
-      version = "0.01",
+      version = "0.1",
       description = "Midi loop sequencer",
       long_description = "Midi loop sequencer that can be controlled via keyboard and (or) midi shortcut.",
       author = "Gilbert Romer",
@@ -77,4 +77,5 @@ setup(name = "midilooper",
       package_dir = {"midilooper": "midilooper",
                      "midilooper/msqwidget": "midilooper/msqwidget"},
       scripts = ["midilooper/scripts/midilooper"],
-      data_files = [("share/man/man1/", ["midilooper.1"])])
+      data_files = [("share/man/man1/", ["midilooper.1"])],
+      license = "GNU General Public License")
