@@ -13,6 +13,9 @@ help:
 	@echo " deb_pkg   Build a debian package"
 	@echo " clean     Remove all compilated files"
 	@echo " help      Show this help"
+	@echo ""
+	@echo "Note:"
+	@echo " For old jack api, the environment variable OLDJACKAPI must be set."
 
 test:
 	@echo "Running midilooper_dev. (more option available with the script ./src/midilooper_dev.sh)"
@@ -24,16 +27,16 @@ deb_src:
 	cd -
 
 deb_check:
-	@dpkg -s adpkg-dev > /dev/null
+	@dpkg -s dpkg-dev > /dev/null
 	@cd $(current_dir)/src && dpkg-checkbuilddeps && cd -
 
 $(current_dir)/src/debian/changelog:
-	@cp $(current_dir)/src/debian/changelog.in $(current_dir)/src/debian/changelog
+	@$(current_dir)/src/gen_debchangelog.sh
 
 deb_changelog: $(current_dir)/src/debian/changelog
 
 deb_pkg: deb_check deb_changelog
-	@cd $(current_dir)/src && debuild -b -us -uc && cd -
+	@cd $(current_dir)/src && debuild --preserve-envvar=OLDJACKAPI -b -us -uc && cd -
 
 clean:
 	@make -f $(current_dir)/src/midiseq_ext_dev.mk clean
