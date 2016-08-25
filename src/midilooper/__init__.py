@@ -28,7 +28,7 @@ import midiseq
 from outputlist import OutputList
 from tracklist import TrackList
 from msqwidget.wgttools import note_collision
-from tool import TRACK_MAX_LENGTH
+from tools import TRACK_MAX_LENGTH
 
 class MidiLooper(gtk.Window):
     def run_progression(self):

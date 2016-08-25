@@ -24,7 +24,7 @@ import gtk
 
 from msqwidget import MIDI_NOTEON_EVENT, MIDI_NOTEOFF_EVENT
 from track_editor import TrackEditor
-from tool import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu, prompt_get_loop, prompt_get_output
+from tools import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu, prompt_get_loop, prompt_get_output
 
 import time
 

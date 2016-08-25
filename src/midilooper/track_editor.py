@@ -30,7 +30,7 @@ if gtk.pygtk_version < (2, 8):
 from msqwidget import MsqHBarTimeWidget, MsqVBarNoteWidget, MsqNoteGridWidget, MIN_QNOTE_XSZ, DEFAULT_QNOTE_XSZ, MAX_QNOTE_XSZ
 from msqwidget.midivaluewgt import MsqValueWidget
 from msqwidget.wgttools import MIDI_CTRL_EVENT, MIDI_NOTEOFF_EVENT, MIDI_NOTEON_EVENT, MIDI_PITCH_EVENT
-from tool import prompt_get_loop, prompt_get_output
+from tools import prompt_get_loop, prompt_get_output
 from collections import namedtuple
 
 

@@ -22,7 +22,7 @@ import pygtk
 pygtk.require("2.0")
 import gtk
 
-from tool import prompt_gettext, MsqListMenu
+from tools import prompt_gettext, MsqListMenu
 
 
 class OutputListMenu(MsqListMenu):
