@@ -22,6 +22,7 @@ import pygtk
 pygtk.require("2.0")
 import gtk
 
+
 class FocusOutDialog(gtk.Dialog):
     "Cancel on focus out gtk.Dialog"
     def __init__(self):
@@ -29,6 +30,7 @@ class FocusOutDialog(gtk.Dialog):
             dialog.response(gtk.RESPONSE_CANCEL)
         gtk.Dialog.__init__(self, flags=gtk.DIALOG_MODAL)
         self.connect("focus-out-event", emit_cancel)
+
 
 def prompt_gettext(label, prev_text=None):
 
@@ -53,6 +55,7 @@ def prompt_gettext(label, prev_text=None):
         text = entry.get_text()
     dialog.destroy()
     return text
+
 
 def prompt_keybinding(name):
     key_binding = None
@@ -84,6 +87,7 @@ Press any alpha-numeric key (timeout in 5 sec)""" % name)
         gobject.source_remove(timeoutid)
     dialog.destroy()
     return key_binding
+
 
 def prompt_notebinding(seq, name):
     label = gtk.Label("""\
@@ -121,7 +125,9 @@ Press any note (timeout in 5 sec)""" % name)
     dialog.destroy()
     return timeout_data[0]
 
+
 TRACK_MAX_LENGTH = 9999
+
 
 def prompt_get_loop(loop_start, loop_len):
 
@@ -180,45 +186,44 @@ def prompt_get_loop(loop_start, loop_len):
         return None
     return loop_pos
 
-def prompt_get_output(portlist, idx=None):
 
-    def button_apply_cb(button, portlist_cbbox, port_res):
-        port_iter = portlist_cbbox.get_active_iter()
-        model = portlist_cbbox.get_model()
-        output = model.get_value(port_iter, 0)
-        port_res[0] = True
-        port_res[1] = output
+def prompt_get_output(portlist, idx=None):
+    def set_output_path(tv_path, dialog, portlist, output_res):
+        tv_iter = portlist.get_iter(tv_path[0])
+        output = portlist.get_value(tv_iter, 0)
+        output_res[0] = True
+        output_res[1] = output
         dialog.response(gtk.RESPONSE_OK)
 
-    def button_cancel_cb(button, loop_ptr):
+    def row_activated(tv, tv_path, col, dialog, portlist, output_res):
+        set_output_path(tv_path, dialog, portlist, output_res)
+
+    def button_apply_cb(button, dialog, treev, portlist, output_res):
+        tv_path = treev.get_cursor()
+        set_output_path(tv_path, dialog, portlist, output_res)
+
+    def button_cancel_cb(button):
         dialog.response(gtk.RESPONSE_CANCEL)
 
-    # Temp hack: can not use FocusOutDialog class because combox window focus-in
-    # send focus-out signal to the class (and that create dependencies problem).
-    # dialog = FocusOutDialog()
-    dialog = gtk.Dialog()
-    dialog.set_position(gtk.WIN_POS_MOUSE)
-
-    portlist_cbbox = gtk.ComboBox(portlist)
     cell = gtk.CellRendererText()
-    portlist_cbbox.pack_start(cell, True)
-    portlist_cbbox.add_attribute(cell, 'text', 1)
-    if idx != None:
-        portlist_cbbox.set_active(idx)
-    else:
-        portlist_cbbox.set_active(0)
+    tvcolumn = gtk.TreeViewColumn('Output', cell, text=1)
+    treev = gtk.TreeView(portlist)
+    treev.append_column(tvcolumn)
+    treev.set_headers_visible(False)
+    treev.set_cursor(idx)
+    dialog = FocusOutDialog()
+    dialog.set_position(gtk.WIN_POS_MOUSE)
+    dialog.vbox.pack_start(treev, True, True, 0)
 
-    dialog.vbox.pack_start(portlist_cbbox, True, True, 0)
+    output_res = [False, None]
+    treev.connect('row-activated', row_activated, dialog, portlist, output_res)
 
     hbox = gtk.HBox()
-
-    port_res = [False, None]
     button = gtk.Button(stock=gtk.STOCK_APPLY)
-    button.connect("clicked", button_apply_cb, portlist_cbbox, port_res)
+    button.connect("clicked", button_apply_cb, dialog, treev, portlist, output_res)
     hbox.pack_start(button, True, True, 0)
-
     button = gtk.Button(stock=gtk.STOCK_CANCEL)
-    button.connect("clicked", button_cancel_cb, port_res)
+    button.connect("clicked", button_cancel_cb)
     hbox.pack_start(button, True, True, 0)
 
     dialog.vbox.pack_start(hbox, True, True, 0)
@@ -226,7 +231,8 @@ def prompt_get_output(portlist, idx=None):
     dialog.show_all()
     dialog.run()
     dialog.destroy()
-    return port_res
+    return output_res
+
 
 class MsqListMenu(gtk.Menu):
     @staticmethod

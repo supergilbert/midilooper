@@ -73,7 +73,7 @@ class TrackSettingTable(gtk.HBox):
                 port_idx = idx
                 break;
         output_res = prompt_get_output(self.portlist, port_idx)
-        if output_res[0]:
+        if output_res and output_res[0]:
             self.set_output(output_res[1])
 
     def toggle_rec(self, button):

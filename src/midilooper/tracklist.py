@@ -141,7 +141,7 @@ class TrackListMenu(MsqListMenu):
                     port_idx = idx
                     break;
             output_res = prompt_get_output(self.tracklist.portlist, port_idx)
-            if output_res[0]:
+            if output_res and output_res[0]:
                 tedit.track_setting.set_output(output_res[1])
 
     def copy_track(self, menuitem):
@@ -179,7 +179,7 @@ class TrackListMenu(MsqListMenu):
 
     def menu_set_output_all(self, menuitem):
         output_res = prompt_get_output(self.tracklist.portlist, 0)
-        if output_res:
+        if output_res and output_res[0]:
             self.set_output_all(output_res[1])
 
     def __init__(self, tracklist):
