@@ -279,26 +279,29 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
         }
     }
 
-  state = jack_transport_query(hdl->client, &position);
-  if (state == JackTransportRolling ||
-      state == JackTransportLooping ||
-      state == JackTransportStarting)
+  if (ctx->rec == TRUE)
     {
-      /* Handling midi record */
-      port_buf    = jack_port_get_buffer(hdl->record_input, nframes);
-      event_count = jack_midi_get_event_count(port_buf);
-      for (idx = 0;
-           idx < event_count;
-           idx++) {
-        jack_midi_event_get(&jackev, port_buf, idx);
-        if (convert_mididata_to_midicev(jackev.buffer, &midicev) == TRUE) {
-          tick = convert_frame_to_tick(position.frame + jackev.time,
-                                       position.frame_rate,
-                                       ctx->ppq,
-                                       ctx->tempo);
-          mrb_write(ctx->rbuff, tick, &midicev);
+      state = jack_transport_query(hdl->client, &position);
+      if (state == JackTransportRolling ||
+          state == JackTransportLooping ||
+          state == JackTransportStarting)
+        {
+          /* Handling midi record */
+          port_buf    = jack_port_get_buffer(hdl->record_input, nframes);
+          event_count = jack_midi_get_event_count(port_buf);
+          for (idx = 0;
+               idx < event_count;
+               idx++) {
+            jack_midi_event_get(&jackev, port_buf, idx);
+            if (convert_mididata_to_midicev(jackev.buffer, &midicev) == TRUE) {
+              tick = convert_frame_to_tick(position.frame + jackev.time,
+                                           position.frame_rate,
+                                           ctx->ppq,
+                                           ctx->tempo);
+              mrb_write(ctx->rbuff, tick, &midicev);
+            }
+          }
         }
-      }
     }
 }
 
