@@ -15,7 +15,9 @@ help:
 	@echo " help      Show this help"
 	@echo ""
 	@echo "Note:"
-	@echo " For old jack api, the environment variable OLDJACKAPI must be set."
+	@echo " - For old jack api, the environment variable OLDJACKAPI must be set."
+	@echo " - The 'src' directory contain a python setup.py that can be used for"
+	@echo "   custom installations instead of this Makefile."
 
 test:
 	@echo "Running midilooper_dev. (more option available with the script ./src/midilooper_dev.sh)"
