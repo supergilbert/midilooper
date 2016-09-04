@@ -826,7 +826,6 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                         NOTE_CLIPBOARD = evwr_to_repr_list(self.selection)
                 if keyname in ("v", "V"):
                     if NOTE_CLIPBOARD:
-                        print "Clipboard found"
                         self.paste_cache = NOTE_CLIPBOARD
                         self.data_cache = self.get_paste_data(self.paste_cache)
                         self.clear_selection() # clear last selection
