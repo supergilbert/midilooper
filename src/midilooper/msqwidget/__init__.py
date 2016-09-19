@@ -230,10 +230,8 @@ class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
             if self.hbar_mode == 1:
                 start_tick = self.setting.getstart()
                 if self.last_tick != start_tick:
-                    new_len = self.setting.getlen() + start_tick - self.last_tick
                     start_tick = self.last_tick / self.setting.getppq()
-                    new_len /= self.setting.getppq()
-                    self.setting.set_loop(start_tick, new_len)
+                    self.setting.set_loop(start_tick, self.setting.getlen() / self.setting.getppq())
                     self.grid.draw_all()
             elif self.hbar_mode == 2:
                 start_tick = self.setting.getstart()
@@ -255,10 +253,9 @@ class MsqHBarTimeWidget(gtk.Widget, Xpos2Tick):
                 tick = tick - mod
 
             if self.hbar_mode == 1:
-                end_tick = self.setting.getstart() + self.setting.getlen()
-                if tick < end_tick:
-                    self.hbar_update_pixmap(self.last_tick, tick, self.start_pixmap)
-                    self.last_tick = tick
+                self.hbar_update_pixmap(self.last_tick, tick, self.start_pixmap)
+                self.hbar_update_pixmap(self.last_tick + self.setting.getlen(), tick + self.setting.getlen(), self.end_pixmap)
+                self.last_tick = tick
             elif self.hbar_mode == 2:
                 start_tick = self.setting.getstart()
                 if start_tick < tick:
