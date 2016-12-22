@@ -21,8 +21,8 @@ help:
 	@echo "   custom installations instead of this Makefile."
 
 test:
-	@echo "Running midilooper_dev. (more option available with the script ./src/midilooper_dev.sh)"
-	@$(current_dir)/src/midilooper_dev.sh
+	@echo "Running midilooper_dev. (more option available with the script ./test_midilooper.sh"
+	@$(current_dir)/test_midilooper.sh
 
 deb_src:
 	@cd $(current_dir)/src && \
