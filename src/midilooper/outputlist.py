@@ -15,25 +15,26 @@
 # You should have received a copy of the GNU Gneneral Public License
 # along with midilooper.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
-import pygtk
-pygtk.require("2.0")
-import gtk
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
 
-from tools import prompt_gettext, MsqListMenu
+from midilooper.tools import prompt_gettext, MsqListMenu
 
 
 class OutputListMenu(MsqListMenu):
     def rename_output(self, menuitem):
         if self.outputlist.seq.isrunning():
-            print "Can not rename output while running"
+            print("Can not rename output while running")
             return
         if self.path:
             iter = self.outputlist.listfilter.get_iter(self.path[0])
             seqoutput = self.outputlist.listfilter.get_value(iter, 0)
-            name = prompt_gettext("Rename output", seqoutput.get_name())
+            name = prompt_gettext(self.outputlist.get_parent().get_parent(),
+                                  "Rename output", seqoutput.get_name())
             if name:
                 seqoutput.set_name(name)
                 child_iter = self.outputlist.listfilter.convert_iter_to_child_iter(iter)
@@ -60,19 +61,19 @@ class OutputListMenu(MsqListMenu):
         self.outputlist = outputlist
 
         self.mlm_add_root_item("Rename output", self.rename_output)
-        separator = gtk.SeparatorMenuItem()
+        separator = Gtk.SeparatorMenuItem()
         separator.show()
         self.append(separator)
         self.mlm_add_root_item("Delete output", self.del_output)
 
 
-class OutputList(gtk.Frame):
+class OutputList(Gtk.Frame):
     def tvbutton_press_event(self, treeview, event):
         if event.button == 3:
             path = treeview.get_path_at_pos(int(event.x), int(event.y))
             if path:
                 self.menu.path = path
-                self.menu.popup(None, None, None, event.button, event.time)
+                self.menu.popup(None, None, None, None, event.button, event.time)
 
     def add_output(self, name):
         if name:
@@ -81,7 +82,8 @@ class OutputList(gtk.Frame):
             return seqoutput
 
     def button_add_output(self, button):
-        name = prompt_gettext("Enter new output name")
+        name = prompt_gettext(self.get_parent().get_parent(),
+                              "Enter new output name")
         self.add_output(name)
 
     def drag_data_get_data(self, treeview, context, selection, target_id, etime):
@@ -101,7 +103,7 @@ class OutputList(gtk.Frame):
             path, position = drop_info
             iter = model.get_iter(path)
             output = model.get_value(iter, 0)
-            if (position == gtk.TREE_VIEW_DROP_BEFORE or position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
+            if (position == Gtk.TreeViewDropPosition.BEFORE or position == Gtk.TreeViewDropPosition.INTO_OR_BEFORE):
                 self.seq.move_output_before(output, self.dnd_output)
                 model.insert_before(iter, [self.dnd_output, self.dnd_output.get_name()])
             else:
@@ -118,15 +120,17 @@ class OutputList(gtk.Frame):
 
 
     def __init__(self, midiseq):
-        gtk.Frame.__init__(self)
+        Gtk.Frame.__init__(self)
+        self.set_label("Output list")
+        GObject.GObject.__init__(self)
         self.seq = midiseq
-        self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str)
+        self.liststore = Gtk.ListStore(GObject.TYPE_PYOBJECT, str)
         self.liststore.append([None, "No output"])
         for seqoutput in self.seq.getoutputs():
             self.liststore.append([seqoutput, seqoutput.get_name()])
 
         self.listfilter = self.liststore.filter_new()
-        def visible_output_func(model, iter):
+        def visible_output_func(model, iter, data):
             output = model.get_value(iter, 0)
             if output:
                 return True
@@ -134,13 +138,11 @@ class OutputList(gtk.Frame):
                 return False
         self.listfilter.set_visible_func(visible_output_func)
 
-        treev = gtk.TreeView(self.listfilter)
+        treev = Gtk.TreeView(self.listfilter)
         treev.set_enable_search(False)
 
-        tvcolumn = gtk.TreeViewColumn('Sequencer Output')
-        cell = gtk.CellRendererText()
-        # import pango
-        # cell.set_property("alignment", pango.ALIGN_CENTER)
+        tvcolumn = Gtk.TreeViewColumn('Sequencer Output')
+        cell = Gtk.CellRendererText()
         tvcolumn.pack_start(cell, True)
         tvcolumn.add_attribute(cell, 'text', 1)
         treev.append_column(tvcolumn)
@@ -149,25 +151,25 @@ class OutputList(gtk.Frame):
         treev.connect('button-press-event', self.tvbutton_press_event)
 
         # Temporarily unavailable
-        # treev.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
+        # treev.enable_model_drag_source(Gdk.ModifierType.BUTTON1_MASK,
         #                                [("MIDILOOPER_OUTPUT_LIST",
-        #                                  gtk.TARGET_SAME_WIDGET,
+        #                                  Gtk.TargetFlags.SAME_WIDGET,
         #                                  0)],
-        #                                gtk.gdk.ACTION_DEFAULT|gtk.gdk.ACTION_MOVE)
+        #                                Gdk.DragAction.DEFAULT|Gdk.DragAction.MOVE)
         # treev.enable_model_drag_dest([("MIDILOOPER_OUTPUT_LIST",
-        #                                gtk.TARGET_SAME_WIDGET,
+        #                                Gtk.TargetFlags.SAME_WIDGET,
         #                                0)],
-        #                              gtk.gdk.ACTION_DEFAULT)
+        #                              Gdk.DragAction.DEFAULT)
         # treev.connect("drag_data_get", self.drag_data_get_data)
         # treev.connect("drag_data_received", self.drag_data_received_data)
 
 
-        button_add = gtk.Button(stock=gtk.STOCK_ADD)
+        button_add = Gtk.Button(stock=Gtk.STOCK_ADD)
         button_add.connect("clicked", self.button_add_output)
 
-        vbox = gtk.VBox()
-        vbox.pack_start(treev)
-        vbox.pack_start(button_add)
+        vbox = Gtk.VBox()
+        vbox.pack_start(treev, True, True, 0)
+        vbox.pack_start(button_add, True, True, 0)
 
         self.add(vbox)
 

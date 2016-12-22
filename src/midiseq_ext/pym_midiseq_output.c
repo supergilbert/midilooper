@@ -27,7 +27,7 @@ static void midiseq_output_dealloc(PyObject *obj)
 {
   midiseq_outputObject *self = (midiseq_outputObject *) obj;
 
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyObject *midiseq_output_getname(PyObject *obj, PyObject *args)
@@ -55,8 +55,8 @@ static PyObject *midiseq_output_repr(PyObject *obj)
 {
   midiseq_outputObject *self = (midiseq_outputObject *) obj;
 
-  return PyString_FromFormat("%s",
-                             output_get_name(self->output));
+  return PyUnicode_FromFormat("%s",
+                              output_get_name(self->output));
   /* midiseq_outputObject *self = (midiseq_outputObject *) obj; */
   /* return PyString_FromFormat("%i:%i '%s'", */
   /*                            snd_seq_port_info_get_client(self->output->info), */
@@ -73,45 +73,44 @@ static PyMethodDef midiseq_output_methods[] = {
 };
 
 static PyTypeObject midiseq_outputType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                           /* ob_size */
+    PyVarObject_HEAD_INIT(NULL, 0)
     "midiseq.output",             /* tp_name */
     sizeof(midiseq_outputObject), /* tp_basicsize */
-    0,                           /* tp_itemsize */
+    0,                            /* tp_itemsize */
     midiseq_output_dealloc,       /* tp_dealloc */
-    0,                           /* tp_print */
-    0,                           /* tp_getattr */
-    0,                           /* tp_setattr */
-    0,                           /* tp_compare */
+    0,                            /* tp_print */
+    0,                            /* tp_getattr */
+    0,                            /* tp_setattr */
+    0,                            /* tp_reserved */
     midiseq_output_repr,          /* tp_repr */
-    0,                           /* tp_as_number */
-    0,                           /* tp_as_sequence */
-    0,                           /* tp_as_mapping */
-    0,                           /* tp_hash */
-    0,                           /* tp_call */
-    0,                           /* tp_str */
-    0,                           /* tp_getattro */
-    0,                           /* tp_setattro */
-    0,                           /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT,          /* tp_flags */
-    "Tick event wrapper",        /* tp_doc */
-    0,                           /* tp_traverse */
-    0,                           /* tp_clear */
-    0,                           /* tp_richcompare */
-    0,                           /* tp_weaklistoffset */
-    0,                           /* tp_iter */
-    0,                           /* tp_iternext */
+    0,                            /* tp_as_number */
+    0,                            /* tp_as_sequence */
+    0,                            /* tp_as_mapping */
+    0,                            /* tp_hash */
+    0,                            /* tp_call */
+    0,                            /* tp_str */
+    0,                            /* tp_getattro */
+    0,                            /* tp_setattro */
+    0,                            /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,           /* tp_flags */
+    "Tick event wrapper",         /* tp_doc */
+    0,                            /* tp_traverse */
+    0,                            /* tp_clear */
+    0,                            /* tp_richcompare */
+    0,                            /* tp_weaklistoffset */
+    0,                            /* tp_iter */
+    0,                            /* tp_iternext */
     midiseq_output_methods,       /* tp_methods */
-    0,                           /* tp_members */
-    0,                           /* tp_getset */
-    0,                           /* tp_base */
-    0,                           /* tp_dict */
-    0,                           /* tp_descr_get */
-    0,                           /* tp_descr_set */
-    0,                           /* tp_dictoffset */
-    0,                           /* tp_init */
-    0,                           /* tp_alloc */
-    0,                           /* tp_new */
+    0,                            /* tp_members */
+    0,                            /* tp_getset */
+    0,                            /* tp_base */
+    0,                            /* tp_dict */
+    0,                            /* tp_descr_get */
+    0,                            /* tp_descr_set */
+    0,                            /* tp_dictoffset */
+    0,                            /* tp_init */
+    0,                            /* tp_alloc */
+    0,                            /* tp_new */
 };
 
 PyObject *create_midiseq_output(output_t *output)

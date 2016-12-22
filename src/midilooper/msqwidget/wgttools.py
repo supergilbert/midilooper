@@ -15,21 +15,18 @@
 # You should have received a copy of the GNU Gneneral Public License
 # along with midilooper.  If not, see <http://www.gnu.org/licenses/>.
 
-import pygtk
-pygtk.require("2.0")
-import gtk
-
-if gtk.pygtk_version < (2, 8):
-    print "PyGtk 2.8 or later required"
-    raise SystemExit
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gtk, Gdk
 
 
-cursor_pencil  = gtk.gdk.Cursor(gtk.gdk.PENCIL)
-cursor_inc     = gtk.gdk.Cursor(gtk.gdk.SB_H_DOUBLE_ARROW)
-cursor_inc_l   = gtk.gdk.Cursor(gtk.gdk.SB_LEFT_ARROW)
-cursor_inc_r   = gtk.gdk.Cursor(gtk.gdk.SB_RIGHT_ARROW)
-cursor_move    = gtk.gdk.Cursor(gtk.gdk.FLEUR)
-current_cursor = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
+cursor_pencil  = Gdk.Cursor.new(Gdk.CursorType.PENCIL)
+cursor_inc     = Gdk.Cursor.new(Gdk.CursorType.SB_H_DOUBLE_ARROW)
+cursor_inc_l   = Gdk.Cursor.new(Gdk.CursorType.SB_LEFT_ARROW)
+cursor_inc_r   = Gdk.Cursor.new(Gdk.CursorType.SB_RIGHT_ARROW)
+cursor_move    = Gdk.Cursor.new(Gdk.CursorType.FLEUR)
+current_cursor = Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR)
 
 MIDI_NOTEOFF_EVENT = 0x8
 MIDI_NOTEON_EVENT  = 0x9
@@ -38,9 +35,9 @@ MIDI_PITCH_EVENT   = 0xE
 
 class DrawAllArea(object):
     def draw_all(self):
-        if self.window:
-            xsz, ysz = self.window.get_size()
-            self.draw_area(gtk.gdk.Rectangle(0, 0, xsz, ysz))
+        window = self.get_window()
+        if window:
+            self.do_draw(Gdk.cairo_create(window))
 
 class Xpos2Tick(DrawAllArea):
     def xpos2tick(self, xpos):
@@ -49,7 +46,7 @@ class Xpos2Tick(DrawAllArea):
         return tick if tick >= 0 else 0
 
     def tick2xpos(self, tick):
-        return (tick * self.setting.qnxsz / self.setting.getppq()) - self.xadj
+        return int((tick * self.setting.qnxsz / self.setting.getppq()) - self.xadj)
 
     def hadj_val_cb(self, adj):
         self.xadj = int(self.setting.hadj.get_value())
@@ -68,7 +65,7 @@ class Ypos2Note(DrawAllArea):
         return note
 
     def note2ypos(self, note):
-        return ((127 - note) * self.setting.noteysz) - self.yadj
+        return int(((127 - note) * self.setting.noteysz) - self.yadj)
 
     def vadj_val_cb(self, adj):
         self.yadj = int(self.setting.vadj.get_value())

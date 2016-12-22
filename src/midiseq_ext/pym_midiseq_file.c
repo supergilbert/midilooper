@@ -79,7 +79,7 @@ static void midiseq_file_dealloc(PyObject *obj)
 
   if (self->midifile != NULL)
     free_midifile(self->midifile);
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 midifile_t *read_midifile_path(char *filepath)
@@ -121,45 +121,44 @@ static int midiseq_file_init(midiseq_fileObject *self,
 }
 
 static PyTypeObject midiseq_fileType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                           /* ob_size */
-    "midiseq.midifile",         /* tp_name */
-    sizeof(midiseq_fileObject),  /* tp_basicsize */
-    0,                           /* tp_itemsize */
-    midiseq_file_dealloc,        /* tp_dealloc */
-    0,                           /* tp_print */
-    0,                           /* tp_getattr */
-    0,                           /* tp_setattr */
-    0,                           /* tp_compare */
-    0,                           /* tp_repr */
-    0,                           /* tp_as_number */
-    0,                           /* tp_as_sequence */
-    0,                           /* tp_as_mapping */
-    0,                           /* tp_hash */
-    0,                           /* tp_call */
-    0,                           /* tp_str */
-    0,                           /* tp_getattro */
-    0,                           /* tp_setattro */
-    0,                           /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT,          /* tp_flags */
-    "file objects",              /* tp_doc */
-    0,                           /* tp_traverse */
-    0,                           /* tp_clear */
-    0,                           /* tp_richcompare */
-    0,                           /* tp_weaklistoffset */
-    0,                           /* tp_iter */
-    0,                           /* tp_iternext */
-    midiseq_file_methods,        /* tp_methods */
-    0,                           /* tp_members */
-    0,                           /* tp_getset */
-    0,                           /* tp_base */
-    0,                           /* tp_dict */
-    0,                           /* tp_descr_get */
-    0,                           /* tp_descr_set */
-    0,                           /* tp_dictoffset */
-    (initproc) midiseq_file_init, /* tp_init */
-    0,                           /* tp_alloc */
-    PyType_GenericNew,           /* tp_new */
+	PyVarObject_HEAD_INIT(NULL, 0)
+	"midiseq.midifile",           /* tp_name */
+	sizeof(midiseq_fileObject),   /* tp_basicsize */
+	0,                            /* tp_itemsize */
+	midiseq_file_dealloc,         /* tp_dealloc */
+	0,                            /* tp_print */
+	0,                            /* tp_getattr */
+	0,                            /* tp_setattr */
+	0,                            /* tp_reserved */
+	0,                            /* tp_repr */
+	0,                            /* tp_as_number */
+	0,                            /* tp_as_sequence */
+	0,                            /* tp_as_mapping */
+	0,                            /* tp_hash */
+	0,                            /* tp_call */
+	0,                            /* tp_str */
+	0,                            /* tp_getattro */
+	0,                            /* tp_setattro */
+	0,                            /* tp_as_buffer */
+	Py_TPFLAGS_DEFAULT,           /* tp_flags */
+	"file objects",               /* tp_doc */
+	0,                            /* tp_traverse */
+	0,                            /* tp_clear */
+	0,                            /* tp_richcompare */
+	0,                            /* tp_weaklistoffset */
+	0,                            /* tp_iter */
+	0,                            /* tp_iternext */
+	midiseq_file_methods,         /* tp_methods */
+	0,                            /* tp_members */
+	0,                            /* tp_getset */
+	0,                            /* tp_base */
+	0,                            /* tp_dict */
+	0,                            /* tp_descr_get */
+	0,                            /* tp_descr_set */
+	0,                            /* tp_dictoffset */
+	(initproc) midiseq_file_init, /* tp_init */
+	0,                            /* tp_alloc */
+	PyType_GenericNew,            /* tp_new */
 };
 
 PyTypeObject *init_midiseq_fileType(void)

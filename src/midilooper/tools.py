@@ -15,34 +15,34 @@
 # You should have received a copy of the GNU Gneneral Public License
 # along with midilooper.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
-import pygtk
-pygtk.require("2.0")
-import gtk
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
 
 
-class FocusOutDialog(gtk.Dialog):
-    "Cancel on focus out gtk.Dialog"
+class FocusOutDialog(Gtk.Dialog):
+    "Cancel on focus out Gtk.Dialog"
     def __init__(self):
         def emit_cancel(dialog, evt):
-            dialog.response(gtk.RESPONSE_CANCEL)
-        gtk.Dialog.__init__(self, flags=gtk.DIALOG_MODAL)
+            dialog.response(Gtk.ResponseType.CANCEL)
+        Gtk.Dialog.__init__(self, flags=Gtk.DialogFlags.MODAL)
         self.connect("focus-out-event", emit_cancel)
 
 
-def prompt_gettext(label, prev_text=None):
+def prompt_gettext(parent_win, label, prev_text=None):
 
     def emit_resp(entry, dialog):
-        dialog.response(gtk.RESPONSE_OK)
-
+        dialog.response(Gtk.ResponseType.OK)
 
     dialog = FocusOutDialog()
+    dialog.set_transient_for(parent_win)
     dialog.set_decorated(False)
-    dialog.set_position(gtk.WIN_POS_MOUSE)
-    label = gtk.Label(label)
-    entry = gtk.Entry()
+    dialog.set_position(Gtk.WindowPosition.MOUSE)
+    label = Gtk.Label(label=label)
+    entry = Gtk.Entry()
     if prev_text:
         entry.set_text(prev_text)
     entry.connect("activate", emit_resp, dialog)
@@ -51,46 +51,47 @@ def prompt_gettext(label, prev_text=None):
     dialog.show_all()
     resp = dialog.run()
     text = None
-    if resp == gtk.RESPONSE_OK:
+    if resp == Gtk.ResponseType.OK:
         text = entry.get_text()
     dialog.destroy()
     return text
 
 
-def prompt_keybinding(name):
+def prompt_keybinding(parent_win, name):
     key_binding = None
-    label = gtk.Label("""\
+    label = Gtk.Label(label="""\
 Getting key binding for %s.
 Press any alpha-numeric key (timeout in 5 sec)""" % name)
 
     def emit_resp(widget, event, dialog, key_press):
-        key_press[0] = gtk.gdk.keyval_name(event.keyval)
-        dialog.response(gtk.RESPONSE_OK)
+        key_press[0] = Gdk.keyval_name(event.keyval)
+        dialog.response(Gtk.ResponseType.OK)
 
     def timeout_func(dialog):
-        dialog.response(gtk.RESPONSE_CANCEL)
+        dialog.response(Gtk.ResponseType.CANCEL)
 
     dialog = FocusOutDialog()
+    dialog.set_transient_for(parent_win)
     dialog.set_decorated(False)
-    dialog.set_position(gtk.WIN_POS_MOUSE)
+    dialog.set_position(Gtk.WindowPosition.MOUSE)
     dialog.vbox.pack_start(label, True, True, 0)
     key_press = [None]
     dialog.connect("key_press_event", emit_resp, dialog, key_press)
-    timeoutid = gobject.timeout_add(5000, timeout_func, dialog)
+    timeoutid = GObject.timeout_add(5000, timeout_func, dialog)
 
     dialog.show_all()
     resp = dialog.run()
-    if resp == gtk.RESPONSE_OK:
-        gobject.source_remove(timeoutid)
+    if resp == Gtk.ResponseType.OK:
+        GObject.source_remove(timeoutid)
         key_binding = key_press[0]
-    elif resp == gtk.RESPONSE_DELETE_EVENT:
-        gobject.source_remove(timeoutid)
+    elif resp == Gtk.ResponseType.DELETE_EVENT:
+        GObject.source_remove(timeoutid)
     dialog.destroy()
     return key_binding
 
 
-def prompt_notebinding(seq, name):
-    label = gtk.Label("""\
+def prompt_notebinding(parent_win, seq, name):
+    label = Gtk.Label(label="""\
 Getting midi binding for %s.
 Press any note (timeout in 5 sec)""" % name)
 
@@ -100,28 +101,29 @@ Press any note (timeout in 5 sec)""" % name)
         note = seq.get_remote_note()
         if note != 255:
             timeout_data[0] = note
-            dialog.response(gtk.RESPONSE_OK)
+            dialog.response(Gtk.ResponseType.OK)
             return False
         if timeout_data[1] >= 5000:
-            dialog.response(gtk.RESPONSE_OK)
+            dialog.response(Gtk.ResponseType.OK)
             return False
         timeout_data[1] += check_period
         return True
 
     dialog = FocusOutDialog()
+    dialog.set_transient_for(parent_win)
     dialog.set_decorated(False)
-    dialog.set_position(gtk.WIN_POS_MOUSE)
+    dialog.set_position(Gtk.WindowPosition.MOUSE)
     dialog.vbox.pack_start(label, True, True, 0)
     timeout_data = [None, 0]    # [midinote, timeout time]
     seq.clean_remote_note()
-    timeoutid = gobject.timeout_add(check_period,
+    timeoutid = GObject.timeout_add(check_period,
                                     timeout_func,
                                     dialog, seq, timeout_data, check_period)
 
     dialog.show_all()
     resp = dialog.run()
-    if resp == gtk.RESPONSE_DELETE_EVENT:
-        gobject.source_remove(timeoutid)
+    if resp == Gtk.ResponseType.DELETE_EVENT:
+        GObject.source_remove(timeoutid)
     dialog.destroy()
     return timeout_data[0]
 
@@ -129,71 +131,72 @@ Press any note (timeout in 5 sec)""" % name)
 TRACK_MAX_LENGTH = 9999
 
 
-def prompt_get_loop(loop_start, loop_len):
+def prompt_get_loop(parent_win, loop_start, loop_len):
 
     def button_apply_cb(button, dialog, loop_pos, spinbut1, spinbut2):
         loop_pos[0] = int(spinbut1.get_value())
         loop_pos[1] = int(spinbut2.get_value())
-        dialog.response(gtk.RESPONSE_OK)
+        dialog.response(Gtk.ResponseType.OK)
 
     def button_cancel_cb(button, loop_pos):
         loop_pos[0] = None
-        dialog.response(gtk.RESPONSE_CANCEL)
+        dialog.response(Gtk.ResponseType.CANCEL)
 
-    hbox = gtk.HBox()
+    hbox = Gtk.HBox()
 
-    label = gtk.Label(" Loop Start: ")
-    spinadj = gtk.Adjustment(loop_start,
+    label = Gtk.Label(label=" Loop Start: ")
+    spinadj = Gtk.Adjustment(loop_start,
                              0,
                              TRACK_MAX_LENGTH,
                              1)
-    spinbut1 = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
+    spinbut1 = Gtk.SpinButton(adjustment=spinadj, climb_rate=1)
     hbox.pack_start(label,   True, True, 0)
-    hbox.pack_start(spinbut1, True, True, 0)
+    hbox.pack_start(spinbut1,True, True, 0)
 
-    label = gtk.Label(" Loop length: ")
-    spinadj = gtk.Adjustment(loop_len,
+    label = Gtk.Label(label=" Loop length: ")
+    spinadj = Gtk.Adjustment(loop_len,
                              1,
                              TRACK_MAX_LENGTH,
                              1)
-    spinbut2 = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
+    spinbut2 = Gtk.SpinButton(adjustment=spinadj, climb_rate=1)
     hbox.pack_start(label,   True, True, 0)
     hbox.pack_start(spinbut2, True, True, 0)
 
     dialog = FocusOutDialog()
-    dialog.set_position(gtk.WIN_POS_MOUSE)
+    dialog.set_transient_for(parent_win)
+    dialog.set_position(Gtk.WindowPosition.MOUSE)
     dialog.vbox.pack_start(hbox, True, True, 0)
 
-    hbox = gtk.HBox()
+    hbox = Gtk.HBox()
 
-    loop_pos = [loop_start, loop_len]
+    loop_pos = [None, None]
 
-    button = gtk.Button(stock=gtk.STOCK_APPLY)
+    button = Gtk.Button(stock=Gtk.STOCK_APPLY)
     button.connect("clicked",
                    button_apply_cb, dialog, loop_pos, spinbut1, spinbut2)
     hbox.pack_start(button, True, True, 0)
 
-    button = gtk.Button(stock=gtk.STOCK_CANCEL)
+    button = Gtk.Button(stock=Gtk.STOCK_CANCEL)
     button.connect("clicked", button_cancel_cb, loop_pos)
     hbox.pack_start(button, True, True, 0)
 
     dialog.vbox.pack_start(hbox, True, True, 0)
 
     dialog.show_all()
-    dialog.run()
+    resp_type = dialog.run()
     dialog.destroy()
-    if loop_pos[0] == None:
+    if resp_type != Gtk.ResponseType.OK or loop_pos[0] == None:
         return None
     return loop_pos
 
 
-def prompt_get_output(portlist, idx=None):
+def prompt_get_output(parent_win, portlist, idx=None):
     def set_output_path(tv_path, dialog, portlist, output_res):
         tv_iter = portlist.get_iter(tv_path[0])
         output = portlist.get_value(tv_iter, 0)
         output_res[0] = True
         output_res[1] = output
-        dialog.response(gtk.RESPONSE_OK)
+        dialog.response(Gtk.ResponseType.OK)
 
     def row_activated(tv, tv_path, col, dialog, portlist, output_res):
         set_output_path(tv_path, dialog, portlist, output_res)
@@ -203,26 +206,27 @@ def prompt_get_output(portlist, idx=None):
         set_output_path(tv_path, dialog, portlist, output_res)
 
     def button_cancel_cb(button):
-        dialog.response(gtk.RESPONSE_CANCEL)
+        dialog.response(Gtk.ResponseType.CANCEL)
 
-    cell = gtk.CellRendererText()
-    tvcolumn = gtk.TreeViewColumn('Output', cell, text=1)
-    treev = gtk.TreeView(portlist)
+    cell = Gtk.CellRendererText()
+    tvcolumn = Gtk.TreeViewColumn('Output', cell, text=1)
+    treev = Gtk.TreeView(portlist)
     treev.append_column(tvcolumn)
     treev.set_headers_visible(False)
     treev.set_cursor(idx)
     dialog = FocusOutDialog()
-    dialog.set_position(gtk.WIN_POS_MOUSE)
+    dialog.set_transient_for(parent_win)
+    dialog.set_position(Gtk.WindowPosition.MOUSE)
     dialog.vbox.pack_start(treev, True, True, 0)
 
     output_res = [False, None]
     treev.connect('row-activated', row_activated, dialog, portlist, output_res)
 
-    hbox = gtk.HBox()
-    button = gtk.Button(stock=gtk.STOCK_APPLY)
+    hbox = Gtk.HBox()
+    button = Gtk.Button(stock=Gtk.STOCK_APPLY)
     button.connect("clicked", button_apply_cb, dialog, treev, portlist, output_res)
     hbox.pack_start(button, True, True, 0)
-    button = gtk.Button(stock=gtk.STOCK_CANCEL)
+    button = Gtk.Button(stock=Gtk.STOCK_CANCEL)
     button.connect("clicked", button_cancel_cb)
     hbox.pack_start(button, True, True, 0)
 
@@ -234,10 +238,10 @@ def prompt_get_output(portlist, idx=None):
     return output_res
 
 
-class MsqListMenu(gtk.Menu):
+class MsqListMenu(Gtk.Menu):
     @staticmethod
     def mlm_add_menu_item(menu, name, callback=None):
-        item = gtk.MenuItem(name)
+        item = Gtk.MenuItem(name)
         if callback:
             item.connect("activate", callback)
         item.show()
@@ -248,7 +252,7 @@ class MsqListMenu(gtk.Menu):
 
     @staticmethod
     def mlm_add_menu_separator(menu):
-        separator = gtk.SeparatorMenuItem()
+        separator = Gtk.SeparatorMenuItem()
         separator.show()
         menu.append(separator)
 
@@ -257,13 +261,13 @@ class MsqListMenu(gtk.Menu):
 
     @staticmethod
     def mlm_add_submenu(menu, name):
-        submenu = gtk.Menu()
-        mi = gtk.MenuItem(name)
+        submenu = Gtk.Menu()
+        mi = Gtk.MenuItem(name)
         mi.set_submenu(submenu)
         mi.show()
         menu.append(mi)
         return submenu
 
     def __init__(self):
-        gtk.Menu.__init__(self)
+        GObject.GObject.__init__(self)
         self.path = None

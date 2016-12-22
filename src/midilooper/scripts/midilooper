@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python3
 
 # Copyright 2012-2016 Gilbert Romer
 
@@ -19,15 +19,15 @@
 
 from midilooper import MidiLooper
 
-import pygtk
-pygtk.require("2.0")
-import gtk
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
 
 import sys
 import getopt
 
 if __name__ == "__main__":
-#     gtk.rc_parse_string("""
+#     Gtk.rc_parse_string("""
 # style "midiseq_default_style"
 # {
 #         bg[NORMAL]        = "black"
@@ -53,10 +53,10 @@ if __name__ == "__main__":
 # }
 # widget "*" style "midiseq_default_style"
 # """)
-#    gtk.rc_parse("")
+#    Gtk.rc_parse("")
 
     def usage():
-        print """\
+        print("""\
 Usage:
  midilooper [-h] [-a | -j] [-n NAME] [[-f filepath] [-i filepath] | [filepath]]
 
@@ -76,7 +76,7 @@ Options:
 
 FILENAME
  The midifile to load (unstable).
-"""
+""")
 
     engine_type = None
     engine_name = "MidiLooper"
@@ -93,7 +93,7 @@ FILENAME
                                     "import=",
                                     "file="])
     except getopt.GetoptError as err:
-        print str(err)
+        print(str(err))
         usage()
         sys.exit(1)
     if len(args) > 1:
@@ -138,4 +138,4 @@ FILENAME
         if output:
             mlooper.tracklist_frame.menu.set_output_all(output)
             mlooper.tracklist_frame.menu.set_loop_all((0, TRACK_MAX_LENGTH))
-    gtk.main()
+    Gtk.main()

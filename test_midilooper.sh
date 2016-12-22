@@ -1,16 +1,17 @@
 #!/bin/sh -e
 
 CURRENT_DIR=$(dirname $0)
+SRC_DIR=${CURRENT_DIR}/src
 
 echo "Testing compilation"
-if make -f ${CURRENT_DIR}/midiseq_ext_dev.mk -s; then
+if make -f ${SRC_DIR}/midiseq_ext_dev.mk -s; then
     echo "Compilation OK"
 else
     exit 1
 fi
 
-MIDILOOPER=${CURRENT_DIR}/midilooper/scripts/midilooper
-export PYTHONPATH=${CURRENT_DIR}
+MIDILOOPER=${SRC_DIR}/midilooper/scripts/midilooper
+export PYTHONPATH=${SRC_DIR}
 SYNOPSIS="\
 $(basename $0) [COMMAND]
 
@@ -39,12 +40,12 @@ else
             fi
             echo "\033[32mLanching core file with gdb.\033[0m"
             shift 1
-            gdb --core=$1 --args python
+            gdb --core=$1 --args python3
             ;;
         "gdb")
             echo "\033[32mLanching midilooper with gdb.\033[0m"
             shift 1
-            gdb --args python $MIDILOOPER $@
+            gdb --args python3 $MIDILOOPER $@
             ;;
         "gdbemacs")
             echo "\033[32mLanching midilooper with gdb in emacs.\033[0m"
@@ -68,7 +69,7 @@ else
         "valgrind")
             echo "\033[32mLanching midilooper with valgrind.\033[0m"
             shift 1
-            valgrind -v --track-origins=yes --log-file=/tmp/midilooper_valgrind.log --leak-check=full --show-reachable=yes python $MIDILOOPER $@
+            valgrind -v --track-origins=yes --log-file=/tmp/midilooper_valgrind.log --leak-check=full --show-reachable=yes python3 $MIDILOOPER $@
             ;;
         "help")
             echo "$SYNOPSIS"

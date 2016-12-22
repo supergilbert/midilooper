@@ -599,46 +599,46 @@ PyObject *add_pyevrepr(track_ctx_t *trackctx, PyObject *pyevrepr)
     }
 
   obj = PyTuple_GetItem(pyevrepr, 2);
-  type = PyInt_AS_LONG(obj);
+  type = PyLong_AS_LONG(obj);
   switch (type)
     {
     case NOTEON:
     case NOTEOFF:
       obj = PyTuple_GetItem(pyevrepr, 1);
-      mcev.chan = PyInt_AS_LONG(obj);
+      mcev.chan = PyLong_AS_LONG(obj);
       mcev.type = type;
       obj = PyTuple_GetItem(pyevrepr, 3);
-      mcev.event.note.num = PyInt_AS_LONG(obj);
+      mcev.event.note.num = PyLong_AS_LONG(obj);
       obj = PyTuple_GetItem(pyevrepr, 4);
-      mcev.event.note.val = PyInt_AS_LONG(obj);
+      mcev.event.note.val = PyLong_AS_LONG(obj);
       obj = PyTuple_GetItem(pyevrepr, 0);
-      tick = PyInt_AS_LONG(obj);
+      tick = PyLong_AS_LONG(obj);
       evit_add_midicev(&evit, tick, &mcev);
       obj = build_evwr_from_evit(&evit, trackctx);
       break;
     case CONTROLCHANGE:
       obj = PyTuple_GetItem(pyevrepr, 1);
-      mcev.chan = PyInt_AS_LONG(obj);
+      mcev.chan = PyLong_AS_LONG(obj);
       mcev.type = type;
       obj = PyTuple_GetItem(pyevrepr, 3);
-      mcev.event.ctrl.num = PyInt_AS_LONG(obj);
+      mcev.event.ctrl.num = PyLong_AS_LONG(obj);
       obj = PyTuple_GetItem(pyevrepr, 4);
-      mcev.event.ctrl.val = PyInt_AS_LONG(obj);
+      mcev.event.ctrl.val = PyLong_AS_LONG(obj);
       obj = PyTuple_GetItem(pyevrepr, 0);
-      tick = PyInt_AS_LONG(obj);
+      tick = PyLong_AS_LONG(obj);
       evit_add_midicev(&evit, tick, &mcev);
       obj = build_evwr_from_evit(&evit, trackctx);
       break;
     case PITCHWHEELCHANGE:
       obj = PyTuple_GetItem(pyevrepr, 1);
-      mcev.chan = PyInt_AS_LONG(obj);
+      mcev.chan = PyLong_AS_LONG(obj);
       mcev.type = type;
       obj = PyTuple_GetItem(pyevrepr, 3);
-      mcev.event.pitchbend.Lval = PyInt_AS_LONG(obj);
+      mcev.event.pitchbend.Lval = PyLong_AS_LONG(obj);
       obj = PyTuple_GetItem(pyevrepr, 4);
-      mcev.event.pitchbend.Hval = PyInt_AS_LONG(obj);
+      mcev.event.pitchbend.Hval = PyLong_AS_LONG(obj);
       obj = PyTuple_GetItem(pyevrepr, 0);
-      tick = PyInt_AS_LONG(obj);
+      tick = PyLong_AS_LONG(obj);
       evit_add_midicev(&evit, tick, &mcev);
       obj = build_evwr_from_evit(&evit, trackctx);
       break;

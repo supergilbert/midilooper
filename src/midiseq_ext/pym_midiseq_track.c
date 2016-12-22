@@ -50,7 +50,7 @@ static void midiseq_track_dealloc(PyObject *obj)
   /* if (self->track != NULL) { */
   /*   free_track(self->track); */
   /* } */
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyObject *midiseq_track_play_note(PyObject *obj, PyObject *args)
@@ -627,45 +627,44 @@ static PyObject *midiseq_track_repr(PyObject *obj)
 /* } */
 
 static PyTypeObject midiseq_trackType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                             /* ob_size */
-    "midiseq.track",               /* tp_name */
-    sizeof(midiseq_trackObject),   /* tp_basicsize */
-    0,                             /* tp_itemsize */
-    midiseq_track_dealloc,         /* tp_dealloc */
-    0,                             /* tp_print */
-    0,                             /* tp_getattr */
-    0,                             /* tp_setattr */
-    0,                             /* tp_compare */
-    midiseq_track_repr,            /* tp_repr */
-    0,                             /* tp_as_number */
-    0,                             /* tp_as_sequence */
-    0,                             /* tp_as_mapping */
-    0,                             /* tp_hash */
-    0,                             /* tp_call */
-    0,                             /* tp_str */
-    0,                             /* tp_getattro */
-    0,                             /* tp_setattro */
-    0,                             /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT,            /* tp_flags */
-    "track objects",               /* tp_doc */
-    0,                             /* tp_traverse */
-    0,                             /* tp_clear */
-    0,                             /* tp_richcompare */
-    0,                             /* tp_weaklistoffset */
-    0,                             /* tp_iter */
-    0,                             /* tp_iternext */
-    midiseq_track_methods,         /* tp_methods */
-    0,                             /* tp_members */
-    0,                             /* tp_getset */
-    0,                             /* tp_base */
-    0,                             /* tp_dict */
-    0,                             /* tp_descr_get */
-    0,                             /* tp_descr_set */
-    0,                             /* tp_dictoffset */
-    0,                             /* tp_init */
-    0,                             /* tp_alloc */
-    PyType_GenericNew,             /* tp_new */
+	PyVarObject_HEAD_INIT(NULL, 0)
+	"midiseq.track",             /* tp_name */
+	sizeof(midiseq_trackObject), /* tp_basicsize */
+	0,                           /* tp_itemsize */
+	midiseq_track_dealloc,       /* tp_dealloc */
+	0,                           /* tp_print */
+	0,                           /* tp_getattr */
+	0,                           /* tp_setattr */
+	0,                           /* tp_reserved */
+	midiseq_track_repr,          /* tp_repr */
+	0,                           /* tp_as_number */
+	0,                           /* tp_as_sequence */
+	0,                           /* tp_as_mapping */
+	0,                           /* tp_hash */
+	0,                           /* tp_call */
+	0,                           /* tp_str */
+	0,                           /* tp_getattro */
+	0,                           /* tp_setattro */
+	0,                           /* tp_as_buffer */
+	Py_TPFLAGS_DEFAULT,          /* tp_flags */
+	"track objects",             /* tp_doc */
+	0,                           /* tp_traverse */
+	0,                           /* tp_clear */
+	0,                           /* tp_richcompare */
+	0,                           /* tp_weaklistoffset */
+	0,                           /* tp_iter */
+	0,                           /* tp_iternext */
+	midiseq_track_methods,       /* tp_methods */
+	0,                           /* tp_members */
+	0,                           /* tp_getset */
+	0,                           /* tp_base */
+	0,                           /* tp_dict */
+	0,                           /* tp_descr_get */
+	0,                           /* tp_descr_set */
+	0,                           /* tp_dictoffset */
+	0,                           /* tp_init */
+	0,                           /* tp_alloc */
+	PyType_GenericNew,           /* tp_new */
 };
 
 static PyObject *midiseq_track_isequal(PyObject *obj, PyObject *args)

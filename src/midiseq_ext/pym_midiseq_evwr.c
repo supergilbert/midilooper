@@ -28,7 +28,7 @@ static void midiseq_evwr_dealloc(PyObject *obj)
 {
   midiseq_evwrObject *self = (midiseq_evwrObject *) obj;
 
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 bool_t evwr_check(midiseq_evwrObject *evwr)
@@ -108,8 +108,7 @@ static PyMethodDef midiseq_evwr_methods[] = {
 };
 
 static PyTypeObject midiseq_evwrType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                          /* ob_size */
+    PyVarObject_HEAD_INIT(NULL, 0)
     "midiseq.evwr",             /* tp_name */
     sizeof(midiseq_evwrObject), /* tp_basicsize */
     0,                          /* tp_itemsize */
@@ -117,7 +116,7 @@ static PyTypeObject midiseq_evwrType = {
     0,                          /* tp_print */
     0,                          /* tp_getattr */
     0,                          /* tp_setattr */
-    0,                          /* tp_compare */
+    0,                          /* tp_reserved */
     0,                          /* tp_repr */
     0,                          /* tp_as_number */
     0,                          /* tp_as_sequence */

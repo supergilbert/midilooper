@@ -15,7 +15,6 @@
 /* You should have received a copy of the GNU General Public License */
 /* along with midilooper.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "pym_midiseq.h"
 #include "asound/aseq.h"
 
@@ -25,18 +24,47 @@ static PyMethodDef midiseq_module_methods[] = {
   {NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
-#ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
-#define PyMODINIT_FUNC void
-#endif
-PyMODINIT_FUNC initmidiseq(void)
-{
-  PyObject* midiseq_module;
+static struct PyModuleDef midiseq_module = {
+	.m_base = PyModuleDef_HEAD_INIT,
+	.m_name = "midiseq",										/* name of module */
+	.m_doc = "Provide midi sequencer API.", /* module documentation, may be NULL */
+	.m_size = -1,			 /* size of per-interpreter state of the module, */
+	/* or -1 if the module keeps state in global variables. */
+	.m_methods = midiseq_module_methods,
+	.m_slots = NULL,
+	.m_traverse = NULL,
+	.m_clear = NULL,
+	.m_free = NULL
+};
 
-  midiseq_module = Py_InitModule3("midiseq", midiseq_module_methods,
-                                  "Example module that creates an extension type.");
-  PyModule_AddObject(midiseq_module, "midiseq", (PyObject *) init_midiseq_Type());
-  PyModule_AddObject(midiseq_module, "evwr", (PyObject *) init_midiseq_evwrType());
-  PyModule_AddObject(midiseq_module, "track", (PyObject *) init_midiseq_trackType());
-  PyModule_AddObject(midiseq_module, "midifile", (PyObject *) init_midiseq_fileType());
-  PyModule_AddObject(midiseq_module, "aport", (PyObject *) init_midiseq_outputType());
+PyMODINIT_FUNC PyInit_midiseq(void)
+{
+  PyObject *midiseq_module_po = PyModule_Create(&midiseq_module);
+  PyObject *new_object = NULL;
+
+  new_object = (PyObject *) init_midilooper_Type();
+  if (new_object == NULL)
+    return NULL;
+  PyModule_AddObject(midiseq_module_po, "midilooper", (PyObject *) new_object);
+
+  new_object = (PyObject *) init_midiseq_evwrType();
+  if (new_object == NULL)
+    return NULL;
+  PyModule_AddObject(midiseq_module_po, "evwr", (PyObject *) new_object);
+
+  new_object = (PyObject *) init_midiseq_trackType();
+  if (new_object == NULL)
+    return NULL;
+  PyModule_AddObject(midiseq_module_po, "track", (PyObject *) new_object);
+
+  new_object = (PyObject *) init_midiseq_fileType();
+  if (new_object == NULL)
+    return NULL;
+  PyModule_AddObject(midiseq_module_po, "midifile", (PyObject *) new_object);
+
+  new_object = (PyObject *) init_midiseq_outputType();
+  if (new_object == NULL)
+    return NULL;
+  PyModule_AddObject(midiseq_module_po, "port", (PyObject *) new_object);
+  return midiseq_module_po;
 }

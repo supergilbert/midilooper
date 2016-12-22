@@ -1,10 +1,10 @@
 This code is in development.
 
 Dependencies (exemple with Debian packages):
-"python-dev", "libasound-dev", "libjack-dev-session", "make", "gcc" (and
-"python-stdeb" for debian package build)
+"python3-dev", "python3-gi", "libasound-dev", "libjack-dev", "make", "gcc"
+(and "python3-stdeb" for debian package source development)
 
-For a quick test use "src/midilooper_dev.sh".
+For a quick test use "./test_midilooper.sh".
 
 Type "make help" for quick usage. Or move to src directory and use "./setup.py"
 to build or package the project (see "./setup.py --help" and Python Distutils

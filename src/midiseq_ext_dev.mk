@@ -42,11 +42,12 @@ SRC=$(MIDISEQ_PATH)/asound/aseq.c\
 	$(MIDISEQEXT_PATH)/pym_midiseq.c
 
 ifneq ($(OLDJACKAPI),)
-CFLAGS=-fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -Werror -Wstrict-prototypes -fPIC -I$(MIDISEQ_PATH) $(shell pkg-config --cflags python-2.7) -D__MLP_OLD_JACK
+CFLAGS=-pthread -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -g -fstack-protector-strong -Wformat -Werror=format-security -D_FORTIFY_SOURCE=2 -fPIC -I$(MIDISEQ_PATH) $(shell pkg-config --cflags python3) -D__MLP_OLD_JACK
 else
-CFLAGS=-fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -Werror -Wstrict-prototypes -fPIC -I$(MIDISEQ_PATH) $(shell pkg-config --cflags python-2.7)
+CFLAGS=-pthread -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -g -fstack-protector-strong -Wformat -Werror=format-security -D_FORTIFY_SOURCE=2 -fPIC -I$(MIDISEQ_PATH) $(shell pkg-config --cflags python3)
 endif
 CC=gcc
+# CC=/usr/bin/x86_64-linux-gnu-gcc
 
 OBJ=$(SRC:.c=.o)
 

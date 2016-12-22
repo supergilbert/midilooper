@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python3
 # Copyright 2012-2016 Gilbert Romer
 
 # This file is part of midilooper.
@@ -26,7 +26,7 @@ macros = []
 if os.getenv("OLDJACKAPI"):
     macros.append(("__MLP_OLD_JACK", "yes"))
 
-midilooper_module = Extension("midilooper/midiseq",
+midilooper_module = Extension("midiseq",
                               include_dirs = [mdsq_libc_path],
                               library_dirs = [mdsq_libc_path],
                               libraries = ["asound", "jack"],

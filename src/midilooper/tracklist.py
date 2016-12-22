@@ -15,16 +15,17 @@
 # You should have received a copy of the GNU Gneneral Public License
 # along with midilooper.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
-import pygtk
-pygtk.require("2.0")
-import gtk
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import Gdk
 
-from msqwidget import MIDI_NOTEON_EVENT, MIDI_NOTEOFF_EVENT
-from track_editor import TrackEditor
-from tools import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu, prompt_get_loop, prompt_get_output
+from midilooper.msqwidget import MIDI_NOTEON_EVENT, MIDI_NOTEOFF_EVENT
+from midilooper.track_editor import TrackEditor
+from midilooper.tools import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu, prompt_get_loop, prompt_get_output
 
 import time
 
@@ -40,8 +41,8 @@ import time
 #                   "   xx   ",
 #                   "        "]
 
-# pxb_button_add = gtk.gdk.pixbuf_new_from_xpm_data(xpm_button_add)
-# img_button_add = gtk.image_new_from_pixbuf(pxb_button_add)
+# pxb_button_add = GdkPixbuf.Pixbuf.new_from_xpm_data(xpm_button_add)
+# img_button_add = Gtk.image_new_from_pixbuf(pxb_button_add)
 
 
 # xpm_mute = ["8 8 2 1",
@@ -56,8 +57,8 @@ import time
 #             " x    x ",
 #             "        "]
 
-# pxb_mute = gtk.gdk.pixbuf_new_from_xpm_data(xpm_mute)
-# img_mute = gtk.image_new_from_pixbuf(pxb_mute)
+# pxb_mute = GdkPixbuf.Pixbuf.new_from_xpm_data(xpm_mute)
+# img_mute = Gtk.image_new_from_pixbuf(pxb_mute)
 
 
 class TrackListMenu(MsqListMenu):
@@ -85,7 +86,8 @@ class TrackListMenu(MsqListMenu):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
-            new_trackname = prompt_gettext("Rename track", tedit.track.get_name())
+            new_trackname = prompt_gettext(self.get_parent().get_parent(),
+                                           "Rename track", tedit.track.get_name())
             if new_trackname:
                 tedit.set_name(new_trackname)
                 self.tracklist.liststore.set_value(tv_iter, 1, tedit.track.get_info())
@@ -96,7 +98,8 @@ class TrackListMenu(MsqListMenu):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
-            key = prompt_keybinding(tedit.track.get_name())
+            key = prompt_keybinding(self.get_parent().get_parent(),
+                                    tedit.track.get_name())
             if key:
                 self.tracklist.seq.add_keybinding(key, tedit.track)
                 self.tracklist.liststore.set_value(tv_iter, 1, tedit.track.get_info())
@@ -105,7 +108,8 @@ class TrackListMenu(MsqListMenu):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
-            note = prompt_notebinding(self.tracklist.seq,
+            note = prompt_notebinding(self.get_parent().get_parent(),
+                                      self.tracklist.seq,
                                       tedit.track.get_name())
             if note:
                 self.tracklist.seq.add_notebinding(note, tedit.track)
@@ -126,7 +130,8 @@ class TrackListMenu(MsqListMenu):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
-            loop_pos = prompt_get_loop(tedit.chaned.setting.getstart() / tedit.chaned.setting.getppq(),
+            loop_pos = prompt_get_loop(self.get_parent().get_parent(),
+                                       tedit.chaned.setting.getstart() / tedit.chaned.setting.getppq(),
                                        tedit.chaned.setting.getlen()   / tedit.chaned.setting.getppq())
             if loop_pos:
                 tedit.track_setting.set_loop(loop_pos[0], loop_pos[1])
@@ -140,7 +145,8 @@ class TrackListMenu(MsqListMenu):
                 if tedit.chaned.setting.track.has_output(model[0]):
                     port_idx = idx
                     break;
-            output_res = prompt_get_output(self.tracklist.portlist, port_idx)
+            output_res = prompt_get_output(self.get_parent().get_parent(),
+                                           self.tracklist.portlist, port_idx)
             if output_res and output_res[0]:
                 tedit.track_setting.set_output(output_res[1])
 
@@ -167,7 +173,8 @@ class TrackListMenu(MsqListMenu):
         self.tracklist.liststore.foreach(set_loop_all_cb, loop_pos)
 
     def menu_set_loop_all(self, menuitem):
-        loop_pos = prompt_get_loop(0, 4)
+        loop_pos = prompt_get_loop(self.get_parent().get_parent(),
+                                   0, 4)
         if loop_pos:
             self.set_loop_all(loop_pos)
 
@@ -178,7 +185,8 @@ class TrackListMenu(MsqListMenu):
         self.tracklist.liststore.foreach(set_output_all_cb, output)
 
     def menu_set_output_all(self, menuitem):
-        output_res = prompt_get_output(self.tracklist.portlist, 0)
+        output_res = prompt_get_output(self.get_parent().get_parent(),
+                                       self.tracklist.portlist, 0)
         if output_res and output_res[0]:
             self.set_output_all(output_res[1])
 
@@ -209,7 +217,7 @@ class TrackListMenu(MsqListMenu):
         self.mlm_add_root_item("Clear all bindings", self.clear_all_bindings)
 
 
-class TrackList(gtk.Frame):
+class TrackList(Gtk.Frame):
     def handle_record(self):
         rec_list = self.seq.getrecbuf()
         track = self.seq.getrectrack()
@@ -247,7 +255,7 @@ class TrackList(gtk.Frame):
                                                          note_on[3],
                                                          note_on[3])
                 if len(note_col_list) > 0:
-                    print "Deleting previous notes"
+                    print("Deleting previous notes")
                     notes_to_del = []
                     for col_note_on, col_note_off in note_col_list:
                         notes_to_del.append(col_note_on)
@@ -319,7 +327,7 @@ class TrackList(gtk.Frame):
         if path:
             if event.button == 3:
                 self.menu.path = path
-                self.menu.popup(None, None, None, event.button, event.time)
+                self.menu.popup(None, None, None, None, event.button, event.time)
 
     def tvbutton_row_activated(self, treeview, path, view_column):
         tv_iter = self.liststore.get_iter(path[0])
@@ -340,13 +348,14 @@ class TrackList(gtk.Frame):
         self.liststore.foreach(self._tracklist_info_it_func)
 
     def add_track(self, track_name):
-        track = self.seq.newtrack(track_name);
+        track = self.seq.newtrack(track_name)
         tedit = TrackEditor(track, self)
         self.liststore.append([tedit, tedit.track.get_info(), 0, tedit.track.get_mute_state(), False])
         tedit.show_all()
 
     def button_add_track(self, button):
-        track_name = prompt_gettext("Enter new track name)")
+        track_name = prompt_gettext(self.get_parent().get_parent(),
+                                    "Enter new track name")
         if track_name:
             self.add_track(track_name)
 
@@ -413,7 +422,7 @@ class TrackList(gtk.Frame):
             path, position = drop_info
             iterator = model.get_iter(path)
             tedit = model.get_value(iterator, 0)
-            if (position == gtk.TREE_VIEW_DROP_BEFORE or position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
+            if (position == Gtk.TreeViewDropPosition.BEFORE or position == Gtk.TreeViewDropPosition.INTO_OR_BEFORE):
                 self.seq.move_track_before(tedit.track, self.dnd_tedit.track)
                 model.insert_before(iterator, [self.dnd_tedit,
                                                self.dnd_tedit.track.get_info(),
@@ -440,67 +449,70 @@ class TrackList(gtk.Frame):
                                               self.dnd_tedit.track.is_in_recmode()])
 
     def __init__(self, seq, portlist):
-        gtk.Frame.__init__(self, "Track list")
+        Gtk.Frame.__init__(self)
+        self.set_label("Track list")
+        # GObject.GObject.__init__(self, "Track list")
+        # GObject.GObject.__init__(self, name="Track list")
         self.seq = seq
         self.portlist = portlist
-        self.liststore = gtk.ListStore(gobject.TYPE_PYOBJECT, str, int, bool, bool)
+        self.liststore = Gtk.ListStore(GObject.TYPE_PYOBJECT, str, int, bool, bool)
         for track in seq.gettracks():
             tedit = TrackEditor(track, self)
             tedit.unmap()
             self.liststore.append([tedit, tedit.track.get_info(), 0, track.get_mute_state(), False])
-        self.treev = gtk.TreeView(self.liststore)
+        self.treev = Gtk.TreeView(self.liststore)
         self.treev.set_enable_search(False)
         self.menu = TrackListMenu(self)
 
-        cell_rdrr = gtk.CellRendererToggle()
+        cell_rdrr = Gtk.CellRendererToggle()
         # cell_rdrr.set_property('activatable', True)
         cell_rdrr.connect('toggled', self.set_trackrec_cb, self.liststore)
-        tvcolumn = gtk.TreeViewColumn('R', cell_rdrr, active=4)
+        tvcolumn = Gtk.TreeViewColumn('R', cell_rdrr, active=4)
         tvcolumn.set_expand(False)
         tvcolumn.set_clickable(True)
         tvcolumn.connect('clicked', self.unset_trackrec_cb)
         self.treev.append_column(tvcolumn)
         self.rec_noteon_list = []
 
-        cell_rdrr = gtk.CellRendererProgress()
+        cell_rdrr = Gtk.CellRendererProgress()
         cell_rdrr.set_fixed_size(-1, cell_rdrr.get_size(self)[3] * 2)
-        tvcolumn = gtk.TreeViewColumn('Track', cell_rdrr, text=1, value=2)
+        tvcolumn = Gtk.TreeViewColumn('Track', cell_rdrr, text=1, value=2)
         tvcolumn.set_expand(True)
         self.track_col = tvcolumn
         self.treev.append_column(tvcolumn)
         self.treev.connect('button-press-event', self.tvbutton_press_event)
         self.treev.connect('row-activated', self.tvbutton_row_activated)
 
-        cell_rdrr = gtk.CellRendererToggle()
+        cell_rdrr = Gtk.CellRendererToggle()
         # cell_rdrr.set_property('activatable', True)
         cell_rdrr.connect('toggled', self.toggle_mute, self.liststore)
-        tvcolumn = gtk.TreeViewColumn('M', cell_rdrr, active=3)
+        tvcolumn = Gtk.TreeViewColumn('M', cell_rdrr, active=3)
         tvcolumn.set_expand(False)
         tvcolumn.set_clickable(True)
         tvcolumn.connect('clicked', self.mute_all)
         self.treev.append_column(tvcolumn)
 
-        self.treev.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
+        self.treev.enable_model_drag_source(Gdk.ModifierType.BUTTON1_MASK,
                                             [("MIDILOOPER_TRACK_LIST",
-                                              gtk.TARGET_SAME_WIDGET,
+                                              Gtk.TargetFlags.SAME_WIDGET,
                                               0)],
-                                            gtk.gdk.ACTION_DEFAULT|gtk.gdk.ACTION_MOVE)
+                                            Gdk.DragAction.DEFAULT|Gdk.DragAction.MOVE)
         self.treev.enable_model_drag_dest([("MIDILOOPER_TRACK_LIST",
-                                            gtk.TARGET_SAME_WIDGET,
+                                            Gtk.TargetFlags.SAME_WIDGET,
                                             0)],
-                                          gtk.gdk.ACTION_DEFAULT)
+                                          Gdk.DragAction.DEFAULT)
         self.treev.connect("drag_data_get", self.drag_data_get_data)
         self.treev.connect("drag_data_received", self.drag_data_received_data)
 
-        button_add = gtk.Button(stock=gtk.STOCK_ADD)
+        button_add = Gtk.Button(stock=Gtk.STOCK_ADD)
         # button_add.add(img_button_add)
         button_add.connect("clicked", self.button_add_track)
 
-        vbox = gtk.VBox()
-        vbox.pack_start(self.treev)
-        hbox = gtk.HBox()
-        hbox.pack_start(button_add)
-        vbox.pack_start(hbox)
+        vbox = Gtk.VBox()
+        vbox.pack_start(self.treev, True, True, 0)
+        hbox = Gtk.HBox()
+        hbox.pack_start(button_add, True, True, 0)
+        vbox.pack_start(hbox, True, True, 0)
 
         self.add(vbox)
 

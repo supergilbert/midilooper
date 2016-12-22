@@ -15,22 +15,23 @@
 # You should have received a copy of the GNU Gneneral Public License
 # along with midilooper.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
-import pygtk
-pygtk.require("2.0")
-import gtk
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import Gdk
 
 import sys
 
-import midiseq
-from outputlist import OutputList
-from tracklist import TrackList
-from msqwidget.wgttools import note_collision
-from tools import TRACK_MAX_LENGTH
+from midilooper import midiseq
+from midilooper.outputlist import OutputList
+from midilooper.tracklist import TrackList
+from midilooper.msqwidget.wgttools import note_collision
+from midilooper.tools import TRACK_MAX_LENGTH
 
-class MidiLooper(gtk.Window):
+class MidiLooper(Gtk.Window):
     def run_progression(self):
         if self.msq.isrunning():
             self.tracklist_frame.handle_record()
@@ -43,11 +44,10 @@ class MidiLooper(gtk.Window):
             self.progress_running = False
             return False
 
-
     def check_if_running(self):
         if self.progress_running == False:
             if self.msq.isrunning():
-                gobject.timeout_add(25, self.run_progression)
+                GObject.timeout_add(25, self.run_progression)
         if self.msq.mute_state_changed():
             self.tracklist_frame.refresh_mute_state()
         if self.msq.rec_state_changed():
@@ -55,7 +55,7 @@ class MidiLooper(gtk.Window):
         return True
 
     def key_press(self, widget, event):
-        keyval = gtk.gdk.keyval_name(event.keyval)
+        keyval = Gdk.keyval_name(event.keyval)
         if keyval == "space":
             if self.msq.isrunning():
                 self.msq.stop()
@@ -68,7 +68,7 @@ class MidiLooper(gtk.Window):
 
     def start_msq(self, button):
         if self.msq.isrunning():
-            print "start_msq: sequencer already running"
+            print("start_msq: sequencer already running")
             return True
         self.msq.start()
 
@@ -77,10 +77,10 @@ class MidiLooper(gtk.Window):
         return True
 
     def file_save_as(self, menuitem):
-        fchooser = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_SAVE,
-                                         buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                                                  gtk.STOCK_SAVE, gtk.RESPONSE_OK))
-        if fchooser.run() == gtk.RESPONSE_OK:
+        fchooser = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE,
+                                         buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                                  Gtk.STOCK_SAVE, Gtk.ResponseType.OK))
+        if fchooser.run() == Gtk.ResponseType.OK:
             filename = fchooser.get_filename()
             self.msq.save(filename)
             self.filename = filename
@@ -93,76 +93,76 @@ class MidiLooper(gtk.Window):
             self.file_save_as(menuitem)
 
     def __init__(self, seq_name="MidiLooper", filename=None, engine_type=0):
-        gtk.Window.__init__(self)
+        Gtk.Window.__init__(self)
         self.set_resizable(False)
-        hbox = gtk.HBox()
-        button_start =  gtk.Button("Start")
-        button_stop =  gtk.Button("Stop")
+        hbox = Gtk.HBox()
+        button_start = Gtk.Button("Start")
+        button_stop = Gtk.Button("Stop")
         self.progress_running = False
         try:
-            self.msq = midiseq.midiseq(seq_name, engine_type)
-        except:
-            print "Error initialising midi sequencer", "alsa" if engine_type == 0 else "jack"
+            self.msq = midiseq.midilooper(seq_name, engine_type)
+        except Exception as e:
+            print("Error initialising midi sequencer %s (%r)" % ("alsa" if engine_type == 0 else "jack", e))
             sys.exit(-1)
-        gobject.timeout_add(200, self.check_if_running)
+        GObject.timeout_add(200, self.check_if_running)
 
         if filename:
             self.filename = filename
             try:
                 mfile = midiseq.midifile(self.filename)
             except:
-                print "Unable to find file \"%s\"" % self.filename
+                print("Unable to find file \"%s\"" % self.filename)
                 sys.exit()
             self.msq.read_msqfile(mfile)
         else:
             self.filename = None
-            self.msq.settempo(60000000/120)
+            self.msq.settempo(int(60000000/120))
 
         self.outputlist_frame = OutputList(self.msq)
         self.tracklist_frame = TrackList(self.msq, self.outputlist_frame.liststore)
 
         self.outputlist_frame.tracklist = self.tracklist_frame.liststore
 
-        button_start = gtk.Button()
-        button_start.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_PLAY,  gtk.ICON_SIZE_BUTTON))
+        button_start = Gtk.Button()
+        button_start.set_image(Gtk.Image.new_from_stock(Gtk.STOCK_MEDIA_PLAY,  Gtk.IconSize.BUTTON))
         button_start.connect("clicked", self.start_msq)
 
-        button_stop = gtk.Button()
-        button_stop.set_image(gtk.image_new_from_stock(gtk.STOCK_MEDIA_STOP,  gtk.ICON_SIZE_BUTTON))
+        button_stop = Gtk.Button()
+        button_stop.set_image(Gtk.Image.new_from_stock(Gtk.STOCK_MEDIA_STOP,  Gtk.IconSize.BUTTON))
         button_stop.connect("clicked", self.stop_msq)
 
         def spincb(widget, msq):
             value = widget.get_value()
             msq.settempo(int(60000000/value))
         bpm = int(60000000 / self.msq.gettempo())
-        spinadj = gtk.Adjustment(bpm, 40, 208, 1)
-        self.spinbut = gtk.SpinButton(adjustment=spinadj, climb_rate=1)
+        spinadj = Gtk.Adjustment(bpm, 40, 208, 1)
+        self.spinbut = Gtk.SpinButton(adjustment=spinadj, climb_rate=1)
         self.spinbut.set_numeric(True)
         spinadj.connect("value-changed", spincb, self.msq)
 
-        hbox = gtk.HBox()
-        hbox.pack_start(button_start)
-        hbox.pack_start(button_stop)
-        hbox.pack_start(self.spinbut)
+        hbox = Gtk.HBox()
+        hbox.pack_start(button_start, True, True, 0)
+        hbox.pack_start(button_stop, True, True, 0)
+        hbox.pack_start(self.spinbut, True, True, 0)
 
-        save_mi = gtk.MenuItem("Save (Experimental)")
+        save_mi = Gtk.MenuItem("Save (Experimental)")
         save_mi.connect("activate", self.file_save)
-        save_as_mi = gtk.MenuItem("Save as (Experimental)")
+        save_as_mi = Gtk.MenuItem("Save as (Experimental)")
         save_as_mi.connect("activate", self.file_save_as)
-        menu = gtk.Menu()
+        menu = Gtk.Menu()
         menu.append(save_mi)
         menu.append(save_as_mi)
-        mi = gtk.MenuItem("Menu")
+        mi = Gtk.MenuItem("Menu")
         mi.set_submenu(menu)
-        menubar = gtk.MenuBar()
+        menubar = Gtk.MenuBar()
         menubar.append(mi)
 
-        vbox = gtk.VBox()
-        vbox.pack_start(menubar)
-        vbox.pack_start(hbox)
-        vbox.pack_start(self.outputlist_frame)
-        vbox.pack_start(self.tracklist_frame)
+        vbox = Gtk.VBox()
+        vbox.pack_start(menubar, True, True, 0)
+        vbox.pack_start(hbox, True, True, 0)
+        vbox.pack_start(self.outputlist_frame, True, True, 0)
+        vbox.pack_start(self.tracklist_frame, True, True, 0)
         self.add(vbox)
         self.connect("key_press_event", self.key_press)
-        self.connect('delete_event', gtk.main_quit)
+        self.connect('delete_event', Gtk.main_quit)
         self.show_all()

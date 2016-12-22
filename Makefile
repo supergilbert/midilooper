@@ -16,6 +16,7 @@ help:
 	@echo ""
 	@echo "Note:"
 	@echo " - For old jack api, the environment variable OLDJACKAPI must be set."
+	@echo "   (ex: \"export OLDJACKAPI=yes\" or \"OLDJACKAPI=yes make <TARGET>\")"
 	@echo " - The 'src' directory contain a python setup.py that can be used for"
 	@echo "   custom installations instead of this Makefile."
 
