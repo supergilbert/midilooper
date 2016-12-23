@@ -2,7 +2,7 @@
 
 CURRENT_DIR=$(dirname $0)
 
-cp ${CURRENT_DIR}/debian/changelog.in ${CURRENT_DIR}/debian/changelog
+cp -f ${CURRENT_DIR}/debian_changelog.in ${CURRENT_DIR}/debian/changelog
 
 cd ${CURRENT_DIR}
 VERSION=$(dpkg-parsechangelog -S Version)

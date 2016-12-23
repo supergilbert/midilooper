@@ -26,7 +26,7 @@ macros = []
 if os.getenv("OLDJACKAPI"):
     macros.append(("__MLP_OLD_JACK", "yes"))
 
-midilooper_module = Extension("midiseq",
+midilooper_module = Extension("midilooper/midiseq",
                               include_dirs = [mdsq_libc_path],
                               library_dirs = [mdsq_libc_path],
                               libraries = ["asound", "jack"],

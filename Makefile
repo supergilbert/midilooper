@@ -1,7 +1,7 @@
 # Trick to enable "make -f"
 current_dir := $(patsubst %/,%,$(dir $(firstword $(MAKEFILE_LIST))))
 
-.PHONY: deb_pkg test help
+.PHONY: deb_pkg deb_src deb_changelog test help clean
 
 .DEFAULT_GOAL=help
 
@@ -24,29 +24,30 @@ test:
 	@echo "Running midilooper_dev. (more option available with the script ./test_midilooper.sh"
 	@$(current_dir)/test_midilooper.sh
 
-deb_src:
+deb_dir:
 	@cd $(current_dir)/src && \
-	./setup.py --command-packages=stdeb.command sdist_dsc && \
+	rm -rf debian && \
+	./setup.py --command-packages=stdeb.command debianize && \
 	cd -
 
-deb_check:
+deb_check: deb_dir
 	@dpkg -s dpkg-dev > /dev/null
 	@cd $(current_dir)/src && dpkg-checkbuilddeps && cd -
 
-$(current_dir)/src/debian/changelog:
+$(current_dir)/src/debian/changelog: deb_dir
 	@$(current_dir)/src/gen_debchangelog.sh
 
 deb_changelog: $(current_dir)/src/debian/changelog
 
 deb_pkg: deb_check deb_changelog
-	@cd $(current_dir)/src && debuild --preserve-envvar=OLDJACKAPI -b -us -uc && cd -
+	@cd $(current_dir)/src && DEB_BUILD_OPTIONS=nocheck debuild --preserve-envvar=OLDJACKAPI -b -us -uc && cd -
 
 clean:
 	@make -f $(current_dir)/src/midiseq_ext_dev.mk clean
-	@cd $(current_dir)/src && debuild clean || echo -n && cd -
-	@cd $(current_dir)/src && ./setup.py clean && cd -
-	@rm -rf $(current_dir)/src/build $(current_dir)/src/MANIFEST \
-	$(current_dir)/src/deb_dist $(current_dir)/src/dist \
-	$(current_dir)/src/*tar.gz $(current_dir)/midilooper* \
-	$(current_dir)/src/debian/changelog
+	@rm -rf $(current_dir)/src/build \
+	$(current_dir)/src/MANIFEST \
+	$(current_dir)/midilooper* \
+	$(current_dir)/src/.pybuild \
+	$(current_dir)/python3-midilooper* \
+	$(current_dir)/src/debian
 	@find $(current_dir) -iname "*~" -exec rm -f {} +
