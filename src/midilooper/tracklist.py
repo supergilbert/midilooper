@@ -86,7 +86,7 @@ class TrackListMenu(MsqListMenu):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
-            new_trackname = prompt_gettext(self.get_parent().get_parent(),
+            new_trackname = prompt_gettext(self.get_parent(),
                                            "Rename track", tedit.track.get_name())
             if new_trackname:
                 tedit.set_name(new_trackname)
@@ -98,7 +98,7 @@ class TrackListMenu(MsqListMenu):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
-            key = prompt_keybinding(self.get_parent().get_parent(),
+            key = prompt_keybinding(self.get_parent(),
                                     tedit.track.get_name())
             if key:
                 self.tracklist.seq.add_keybinding(key, tedit.track)
@@ -108,7 +108,7 @@ class TrackListMenu(MsqListMenu):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
-            note = prompt_notebinding(self.get_parent().get_parent(),
+            note = prompt_notebinding(self.get_parent(),
                                       self.tracklist.seq,
                                       tedit.track.get_name())
             if note:
@@ -130,7 +130,7 @@ class TrackListMenu(MsqListMenu):
         if self.path:
             tv_iter = self.tracklist.liststore.get_iter(self.path[0])
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
-            loop_pos = prompt_get_loop(self.get_parent().get_parent(),
+            loop_pos = prompt_get_loop(self.get_parent(),
                                        tedit.chaned.setting.getstart() / tedit.chaned.setting.getppq(),
                                        tedit.chaned.setting.getlen()   / tedit.chaned.setting.getppq())
             if loop_pos:
@@ -145,7 +145,7 @@ class TrackListMenu(MsqListMenu):
                 if tedit.chaned.setting.track.has_output(model[0]):
                     port_idx = idx
                     break;
-            output_res = prompt_get_output(self.get_parent().get_parent(),
+            output_res = prompt_get_output(self.get_parent(),
                                            self.tracklist.portlist, port_idx)
             if output_res and output_res[0]:
                 tedit.track_setting.set_output(output_res[1])
@@ -173,7 +173,7 @@ class TrackListMenu(MsqListMenu):
         self.tracklist.liststore.foreach(set_loop_all_cb, loop_pos)
 
     def menu_set_loop_all(self, menuitem):
-        loop_pos = prompt_get_loop(self.get_parent().get_parent(),
+        loop_pos = prompt_get_loop(self.get_parent(),
                                    0, 4)
         if loop_pos:
             self.set_loop_all(loop_pos)
@@ -185,7 +185,7 @@ class TrackListMenu(MsqListMenu):
         self.tracklist.liststore.foreach(set_output_all_cb, output)
 
     def menu_set_output_all(self, menuitem):
-        output_res = prompt_get_output(self.get_parent().get_parent(),
+        output_res = prompt_get_output(self.get_parent(),
                                        self.tracklist.portlist, 0)
         if output_res and output_res[0]:
             self.set_output_all(output_res[1])
@@ -227,7 +227,6 @@ class TrackList(Gtk.Frame):
         note_to_add = []
         ev_to_add = []
         for ev in rec_list:
-            # print ev
             if ev[2] == MIDI_NOTEON_EVENT:
                 tick  = track.get_loop_pos(ev[0])
                 ev_on = (tick, ev[1], ev[2], ev[3], ev[4])

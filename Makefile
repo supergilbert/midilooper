@@ -8,7 +8,8 @@ current_dir := $(patsubst %/,%,$(dir $(firstword $(MAKEFILE_LIST))))
 help:
 	@echo "Makefile targets:"
 	@echo " test      Compile and run midilooper (without installing it)"
-	@echo "           (more option available with the script ./src/midilooper_dev.sh)"
+	@echo "           (Arguments can be passed with MIDILOOPER_ARGS environment variable"
+	@echo "           more option available with the script ./test_midilooper.sh)"
 	@echo " deb_check Check for debian package build dependencies"
 	@echo " deb_pkg   Build a debian package"
 	@echo " clean     Remove all compilated files"
@@ -22,7 +23,7 @@ help:
 
 test:
 	@echo "Running midilooper_dev. (more option available with the script ./test_midilooper.sh"
-	@$(current_dir)/test_midilooper.sh
+	@$(current_dir)/test_midilooper.sh $(MIDILOOPER_ARGS)
 
 deb_dir:
 	@cd $(current_dir)/src && \

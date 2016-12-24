@@ -20,15 +20,16 @@ GObject.threads_init()
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gtk, Gdk
 
 
 class FocusOutDialog(Gtk.Dialog):
     "Cancel on focus out Gtk.Dialog"
-    def __init__(self):
+    def __init__(self, parent_win):
         def emit_cancel(dialog, evt):
             dialog.response(Gtk.ResponseType.CANCEL)
-        Gtk.Dialog.__init__(self, flags=Gtk.DialogFlags.MODAL)
+        Gtk.Dialog.__init__(self, flags=Gtk.DialogFlags.MODAL, parent=parent_win)
         self.connect("focus-out-event", emit_cancel)
 
 
@@ -37,8 +38,7 @@ def prompt_gettext(parent_win, label, prev_text=None):
     def emit_resp(entry, dialog):
         dialog.response(Gtk.ResponseType.OK)
 
-    dialog = FocusOutDialog()
-    dialog.set_transient_for(parent_win)
+    dialog = FocusOutDialog(parent_win)
     dialog.set_decorated(False)
     dialog.set_position(Gtk.WindowPosition.MOUSE)
     label = Gtk.Label(label=label)
@@ -70,8 +70,7 @@ Press any alpha-numeric key (timeout in 5 sec)""" % name)
     def timeout_func(dialog):
         dialog.response(Gtk.ResponseType.CANCEL)
 
-    dialog = FocusOutDialog()
-    dialog.set_transient_for(parent_win)
+    dialog = FocusOutDialog(parent_win)
     dialog.set_decorated(False)
     dialog.set_position(Gtk.WindowPosition.MOUSE)
     dialog.vbox.pack_start(label, True, True, 0)
@@ -108,9 +107,9 @@ Press any note (timeout in 5 sec)""" % name)
             return False
         timeout_data[1] += check_period
         return True
-
-    dialog = FocusOutDialog()
-    dialog.set_transient_for(parent_win)
+    # For virtual keyboard debugging
+    # dialog = Gtk.Dialog(flags=Gtk.DialogFlags.MODAL, parent=parent_win)
+    dialog = FocusOutDialog(parent_win)
     dialog.set_decorated(False)
     dialog.set_position(Gtk.WindowPosition.MOUSE)
     dialog.vbox.pack_start(label, True, True, 0)
@@ -162,8 +161,7 @@ def prompt_get_loop(parent_win, loop_start, loop_len):
     hbox.pack_start(label,   True, True, 0)
     hbox.pack_start(spinbut2, True, True, 0)
 
-    dialog = FocusOutDialog()
-    dialog.set_transient_for(parent_win)
+    dialog = FocusOutDialog(parent_win)
     dialog.set_position(Gtk.WindowPosition.MOUSE)
     dialog.vbox.pack_start(hbox, True, True, 0)
 
@@ -214,8 +212,7 @@ def prompt_get_output(parent_win, portlist, idx=None):
     treev.append_column(tvcolumn)
     treev.set_headers_visible(False)
     treev.set_cursor(idx)
-    dialog = FocusOutDialog()
-    dialog.set_transient_for(parent_win)
+    dialog = FocusOutDialog(parent_win)
     dialog.set_position(Gtk.WindowPosition.MOUSE)
     dialog.vbox.pack_start(treev, True, True, 0)
 
