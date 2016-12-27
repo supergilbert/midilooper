@@ -44,7 +44,8 @@ class TrackSettingTable(Gtk.HBox):
         self.tracklist.update_all_info()
 
     def loop_button_cb(self, button):
-        loop_pos = prompt_get_loop(self.chaned.setting.getstart() / self.chaned.setting.getppq(),
+        loop_pos = prompt_get_loop(self.get_parent().get_parent().get_parent().get_parent(),
+                                   self.chaned.setting.getstart() / self.chaned.setting.getppq(),
                                    self.chaned.setting.getlen()   / self.chaned.setting.getppq())
         if loop_pos:
             self.set_loop(loop_pos[0], loop_pos[1])
@@ -68,7 +69,7 @@ class TrackSettingTable(Gtk.HBox):
             if self.chaned.setting.track.has_output(model[0]):
                 port_idx = idx
                 break;
-        output_res = prompt_get_output(self.get_parent().get_parent(),
+        output_res = prompt_get_output(self.get_parent().get_parent().get_parent().get_parent(),
                                        self.portlist, port_idx)
         if output_res and output_res[0]:
             self.set_output(output_res[1])
@@ -211,7 +212,7 @@ class GridSettingTable(Gtk.HBox):
 
         # Refreshing channel combobox
         track_info = get_track_info(self.chaned.setting.track)
-        citer = chan_list.get_iter_root()
+        citer = chan_list.get_iter_first()
         while citer:
             channel = chan_list.get_value(citer, 0)
             if channel in track_info.channels:

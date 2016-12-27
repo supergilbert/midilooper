@@ -30,7 +30,7 @@ DEFAULT_QNOTE_XSZ = 90
 
 # for trackeditor (scale???)
 MIN_QNOTE_XSZ = 10
-MAX_QNOTE_XSZ = 360
+MAX_QNOTE_XSZ = 720
 
 MSQ_FG_COLOR = (0, 0, 0)
 MSQ_BG_COLOR = (0.9, 0.9, 0.9)

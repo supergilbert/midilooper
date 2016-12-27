@@ -1,8 +1,9 @@
 #!/bin/sh
 
-CURRENT_DIR=$(dirname $0)
+export DEBEMAIL="$(git config --get user.email)"
+export DEBFULLNAME="$(git config --get user.name)"
 
-cp -f ${CURRENT_DIR}/debian_changelog.in ${CURRENT_DIR}/debian/changelog
+CURRENT_DIR=$(dirname $0)
 
 cd ${CURRENT_DIR}
 VERSION=$(dpkg-parsechangelog -S Version)
