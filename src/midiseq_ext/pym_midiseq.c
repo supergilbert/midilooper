@@ -25,16 +25,16 @@ static PyMethodDef midiseq_module_methods[] = {
 };
 
 static struct PyModuleDef midiseq_module = {
-	.m_base = PyModuleDef_HEAD_INIT,
-	.m_name = "midiseq",										/* name of module */
-	.m_doc = "Provide midi sequencer API.", /* module documentation, may be NULL */
-	.m_size = -1,			 /* size of per-interpreter state of the module, */
-	/* or -1 if the module keeps state in global variables. */
-	.m_methods = midiseq_module_methods,
-	.m_slots = NULL,
-	.m_traverse = NULL,
-	.m_clear = NULL,
-	.m_free = NULL
+  .m_base = PyModuleDef_HEAD_INIT,
+  .m_name = "midiseq",                    /* name of module */
+  .m_doc = "Provide midi sequencer API.", /* module documentation, may be NULL */
+  /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+  .m_size = -1,
+  .m_methods = midiseq_module_methods,
+  /* .m_slots = NULL, */
+  /* .m_traverse = NULL, */
+  /* .m_clear = NULL, */
+  /* .m_free = NULL */
 };
 
 PyMODINIT_FUNC PyInit_midiseq(void)

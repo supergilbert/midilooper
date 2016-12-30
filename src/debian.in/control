@@ -8,7 +8,7 @@ Homepage: https://github.com/supergilbert/midiseq
 
 Package: midilooper
 Architecture: any
-Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}, python3-gi, gir1.2-gtk-3.0, python3-cairo
 Description: Midi loop sequencer
  Midi loop sequencer that can be controlled via keyboard and (or) midi shortcut.
 
