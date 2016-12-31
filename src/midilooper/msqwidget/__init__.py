@@ -597,7 +597,10 @@ class ChannelEditorSetting(object):
         self.chan_num = chan_num
         self.note_widget = None
         self.value_widget = None
-        self.note_valadj = Gtk.Adjustment.new(DEFAULT_NOTEON_VAL, 0, 127, 1, 0, 0)
+        self.note_valadj = Gtk.Adjustment(value=DEFAULT_NOTEON_VAL,
+                                          lower=0,
+                                          upper=127,
+                                          step_increment=1)
 
         self.hadj = Gtk.Adjustment()
         self.vadj = Gtk.Adjustment()

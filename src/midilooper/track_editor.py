@@ -520,7 +520,10 @@ class ChannelEditor(Gtk.VBox):
         self.grid.value_wgt = self.value_wgt
         self.value_wgt.grid = self.grid
 
-        self.zx_adj = Gtk.Adjustment(15.0, 1.0, 25.0, 1.0)
+        self.zx_adj = Gtk.Adjustment(value=15.0,
+                                     lower=1.0,
+                                     upper=25.0,
+                                     step_increment=1.0)
         self.zx_adj.connect("value_changed", self.handle_zoom_x)
         zoom_x = Gtk.HScale.new(self.zx_adj)
         zoom_x.set_draw_value(False)

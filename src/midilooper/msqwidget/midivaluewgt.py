@@ -168,8 +168,14 @@ class MsqValueWidget(Gtk.Widget, Xpos2Tick):
         self.adjwgt = adjwgt
         self.spinbut = None
 
-        self.ctrl_adj  = Gtk.Adjustment.new(64.0, 0.0, 127.0, 1.0, 0, 0)
-        self.pitch_adj = Gtk.Adjustment.new(8192.0, 0.0, 16384.0, 1.0, 0, 0)
+        self.ctrl_adj  = Gtk.Adjustment(value=64.0,
+                                        lower=0.0,
+                                        upper=127.0,
+                                        step_increment=1.0)
+        self.pitch_adj = Gtk.Adjustment(value=8192.0,
+                                        lower=0.0,
+                                        upper=16384.0,
+                                        step_increment=1.0)
         self.set_note_mode()
 
         self.fg_color = (0, 0, 0)

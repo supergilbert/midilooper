@@ -144,19 +144,19 @@ def prompt_get_loop(parent_win, loop_start, loop_len):
     hbox = Gtk.HBox()
 
     label = Gtk.Label(label=" Loop Start: ")
-    spinadj = Gtk.Adjustment(loop_start,
-                             0,
-                             TRACK_MAX_LENGTH,
-                             1)
+    spinadj = Gtk.Adjustment(value=loop_start,
+                             lower=0,
+                             upper=TRACK_MAX_LENGTH,
+                             step_increment=1)
     spinbut1 = Gtk.SpinButton(adjustment=spinadj, climb_rate=1)
     hbox.pack_start(label,   True, True, 0)
     hbox.pack_start(spinbut1,True, True, 0)
 
     label = Gtk.Label(label=" Loop length: ")
-    spinadj = Gtk.Adjustment(loop_len,
-                             1,
-                             TRACK_MAX_LENGTH,
-                             1)
+    spinadj = Gtk.Adjustment(value=loop_len,
+                             lower=1,
+                             upper=TRACK_MAX_LENGTH,
+                             step_increment=1)
     spinbut2 = Gtk.SpinButton(adjustment=spinadj, climb_rate=1)
     hbox.pack_start(label,   True, True, 0)
     hbox.pack_start(spinbut2, True, True, 0)

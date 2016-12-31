@@ -135,7 +135,7 @@ class MidiLooper(Gtk.Window):
             value = widget.get_value()
             msq.settempo(int(60000000/value))
         bpm = int(60000000 / self.msq.gettempo())
-        spinadj = Gtk.Adjustment(bpm, 40, 208, 1)
+        spinadj = Gtk.Adjustment(value=bpm, lower=40, upper=208, step_increment=1)
         self.spinbut = Gtk.SpinButton(adjustment=spinadj, climb_rate=1)
         self.spinbut.set_numeric(True)
         spinadj.connect("value-changed", spincb, self.msq)
