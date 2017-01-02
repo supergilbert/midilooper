@@ -347,38 +347,31 @@ class ChannelEditor(Gtk.VBox):
         self.zxpos = event.x
         if is_mask_to_bypass(event.get_state()):
             return
-        inc_mult = 4
         if event.direction == Gdk.ScrollDirection.DOWN:
             if event.get_state() & Gdk.ModifierType.SHIFT_MASK:
-                xinc = setting.qnxsz * inc_mult
-                inc_adj(setting.hadj, xinc)
+                inc_adj(setting.hadj, self.xinc)
             elif event.get_state() & Gdk.ModifierType.CONTROL_MASK:
                 step = self.zx_adj.get_step_increment()
                 val = self.zx_adj.get_value() - step
                 if val >= self.zx_adj.get_lower():
                     self.zx_adj.set_value(val)
             else:
-                yinc = setting.noteysz * inc_mult
-                inc_adj(setting.vadj, yinc)
+                inc_adj(setting.vadj, self.yinc)
         elif event.direction == Gdk.ScrollDirection.UP:
             if event.get_state() & Gdk.ModifierType.SHIFT_MASK:
-                xinc = setting.qnxsz * inc_mult
-                dec_adj(setting.hadj, xinc)
+                dec_adj(setting.hadj, self.xinc)
             elif event.get_state() & Gdk.ModifierType.CONTROL_MASK:
                 step = self.zx_adj.get_step_increment()
                 val = self.zx_adj.get_value() + step
                 if val <= self.zx_adj.get_upper():
                     self.zx_adj.set_value(val)
             else:
-                yinc = setting.noteysz * inc_mult
-                dec_adj(setting.vadj, yinc)
+                dec_adj(setting.vadj, self.yinc)
         elif event.direction == Gdk.ScrollDirection.RIGHT:
-            xinc = setting.qnxsz * inc_mult
-            inc_adj(setting.hadj, xinc)
+            inc_adj(setting.hadj, self.xinc)
 
         elif event.direction == Gdk.ScrollDirection.LEFT:
-            xinc = setting.qnxsz * inc_mult
-            dec_adj(setting.hadj, xinc)
+            dec_adj(setting.hadj, self.xinc)
 
     def draw_all(self):
         self.hbar.draw_all()
@@ -443,6 +436,8 @@ class ChannelEditor(Gtk.VBox):
     def __init__(self, track, sequencer):
         GObject.GObject.__init__(self)
 
+        self.xinc = 10
+        self.yinc = 10
         self.zxpos = None
 
         self.grid = MsqNoteGridWidget(track, sequencer)
@@ -540,7 +535,7 @@ class ChannelEditor(Gtk.VBox):
         self.value_wgt.connect("scroll-event", self.scroll_adj_cb, self.setting)
 
         paned_tables = Gtk.VPaned.new()
-        paned_tables.pack1(table, resize=False, shrink=False)
+        paned_tables.pack1(table, resize=True, shrink=False)
         paned_tables.pack2(table2, resize=False, shrink=False)
 
         grid_setting_frame = Gtk.Frame.new("Grid setting")
@@ -570,7 +565,7 @@ class ChannelEditor(Gtk.VBox):
 
 
 class TrackEditor(Gtk.Window):
-    def set_name(self, name):
+    def set_track_name(self, name):
         if name:
             self.set_title("Track %s" % name)
             self.track.set_name(name)
@@ -609,6 +604,7 @@ class TrackEditor(Gtk.Window):
         self.add(vbox)
 
         self.set_focus_child(self.chaned.grid)
+        self.resize(1024, 860)
         # self.set_focus_chain((xxx, yyy, zzz))
         # self.set_default(self.chaned.grid)
         # self.chaned.grid.grab_default()

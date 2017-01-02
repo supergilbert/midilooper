@@ -89,7 +89,7 @@ class TrackListMenu(MsqListMenu):
             new_trackname = prompt_gettext(self.get_parent(),
                                            "Rename track", tedit.track.get_name())
             if new_trackname:
-                tedit.set_name(new_trackname)
+                tedit.set_track_name(new_trackname)
                 self.tracklist.liststore.set_value(tv_iter, 1, tedit.track.get_info())
             self.path = None
 
@@ -156,9 +156,9 @@ class TrackListMenu(MsqListMenu):
             tedit = self.tracklist.liststore.get_value(tv_iter, 0)
             new_track = self.tracklist.seq.copy_track(tedit.track)
             new_name = "%s_bis" % new_track.get_name()
+            new_track.set_name(new_name)
             new_tedit = TrackEditor(new_track,
                                     self.tracklist)
-            new_tedit.set_name(new_name)
             self.tracklist.liststore.append([new_tedit,
                                              new_track.get_info(),
                                              0,
