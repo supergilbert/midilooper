@@ -69,7 +69,7 @@ class ProgressLineListener(object):
     def clear_progressline(self):
         if not self.prev_line_xpos:
             return
-        self.paste_surface((self.prev_line_xpos - 0.5,
+        self.refresh_surface((self.prev_line_xpos - 0.5,
                             0,
                             self.prev_line_xpos + 0.5,
                             self.prev_line_height))
@@ -83,7 +83,7 @@ class ProgressLineListener(object):
         line_ypos = 0
 
         if self.prev_line_xpos:
-            self.paste_surface((self.prev_line_xpos - 0.5,
+            self.refresh_surface((self.prev_line_xpos - 0.5,
                                 0,
                                 self.prev_line_xpos + 0.5,
                                 self.prev_line_height))
@@ -858,7 +858,7 @@ class MsqNoteGridWidget(Gtk.Widget, ProgressLineListener, MsqNGWEventHdl, Xpos2T
     def crctx_paste_surface(self, cr_ctx, clip_extents):
         _crctx_paste_surface(cr_ctx, clip_extents, self.cairo_surface, 0, 0)
 
-    def paste_surface(self, clip_extents):
+    def refresh_surface(self, clip_extents):
         window = self.get_window()
         self.crctx_paste_surface(window.cairo_create(), clip_extents)
 

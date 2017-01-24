@@ -190,7 +190,8 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             if event.get_state() & Gdk.ModifierType.CONTROL_MASK:
                 self.ctrl_click = True
             else:
-                new_sel = self.get_notes_evwr((int(event.x), int(event.y), 1, 1))
+                new_sel = self.get_notes_evwr((int(event.x), int(event.y),
+                                               int(event.x) + 1, int(event.y) + 1))
                 if new_sel:
                     note_on  = new_sel[0][0].get_event()
                     note_off = new_sel[0][1].get_event()
@@ -198,9 +199,9 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                         if not is_in_notelist(note_on,
                                               note_off,
                                               evwr_to_repr_list(self.selection)):
-                            old_sel_area = self.get_notelist_area(evwr_to_repr_list(self.selection))
+                            old_sel_clip = self.get_notelist_clip(evwr_to_repr_list(self.selection))
                             self.selection = new_sel
-                            self.draw_area(old_sel_area)
+                            self.draw_clip(old_sel_clip)
                     else:
                         self.selection = new_sel
 
@@ -235,14 +236,16 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                                                          evwr_to_repr_list(self.selection))
                 if ev_on_off_tick == None: # case of a click other note from selection
                     note_list = evwr_to_repr_list(self.selection)
-                    self.selection = self.get_notes_evwr((int(event.x), int(event.y), 1, 1))
+                    self.selection = self.get_notes_evwr((int(event.x), int(event.y),
+                                                          int(event.x) + 1, int(event.y) + 1))
                     self.draw_notelist(note_list, False)
                     if self.selection:
                         ev_on_off_tick = self.coo_under_notelist(event.x,
                                                                  event.y,
                                                                  evwr_to_repr_list(self.selection))
             else:
-                self.selection = self.get_notes_evwr((int(event.x), int(event.y), 1, 1))
+                self.selection = self.get_notes_evwr((int(event.x), int(event.y),
+                                                      int(event.x) + 1, int(event.y) + 1))
                 if self.selection:
                     ev_on_off_tick = self.coo_under_notelist(event.x,
                                                              event.y,
@@ -387,7 +390,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         if event.button == 3:
             if self.data_cache:
                 if self.tmp_note_clip:
-                    self.paste_surface(self.tmp_note_clip)
+                    self.refresh_surface(self.tmp_note_clip)
             self.reset_mode()
 
         elif event.button == 1 and self.wgt_mode != INC_MODE:
@@ -425,14 +428,14 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
             elif self.wgt_mode == SELECT_MODE:
                 if self.select_clip:
-                    self.paste_surface(self.select_clip)
+                    self.refresh_surface(self.select_clip)
                 else:
                     self.select_clip = (int(event.x),
                                         int(event.y),
                                         int(event.x) + 1,
                                         int(event.y) + 1)
                 if self.ctrl_click:
-                    new_sel = self.get_notes_evwr(self.select_area)
+                    new_sel = self.get_notes_evwr(self.select_clip)
                     if new_sel and self.selection:
                         final_sel = []
                         for noteonoff in new_sel:
@@ -461,7 +464,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
             elif self.wgt_mode == PASTE_MODE:
                 if  self.tmp_note_clip:
-                    self.paste_surface(self.tmp_note_clip)
+                    self.refresh_surface(self.tmp_note_clip)
 
                     if self.paste_cache:
                         if self.selection: self.delete_selection()
@@ -562,7 +565,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         tick_diff, note_diff = self._get_diff_paste_note(xpos, ypos)
 
         if self.tmp_note_clip:
-            self.paste_surface(self.tmp_note_clip)
+            self.refresh_surface(self.tmp_note_clip)
 
         diff_note_list = self.gen_notelist_at(tick_diff, note_diff, note_list)
         if self.notelist_collision(diff_note_list, excl_list):
@@ -664,7 +667,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 ymax = self.start_coo[1]
                 ymin = event.y
             if self.select_clip:
-                self.paste_surface(self.select_clip)
+                self.refresh_surface(self.select_clip)
 
             window = self.get_window()
             cr_ctx = window.cairo_create()
@@ -686,7 +689,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
         elif self.wgt_mode == EDIT_MODE and self.data_cache:
             if self.tmp_note_clip:
-                self.paste_surface(self.tmp_note_clip)
+                self.refresh_surface(self.tmp_note_clip)
                 self.tmp_note_clip = None
             tick = self.xpos2tick(event.x)
             if tick < self.data_cache[0][0][0]:
@@ -708,7 +711,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         elif self.wgt_mode == INC_MODE and self.selection:
             if self.data_cache:
                 if self.tmp_note_clip:
-                    self.paste_surface(self.tmp_note_clip)
+                    self.refresh_surface(self.tmp_note_clip)
                     self.tmp_note_clip = None
                 tick = self.xpos2tick(event.x)
                 note_list = evwr_to_repr_list(self.selection)
@@ -826,7 +829,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         else:
             if self.data_cache:
                 if self.tmp_note_clip:
-                    self.buffer_refresh_area(self.tmp_note_clip)
+                    self.refresh_surface(self.tmp_note_clip)
             self.reset_mode()
             if event.get_state() & Gdk.ModifierType.CONTROL_MASK:
                 keyname = Gdk.keyval_name(event.keyval)

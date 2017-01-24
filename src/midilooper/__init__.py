@@ -111,8 +111,8 @@ class MidiLooper(Gtk.Window):
             try:
                 mfile = midiseq.midifile(self.filename)
             except:
-                print("Unable to find file \"%s\"" % self.filename)
-                sys.exit()
+                print("Unable to read file \"%s\"" % self.filename)
+                sys.exit(1)
             self.msq.read_msqfile(mfile)
         else:
             self.filename = None
