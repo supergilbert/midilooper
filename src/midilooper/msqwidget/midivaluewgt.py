@@ -134,8 +134,7 @@ class MsqValueWidget(Gtk.Widget, Xpos2Tick):
         self._write_bar_func = self._write_notebar
         self.param = MIDI_NOTEON_EVENT
         self.adjwgt.set_adjustment(self.setting.note_valadj)
-        if self.spinbut:
-            self.spinbut.set_adjustment(self.setting.note_valadj)
+        self.spinbut.set_adjustment(self.setting.note_valadj)
         self.setting.note_valadj.value_changed()
 
     def set_ctrl_mode(self, ctrl_num):
@@ -159,14 +158,14 @@ class MsqValueWidget(Gtk.Widget, Xpos2Tick):
             self.spinbut.set_adjustment(self.pitch_adj)
         self.pitch_adj.value_changed()
 
-    def __init__(self, setting, adjwgt):
+    def __init__(self, setting, adjwgt, spinbut):
         GObject.GObject.__init__(self)
         setting.value_widget = self
         self.setting = setting
         Xpos2Tick.__init__(self)
         self.bar_width = 3
         self.adjwgt = adjwgt
-        self.spinbut = None
+        self.spinbut = spinbut
 
         self.ctrl_adj  = Gtk.Adjustment(value=64.0,
                                         lower=0.0,

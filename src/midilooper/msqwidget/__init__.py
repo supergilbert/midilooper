@@ -486,7 +486,7 @@ class MsqVBarNoteWidget(Gtk.Widget, Ypos2Note):
         GObject.GObject.__init__(self)
 
         self.setting = setting
-        self.width = int(get_font_text_width("00 C -10X") * 3 + 1)
+        self.width = int(get_font_text_width("00 C -10X") * 4 + 1)
         self.piano_xpos = int(self.width / 2)
 
         self.last_play_note = None

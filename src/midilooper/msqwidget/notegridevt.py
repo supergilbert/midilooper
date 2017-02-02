@@ -61,19 +61,22 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
         self.ctrl_click     = False
         self.data_cache     = None
 
+    def set_no_mode(self):
+        self.wgt_mode = NO_MODE
+        self.get_window().set_cursor(current_cursor)
+
+    def set_write_mode(self):
+        self.wgt_mode = EDIT_MODE
+        self.get_window().set_cursor(cursor_pencil)
+
     def reset_mode(self):
         self.init_mode()
-        window = self.get_window()
-        window.set_cursor(current_cursor)
-
-    def focus_cb_reset(self, wgt, evt):
-        self.reset_mode()
+        self.set_no_mode()
 
     def __init__(self):
         self.init_mode()
         self.set_can_default(True)
         self.history_list = []
-        self.connect("focus-in-event", self.focus_cb_reset)
 
     def get_notes_evwr(self, clip_extents):
         tick_min = self.xpos2tick(clip_extents[0])
@@ -224,8 +227,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
                 self.wgt_mode = SELECT_MODE
 
         elif self.wgt_mode == NO_MODE and event.button == 3:
-            self.get_window().set_cursor(cursor_pencil)
-            self.wgt_mode = EDIT_MODE
+            self.setting.grideditmode.button_write_mode.clicked()
 
         elif self.wgt_mode == INC_MODE or (self.wgt_mode == NO_MODE and event.button == 2):
             self.wgt_mode = INC_MODE
@@ -391,7 +393,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             if self.data_cache:
                 if self.tmp_note_clip:
                     self.refresh_surface(self.tmp_note_clip)
-            self.reset_mode()
+            self.setting.grideditmode.button_select_mode.clicked()
 
         elif event.button == 1 and self.wgt_mode != INC_MODE:
 
@@ -742,10 +744,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
 
     def handle_key_press(self, widget, event):
         window = self.get_window()
-        if event.keyval == Gdk.KEY_Control_L or event.keyval == Gdk.KEY_Control_R:
-            self.wgt_mode = EDIT_MODE
-            window.set_cursor(cursor_pencil)
-        elif event.keyval == Gdk.KEY_Shift_L or event.keyval == Gdk.KEY_Shift_R:
+        if event.keyval == Gdk.KEY_Shift_L or event.keyval == Gdk.KEY_Shift_R:
             self.wgt_mode = INC_MODE
             win, xpos, ypos, mod = window.get_pointer()
             self.set_inc_cursor(xpos, ypos)

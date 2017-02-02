@@ -305,14 +305,32 @@ class GridSettingTable(Gtk.HBox):
         self.pack_start(label, True, True, 0)
         self.pack_start(chan_cbbox, True, True, 0)
 
-        label = Gtk.Label(label="  Default bar value: ")
-        spinbut = Gtk.SpinButton(climb_rate=1)
-        spinbut.set_numeric(True)
-        self.chaned.value_wgt.spinbut = spinbut
-        self.pack_start(label, True, True, 0)
-        self.pack_start(spinbut, True, True, 0)
-        self.chaned.value_wgt.set_note_mode()
+class GridEditMode(Gtk.HBox):
+    def set_write_mode(self, wgt, chaned):
+        chaned.grid.set_write_mode()
 
+    def set_select_mode(self, wgt, chaned):
+        chaned.grid.set_no_mode()
+
+    def __init__(self, chaned):
+        Gtk.HBox.__init__(self)
+        self.set_border_width(10)
+        self.chaned = chaned
+        self.chaned.setting.grideditmode = self
+        cursor = Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR)
+        self.button_select_mode = Gtk.RadioButton()
+        self.button_select_mode.set_mode(False)
+        self.button_select_mode.set_image(Gtk.Image.new_from_pixbuf(cursor.get_image()))
+        self.button_select_mode.connect("clicked", self.set_select_mode, chaned)
+
+        cursor = Gdk.Cursor.new(Gdk.CursorType.PENCIL)
+        self.button_write_mode = Gtk.RadioButton.new_from_widget(self.button_select_mode)
+        self.button_write_mode.set_mode(False)
+        self.button_write_mode.set_image(Gtk.Image.new_from_pixbuf(cursor.get_image()))
+        self.button_write_mode.connect("clicked", self.set_write_mode, chaned)
+
+        self.pack_start(self.button_select_mode, True, True, 0)
+        self.pack_start(self.button_write_mode,  True, True, 0)
 
 def is_mask_to_bypass(evstate):
     if (evstate & Gdk.ModifierType.MOD1_MASK or
@@ -434,7 +452,7 @@ class ChannelEditor(Gtk.VBox):
             self.value_wgt.draw_all()
 
     def __init__(self, track, sequencer):
-        GObject.GObject.__init__(self)
+        Gtk.VBox.__init__(self)
 
         self.xinc = 10
         self.yinc = 10
@@ -469,10 +487,10 @@ class ChannelEditor(Gtk.VBox):
         vsb = Gtk.VScrollbar.new(self.setting.vadj)
 
         table = Gtk.Table(3, 2)
-        table.attach(self.hbar, 1, 2, 0, 1, Gtk.AttachOptions.FILL,            0)
-        table.attach(self.vbar, 0, 1, 1, 2, 0,                   Gtk.AttachOptions.FILL)
+        table.attach(self.hbar, 1, 2, 0, 1, Gtk.AttachOptions.FILL,                          0)
+        table.attach(self.vbar, 0, 1, 1, 2, 0,                                               Gtk.AttachOptions.FILL)
         table.attach(self.grid, 1, 2, 1, 2, Gtk.AttachOptions.EXPAND|Gtk.AttachOptions.FILL, Gtk.AttachOptions.EXPAND|Gtk.AttachOptions.FILL)
-        table.attach(vsb,       2, 3, 1, 2, 0,                   Gtk.AttachOptions.FILL)
+        table.attach(vsb,       2, 3, 1, 2, 0,                                               Gtk.AttachOptions.FILL)
 
         self.val_list = Gtk.ListStore(int, str)
         chan_key = "%i" % self.setting.chan_num
@@ -499,17 +517,24 @@ class ChannelEditor(Gtk.VBox):
         valuetype_cbbox.add_attribute(cell, 'text', 1)
         valuetype_cbbox.connect("changed", self.valuetype_changed)
 
+        spinbut = Gtk.SpinButton(climb_rate=1)
+        spinbut.set_numeric(True)
+
+        vbox = Gtk.VBox()
+        vbox.pack_start(child=valuetype_cbbox, expand=True,  fill=True,  padding=0)
+        vbox.pack_start(child=spinbut,         expand=False, fill=True, padding=0)
+
         value_adjwgt = Gtk.VScale()
         value_adjwgt.set_inverted(True)
         value_adjwgt.set_draw_value(False)
 
         value_box = Gtk.HBox()
-        value_box.pack_start(child=valuetype_cbbox, expand=True,  fill=True,  padding=0)
-        value_box.pack_start(child=value_adjwgt,    expand=False, fill=False, padding=0)
+        value_box.pack_start(child=vbox,         expand=True,  fill=True,  padding=0)
+        value_box.pack_start(child=value_adjwgt, expand=False, fill=False, padding=0)
 
         value_box.set_size_request(self.vbar.width, -1)
 
-        self.value_wgt = MsqValueWidget(self.setting, value_adjwgt)
+        self.value_wgt = MsqValueWidget(self.setting, value_adjwgt, spinbut)
         self.value_wgt.connect("leave-notify-event", self.handle_leave_notify, self.hbar, self.vbar)
 
         self.grid.value_wgt = self.value_wgt
@@ -541,8 +566,12 @@ class ChannelEditor(Gtk.VBox):
         grid_setting_frame = Gtk.Frame.new("Grid setting")
         grid_setting_frame.add(GridSettingTable(self, track_info.channels))
 
-        setting_box = Gtk.HBox(False, 0)
+        edit_mode_frame = Gtk.Frame.new("Edition mode")
+        edit_mode_frame.add(GridEditMode(self))
+
+        setting_box = Gtk.HBox(False, 10)
         setting_box.pack_start(grid_setting_frame, False, True, 0)
+        setting_box.pack_start(edit_mode_frame, False, True, 0)
 
         self.pack_start(setting_box, False, True, 0)
         self.pack_start(paned_tables, True, True, 0)
