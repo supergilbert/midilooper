@@ -229,25 +229,25 @@ void engine_save_project(engine_ctx_t *ctx, char *file_path)
   track_ctx_t      *trackctx = NULL;
   midifile_track_t mtrack;
 
+  if (0 == access(file_path, F_OK))
+    unlink(file_path);
+  debug("start of write");
+  fd = open(file_path, O_WRONLY|O_CREAT, (S_IRUSR|S_IWUSR
+                                          | S_IRGRP|S_IWGRP
+                                          | S_IROTH|S_IWOTH));
+  if (fd == -1)
+    {
+      output_error("problem while open file to save (%s)\n",
+                   strerror(errno));
+      return;
+    }
+
+  write_midifile_header(fd, ctx->track_list.len + 1, ctx->ppq);
+
+  write_midifile_track_engine_ctx(fd, ctx);
+
   if (ctx->track_list.len > 0)
     {
-      if (0 == access(file_path, F_OK))
-        unlink(file_path);
-      debug("start of write");
-      fd = open(file_path, O_WRONLY|O_CREAT, (S_IRUSR|S_IWUSR
-                                              | S_IRGRP|S_IWGRP
-                                              | S_IROTH|S_IWOTH));
-      if (fd == -1)
-        {
-          output_error("problem while open file to save (%s)\n",
-                       strerror(errno));
-          return;
-        }
-
-      write_midifile_header(fd, ctx->track_list.len + 1, ctx->ppq);
-
-      write_midifile_track_engine_ctx(fd, ctx);
-
       for (iter_init(&iter, &(ctx->track_list));
            iter_node(&iter);
            iter_next(&iter))

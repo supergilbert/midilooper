@@ -375,14 +375,14 @@ midifile_t *get_midifile_tracks(int fd,
     }
   free(buffer);
 
+  midifile = myalloc(sizeof (midifile_t));
+  /* midifile->type = midifile_hdr->format_type; */
   if (LIST_HEAD(&track_list) != NULL)
     {
-      midifile = myalloc(sizeof (midifile_t));
-      /* midifile->type = midifile_hdr->format_type; */
       COPY_LIST_NODE(&track_list, &(midifile->track_list));
-      midifile->number_of_track = midifile_hdr->number_of_track;
-      bcopy(&info, &midifile->info, sizeof (midifile_info_t));
     }
+  midifile->number_of_track = midifile_hdr->number_of_track;
+  bcopy(&info, &midifile->info, sizeof (midifile_info_t));
   return midifile;
 }
 

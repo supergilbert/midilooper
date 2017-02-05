@@ -7,6 +7,7 @@ echo "Testing compilation"
 if make -f ${SRC_DIR}/midiseq_ext_dev.mk -s; then
     echo "Compilation OK"
 else
+    echo "\033[31mError while compiling\033[0m" >&2
     exit 1
 fi
 

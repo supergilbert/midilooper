@@ -486,7 +486,7 @@ class MsqNGWEventHdl(Xpos2Tick, Ypos2Note):
             if self.tmp_note_clip:
                 self.draw_clip(self.tmp_note_clip)
                 self.tmp_note_clip = None
-                window = self.get_window()
+            window = self.get_window()
             window.set_cursor(current_cursor)
             if self.data_cache:
                 repr_list = evwr_to_repr_list(self.selection)
