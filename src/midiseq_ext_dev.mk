@@ -1,22 +1,22 @@
 # Trick to enable "make -f"
-current_dir := $(patsubst %/,%,$(dir $(firstword $(MAKEFILE_LIST))))
+CURRENT_DIR := $(patsubst %/,%,$(dir $(firstword $(MAKEFILE_LIST))))
 
-BUILD_DIR=$(current_dir)/build
+BUILD_DIR=$(CURRENT_DIR)/build
+
 
 # Header dependencies implicit rule
-$(BUILD_DIR)/%.d: %.c
+$(BUILD_DIR)/%.d: $(CURRENT_DIR)/%.c
 	@mkdir -p `dirname $@`
-	$(CC) $(CFLAGS) -MM -MT "$(addprefix $(BUILD_DIR)/, $(patsubst ./%, %, $(patsubst %.c,%.o,$<)))" -MF $@ $<
+	$(CC) $(CFLAGS) -MM -MT "$(patsubst %.d,%.o,$@)" -MF $@ $<
 
-$(BUILD_DIR)/%.o: %.c
+$(BUILD_DIR)/%.o: $(CURRENT_DIR)/%.c
 	@mkdir -p `dirname $@`
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-NAME=$(current_dir)/midilooper/midiseq.so
+NAME=$(CURRENT_DIR)/midilooper/midiseq.so
 
-MIDISEQ_PATH=$(current_dir)/midiseq
-MIDISEQEXT_PATH=$(current_dir)/midiseq_ext
-
+MIDISEQ_PATH=$(CURRENT_DIR)/midiseq
+MIDISEQEXT_PATH=$(CURRENT_DIR)/midiseq_ext
 
 SRC=$(MIDISEQ_PATH)/asound/aseq.c\
 	$(MIDISEQ_PATH)/asound/aseq_tool.c\
@@ -57,18 +57,25 @@ endif
 CC=gcc
 # CC=/usr/bin/x86_64-linux-gnu-gcc
 
-OBJ=$(addprefix $(BUILD_DIR)/, $(patsubst ./%, %, $(SRC:.c=.o)))
+OBJ=$(patsubst $(CURRENT_DIR)/%,$(BUILD_DIR)/%,$(SRC:.c=.o))
+
+TESTDEPS_FILE=$(patsubst $(CURRENT_DIR)/%.c,$(BUILD_DIR)/%.d,$(MIDISEQ_PATH)/midi/midifile.c)
+TESTDEPS_PATTERN=$(patsubst ./%,%,$(patsubst $(CURRENT_DIR)/%.c,$(BUILD_DIR)/%.o,$(MIDISEQ_PATH)/midi/midifile.c))
+
+DEPS=$(patsubst $(CURRENT_DIR)/%,$(BUILD_DIR)/%,$(SRC:.c=.d))
 
 $(OBJ): $(DEPS)
 
-DEPS=$(addprefix $(BUILD_DIR)/, $(patsubst ./%, %, $(SRC:.c=.d)))
 
-.DEFAULT_GOAL=$(NAME)
+.DEFAULT_GOAL=deps_path_not_changed
 
 $(NAME): $(OBJ)
-	$(CC) -shared -o $@ $^ -lasound -ljack
+	$(CC) -shared -o $@ $(OBJ) -lasound -ljack
 
-.PHONY: clean clean_c clean_pyc
+deps_path_not_changed: $(NAME)
+	@if [ -r $(TESTDEPS_FILE) ]; then grep -q "$(TESTDEPS_PATTERN)" $(TESTDEPS_FILE) || (echo "Need a clean. Directory seems to have changed." >&2 && false); fi
+
+.PHONY: clean clean_c clean_pyc deps_path_not_changed
 
 clean_c:
 	@rm -f $(NAME) $(OBJ) $(DEPS)
@@ -76,7 +83,7 @@ clean_c:
 	@echo "C object and dependencies files has bee removed."
 
 clean_pyc:
-	@find $(current_dir)/midilooper  -iname '*pyc' -exec rm -rf {} \;
+	@find $(CURRENT_DIR)/midilooper  -iname '*pyc' -exec rm -rf {} \;
 	@echo "Python compiled files has been removed."
 
 clean: clean_c clean_pyc
