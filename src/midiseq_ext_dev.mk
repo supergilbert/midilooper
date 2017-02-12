@@ -8,6 +8,11 @@ BUILD_DIR=$(CURRENT_DIR)/build
 $(BUILD_DIR)/%.d: $(CURRENT_DIR)/%.c
 	@mkdir -p `dirname $@`
 	$(CC) $(CFLAGS) -MM -MT "$(patsubst %.d,%.o,$@)" -MF $@ $<
+ifneq ($(CURRENT_DIR),.)
+	sed -i "s/$(CURRENT_DIR)/\$$\(CURRENT_DIR\)/g" $@
+else
+	$(error "Can not build from this directory (Sorry here dependencies are not handle)")
+endif
 
 $(BUILD_DIR)/%.o: $(CURRENT_DIR)/%.c
 	@mkdir -p `dirname $@`
@@ -59,21 +64,16 @@ CC=gcc
 
 OBJ=$(patsubst $(CURRENT_DIR)/%,$(BUILD_DIR)/%,$(SRC:.c=.o))
 
-TESTDEPS_FILE=$(patsubst $(CURRENT_DIR)/%.c,$(BUILD_DIR)/%.d,$(MIDISEQ_PATH)/midi/midifile.c)
-TESTDEPS_PATTERN=$(patsubst ./%,%,$(patsubst $(CURRENT_DIR)/%.c,$(BUILD_DIR)/%.o,$(MIDISEQ_PATH)/midi/midifile.c))
-
 DEPS=$(patsubst $(CURRENT_DIR)/%,$(BUILD_DIR)/%,$(SRC:.c=.d))
 
 $(OBJ): $(DEPS)
 
 
-.DEFAULT_GOAL=deps_path_not_changed
+.DEFAULT_GOAL=$(NAME)
 
 $(NAME): $(OBJ)
 	$(CC) -shared -o $@ $(OBJ) -lasound -ljack
 
-deps_path_not_changed: $(NAME)
-	@if [ -r $(TESTDEPS_FILE) ]; then grep -q "$(TESTDEPS_PATTERN)" $(TESTDEPS_FILE) || (echo "Need a clean. Directory seems to have changed." >&2 && false); fi
 
 .PHONY: clean clean_c clean_pyc deps_path_not_changed
 
