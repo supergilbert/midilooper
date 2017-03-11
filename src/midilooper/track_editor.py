@@ -317,16 +317,28 @@ class GridEditMode(Gtk.HBox):
         self.set_border_width(10)
         self.chaned = chaned
         self.chaned.setting.grideditmode = self
-        cursor = Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR)
         self.button_select_mode = Gtk.RadioButton()
         self.button_select_mode.set_mode(False)
-        self.button_select_mode.set_image(Gtk.Image.new_from_pixbuf(cursor.get_image()))
+        cursor = Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR)
+        cursor_img = None
+        if cursor:
+            cursor_img = cursor.get_image()
+        if cursor_img:
+            self.button_select_mode.set_image(Gtk.Image.new_from_pixbuf(cursor_img))
+        else:
+            self.button_select_mode.set_label("Select")
         self.button_select_mode.connect("clicked", self.set_select_mode, chaned)
 
-        cursor = Gdk.Cursor.new(Gdk.CursorType.PENCIL)
         self.button_write_mode = Gtk.RadioButton.new_from_widget(self.button_select_mode)
         self.button_write_mode.set_mode(False)
-        self.button_write_mode.set_image(Gtk.Image.new_from_pixbuf(cursor.get_image()))
+        cursor = Gdk.Cursor.new(Gdk.CursorType.PENCIL)
+        cursor_img = None
+        if cursor:
+            cursor_img = cursor.get_image()
+        if cursor_img:
+            self.button_write_mode.set_image(Gtk.Image.new_from_pixbuf(cursor_img))
+        else:
+            self.button_write_mode.set_label("Write")
         self.button_write_mode.connect("clicked", self.set_write_mode, chaned)
 
         self.pack_start(self.button_select_mode, True, True, 0)
