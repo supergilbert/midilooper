@@ -323,16 +323,49 @@ int jbe_process_cb(jack_nframes_t nframes, void *ctx_ptr)
   return 0;
 }
 
-void jack_shutdown (void *arg)
+void jack_shutdown(void *arg)
 {
   output_error("Not implemented brutal exit");
   exit (1);
 }
 
-bool_t jbe_init_engine(engine_ctx_t *ctx, char *name)
+#include <jack/session.h>
+void jack_session_cb(jack_session_event_t *event, void *arg)
+{
+  engine_ctx_t *ctx = (engine_ctx_t *) arg;
+  jbe_hdl_t    *be_hdl = (jbe_hdl_t *) ctx->hdl;
+
+  sprintf(ctx->savepath, "%smidilooper_%s.midi", event->session_dir, event->client_uuid);
+  event->command_line = myalloc(1024);
+  sprintf(event->command_line, "midilooper -s %s -j %s",
+          event->client_uuid, ctx->savepath);
+  switch (event->type)
+    {
+    case JackSessionSaveTemplate:
+      ctx->saverq = SAVE_TPL_RQ;
+      output("JackSessionSaveTemplate: %s\n", event->command_line);
+      break;
+    case JackSessionSave:
+      ctx->saverq = SAVE_RQ;
+      output("JackSessionSave: %s\n", event->command_line);
+      break;
+    case JackSessionSaveAndQuit:
+      ctx->saverq = SAVE_N_QUIT_RQ;
+      output("JackSessionSaveAndQuit: %s\n", event->command_line);
+      jbe_stop(ctx);
+      break;
+    default:
+      ;
+    }
+  /* Should it wait save ? */
+  jack_session_reply(be_hdl->client, event);
+  jack_session_event_free(event);
+}
+
+bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid)
 {
   jbe_hdl_t *hdl = NULL;
-  jack_client_t *client = create_jackh(name);
+  jack_client_t *client = create_jackh(name, jacksessionid);
 
   if (client == NULL)
     return FALSE;
@@ -365,6 +398,8 @@ bool_t jbe_init_engine(engine_ctx_t *ctx, char *name)
                             jbe_process_cb,
                             ctx);
   jack_on_shutdown(hdl->client, jack_shutdown, 0);
+
+  jack_set_session_callback(hdl->client, jack_session_cb, (void *) ctx);
 
   if (jack_activate (client)) {
     output_error("Cannot activate jack client");

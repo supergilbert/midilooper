@@ -33,7 +33,7 @@ typedef struct
   jack_nframes_t *cur_frame;
 } jbe_output_t;
 
-jack_client_t *create_jackh(const char *name);
+jack_client_t *create_jackh(const char *name, char *jacksessionid);
 jbe_output_t  *create_jack_output(jack_client_t *client,
                                   const char *name,
                                   jack_nframes_t *cur_frame);

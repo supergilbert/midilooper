@@ -52,6 +52,17 @@ class MidiLooper(Gtk.Window):
             self.tracklist_frame.refresh_mute_state()
         if self.msq.rec_state_changed():
             self.tracklist_frame.refresh_rec_state()
+        save_rq_ret = self.msq.get_save_request()
+        if save_rq_ret:
+            saverq, savepath = save_rq_ret
+            self.filename = savepath
+            if saverq == 1:     # save template
+                self.msq.save(savepath)
+            if saverq == 2:     # save
+                self.msq.save(savepath)
+            if saverq == 3:     # save and auit
+                self.msq.save(savepath)
+                Gtk.main_quit()
         return True
 
     def key_press(self, widget, event):
@@ -92,7 +103,7 @@ class MidiLooper(Gtk.Window):
         else:
             self.file_save_as(menuitem)
 
-    def __init__(self, seq_name="MidiLooper", filename=None, engine_type=0):
+    def __init__(self, seq_name="MidiLooper", filename=None, engine_type=0, jacksessionid=""):
         Gtk.Window.__init__(self)
         self.set_resizable(False)
         hbox = Gtk.HBox()
@@ -100,7 +111,7 @@ class MidiLooper(Gtk.Window):
         button_stop = Gtk.Button("Stop")
         self.progress_running = False
         try:
-            self.msq = midiseq.midilooper(seq_name, engine_type)
+            self.msq = midiseq.midilooper(seq_name, engine_type, jacksessionid)
         except Exception as e:
             print("Error initialising midi sequencer %s (%r)" % ("alsa" if engine_type == 0 else "jack", e))
             sys.exit(-1)

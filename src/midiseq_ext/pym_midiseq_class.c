@@ -47,15 +47,16 @@ static int midiseq_init(midiseq_Object *self,
   char *name = "midilooper";
   char *tmp = NULL;
   int  type = 0;
+  char *jacksessionid = NULL;
 
   if (args != NULL)
     {
-      if (!PyArg_ParseTuple(args, "si", &tmp, &type))
+      if (!PyArg_ParseTuple(args, "sis", &tmp, &type, &jacksessionid))
         return -1;
       if (tmp != NULL)
         name = tmp;
     }
-  if (init_engine(&(self->engine_ctx), name, type) == TRUE)
+  if (init_engine(&(self->engine_ctx), name, type, jacksessionid) == TRUE)
     return 0;
   return -1;
 }
@@ -157,7 +158,7 @@ static PyObject *midiseq_isrunning(PyObject *obj,
 static PyObject *midiseq_deltrack(PyObject *obj,
                                   PyObject *args)
 {
-  midiseq_Object *self = (midiseq_Object *) obj;
+  midiseq_Object      *self = (midiseq_Object *) obj;
   midiseq_trackObject *pytrack = NULL;
 
   if (!PyArg_ParseTuple(args , "O", &pytrack))
@@ -202,7 +203,7 @@ static PyObject *midiseq_gettracks(PyObject *obj,
 {
   midiseq_Object  *self = (midiseq_Object *) obj;
   list_iterator_t iter;
-  track_ctx_t    *trackctx = NULL;
+  track_ctx_t     *trackctx = NULL;
   PyObject        *tracklist = PyList_New(0);
 
 
@@ -234,7 +235,7 @@ static PyObject *midiseq_newoutput(PyObject *obj,
 static PyObject *midiseq_deloutput(PyObject *obj,
                                    PyObject *args)
 {
-  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_Object       *self = (midiseq_Object *) obj;
   midiseq_outputObject *port = NULL;
 
   if (!PyArg_ParseTuple(args , "O", &port))
@@ -401,10 +402,10 @@ static PyObject *midiseq_move_track_after(PyObject *obj,
 static PyObject *midiseq_move_port_before(PyObject *obj,
                                           PyObject *args)
 {
-  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_Object       *self = (midiseq_Object *) obj;
   midiseq_outputObject *target = NULL;
   midiseq_outputObject *topaste = NULL;
-  list_iterator_t     iterator;
+  list_iterator_t      iterator;
 
   if (!PyArg_ParseTuple(args , "OO", &target, &topaste))
     return NULL;
@@ -422,10 +423,10 @@ static PyObject *midiseq_move_port_before(PyObject *obj,
 static PyObject *midiseq_move_port_after(PyObject *obj,
                                          PyObject *args)
 {
-  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_Object       *self = (midiseq_Object *) obj;
   midiseq_outputObject *target = NULL;
   midiseq_outputObject *topaste = NULL;
-  list_iterator_t     iterator;
+  list_iterator_t      iterator;
 
   if (!PyArg_ParseTuple(args , "OO", &target, &topaste))
     return NULL;
@@ -508,8 +509,8 @@ static PyObject *midiseq_add_keybinding(PyObject *obj,
 static PyObject *midiseq_call_keypress(PyObject *obj,
                                        PyObject *args)
 {
-  midiseq_Object      *self = (midiseq_Object *) obj;
-  char                *key = NULL;
+  midiseq_Object *self = (midiseq_Object *) obj;
+  char           *key = NULL;
 
   if (!PyArg_ParseTuple(args , "s", &key))
     return NULL;
@@ -521,7 +522,7 @@ static PyObject *midiseq_call_keypress(PyObject *obj,
 static PyObject *midiseq_mute_state_changed(PyObject *obj,
                                             PyObject *args)
 {
-  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_Object *self = (midiseq_Object *) obj;
 
   if (self->engine_ctx.mute_state_changed == TRUE)
     {
@@ -535,7 +536,7 @@ static PyObject *midiseq_mute_state_changed(PyObject *obj,
 static PyObject *midiseq_rec_state_changed(PyObject *obj,
                                            PyObject *args)
 {
-  midiseq_Object      *self = (midiseq_Object *) obj;
+  midiseq_Object *self = (midiseq_Object *) obj;
 
   if (self->engine_ctx.rec_state_changed == TRUE)
     {
@@ -544,6 +545,27 @@ static PyObject *midiseq_rec_state_changed(PyObject *obj,
     }
   else
     Py_RETURN_FALSE;
+}
+
+static PyObject *midiseq_get_save_request(PyObject *obj,
+                                          PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+  PyObject       *ret_obj = NULL;
+
+  switch (self->engine_ctx.saverq)
+    {
+    case SAVE_RQ:
+    case SAVE_N_QUIT_RQ:
+    case SAVE_TPL_RQ:
+      ret_obj = Py_BuildValue("(is)",
+                              self->engine_ctx.saverq,
+                              self->engine_ctx.savepath);
+      self->engine_ctx.saverq = NOSAVE_RQ;
+      return ret_obj;
+    default:
+      Py_RETURN_NONE;
+    }
 }
 
 static PyMethodDef midiseq_methods[] = {
@@ -619,6 +641,8 @@ static PyMethodDef midiseq_methods[] = {
    "Interface need update mute state"},
   {"rec_state_changed", midiseq_rec_state_changed, METH_NOARGS,
    "Interface need update recording state"},
+  {"get_save_request", midiseq_get_save_request, METH_NOARGS,
+   "Get save request if no return none"},
   //  {"getinfo", midiseq_getinfo, METH_NOARGS, "get track info"},
   /* {"getname", midiseq_readtrack, METH_NOARGS, "get track name"}, */
   {NULL, NULL, 0, NULL}

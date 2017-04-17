@@ -80,6 +80,13 @@ midiringbuffer_t *init_midiringbuff(uint_t size);
 bool_t           mrb_write(midiringbuffer_t *rbuff, uint tick, midicev_t *ev);
 bool_t           mrb_read(midiringbuffer_t *rbuff, uint *tick, midicev_t *ev);
 
+typedef enum {
+  NOSAVE_RQ = 0,
+  SAVE_TPL_RQ,
+  SAVE_RQ,
+  SAVE_N_QUIT_RQ
+} saverq_t;
+
 typedef struct engine_ctx
 {
   void             *hdl;
@@ -93,6 +100,8 @@ typedef struct engine_ctx
   bindings_t       bindings;
   bool_t           mute_state_changed; /* Ask to update interface */
   bool_t           rec_state_changed;  /* Ask for recording track */
+  saverq_t         saverq;
+  char             savepath[256];
   bool_t           (*is_running)(struct engine_ctx *engine);
   void             (*destroy_hdl)(struct engine_ctx *engine);
   void             (*start)(struct engine_ctx *engine);
@@ -186,9 +195,9 @@ byte_t engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size);
 bool_t engine_toggle_rec(engine_ctx_t *ctx);
 
 bool_t nns_init_engine(engine_ctx_t *ctx, char *name);
-bool_t jbe_init_engine(engine_ctx_t *ctx, char *name);
+bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid);
 
-bool_t init_engine(engine_ctx_t *engine, char *name, int type);
+bool_t init_engine(engine_ctx_t *engine, char *name, int type, char *jacksessionid);
 void   uninit_engine(engine_ctx_t *engine);
 
 typedef struct

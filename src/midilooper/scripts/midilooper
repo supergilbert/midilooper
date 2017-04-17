@@ -58,7 +58,8 @@ if __name__ == "__main__":
     def usage():
         print("""\
 Usage:
- midilooper [-h] [-a | -j] [-n NAME] [[-f filepath] [-i filepath] | [filepath]]
+ midilooper [-h] [-a | -j [-s jack_session_id]] [-n NAME] \
+            [[-f filepath] [-i filepath] | [filepath]]
 
 Options:
  -h, --help
@@ -67,6 +68,8 @@ Options:
   Enable alsa sequencer backend (default).
  -j, --jack
   Enable jack backend.
+  -s sesionid
+   open jack client specifying the session id
  -n, --name
   Set sequencer backend name.
  -i, --import filepath
@@ -78,20 +81,22 @@ FILENAME
  The midifile to load (unstable).
 """)
 
-    engine_type = None
-    engine_name = "MidiLooper"
-    file_name = None
-    import_midi = False
+    engine_type   = None
+    engine_name   = "MidiLooper"
+    file_name     = None
+    import_midi   = False
+    jacksessionid = ""
 
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                                   "hjan:i:f:",
+                                   "hjan:i:f:s:",
                                    ["help",
                                     "jack",
                                     "alsa",
                                     "name=",
                                     "import=",
-                                    "file="])
+                                    "file=",
+                                    "jacksessionid="])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -126,13 +131,18 @@ FILENAME
         elif opt in ["-i", "--import"]:
             import_midi = True
             file_name = arg
+        elif opt in ["-s", "--jacksessionid"]:
+            jacksessionid = arg
         else:
             assert False, "Unhandled option"
 
     if not engine_type:
         engine_type = 0
 
-    mlooper = MidiLooper(seq_name=engine_name, filename=file_name, engine_type=engine_type)
+    mlooper = MidiLooper(seq_name=engine_name,
+                         filename=file_name,
+                         engine_type=engine_type,
+                         jacksessionid=jacksessionid)
     if import_midi:
         output = mlooper.outputlist_frame.add_output("default")
         if output:
