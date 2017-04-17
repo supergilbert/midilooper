@@ -335,10 +335,11 @@ void jack_session_cb(jack_session_event_t *event, void *arg)
   engine_ctx_t *ctx = (engine_ctx_t *) arg;
   jbe_hdl_t    *be_hdl = (jbe_hdl_t *) ctx->hdl;
 
-  sprintf(ctx->savepath, "%smidilooper_%s.midi", event->session_dir, event->client_uuid);
+#define SAVEPATH_TPL "midilooper_%s.midi"
+  sprintf(ctx->savepath, "%s"SAVEPATH_TPL, event->session_dir, event->client_uuid);
   event->command_line = myalloc(1024);
-  sprintf(event->command_line, "midilooper -s %s -j %s",
-          event->client_uuid, ctx->savepath);
+  sprintf(event->command_line, "midilooper -s %s -j ${SESSION_DIR}"SAVEPATH_TPL,
+          event->client_uuid, event->client_uuid);
   switch (event->type)
     {
     case JackSessionSaveTemplate:
