@@ -58,7 +58,7 @@ if __name__ == "__main__":
     def usage():
         print("""\
 Usage:
- midilooper [-h] [-a | -j [-s jack_session_id]] [-n NAME] \
+ midilooper [-h] [-a | -j [-s jack_session_id]] [-n NAME]
             [[-f filepath] [-i filepath] | [filepath]]
 
 Options:
@@ -76,9 +76,6 @@ Options:
   Import midi file.
  -f, --file filepath
   Import midi file.
-
-FILENAME
- The midifile to load (unstable).
 """)
 
     engine_type   = None
