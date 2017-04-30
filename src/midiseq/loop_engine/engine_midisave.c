@@ -67,7 +67,7 @@ void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
   /* node = _append_metaev_eot(node); */
   _append_metaev_eot(node);
 
-  node = get_midifile_trackhdr(get_buf_list_size(head.next));
+  node = create_midifile_trackhdr(get_buf_list_size(head.next));
   node->next = head.next;
 
   write_buf_list(fd, node);
@@ -222,7 +222,7 @@ void gen_miditrack_info(char *ret_str,
 }
 
 #include <errno.h>
-void engine_save_project(engine_ctx_t *ctx, char *file_path)
+void engine_save_project(engine_ctx_t *ctx, char *file_path, bool_t template)
 {
   int              fd;
   list_iterator_t  iter;
@@ -254,7 +254,7 @@ void engine_save_project(engine_ctx_t *ctx, char *file_path)
         {
           trackctx = iter_node_ptr(&iter);
           set_midifile_track(trackctx, &mtrack);
-          write_midifile_track(fd, &mtrack);
+          write_midifile_track(fd, &mtrack, template);
         }
       close(fd);
     }

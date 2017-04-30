@@ -72,7 +72,21 @@ static PyObject *midiseq_save(PyObject *obj,
     return NULL;
   if (!PyArg_ParseTuple(args , "s", &filename))
     return NULL;
-  engine_save_project(&(self->engine_ctx), filename);
+  engine_save_project(&(self->engine_ctx), filename, FALSE);
+  Py_RETURN_NONE;
+}
+
+static PyObject *midiseq_savetpl(PyObject *obj,
+                                 PyObject *args)
+{
+  midiseq_Object *self = (midiseq_Object *) obj;
+  char           *filename = NULL;
+
+  if (args == NULL)
+    return NULL;
+  if (!PyArg_ParseTuple(args , "s", &filename))
+    return NULL;
+  engine_save_project(&(self->engine_ctx), filename, TRUE);
   Py_RETURN_NONE;
 }
 
@@ -573,6 +587,8 @@ static PyMethodDef midiseq_methods[] = {
    "Copy the track of a midifile"},
   {"save", midiseq_save, METH_VARARGS,
    "Save the sequence information as a midifile"},
+  {"savetpl", midiseq_savetpl, METH_VARARGS,
+   "Save a template midifile of the session"},
   {"getppq", midiseq_getppq, METH_NOARGS,
    "Get sequencer pulsation per quarter note"},
   {"settempo", midiseq_settempo, METH_VARARGS,

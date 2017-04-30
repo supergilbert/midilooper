@@ -84,7 +84,7 @@ void free_buf_list(buf_node_t *buff)
     }
 }
 
-buf_node_t *get_midifile_trackhdr(size_t track_size)
+buf_node_t *create_midifile_trackhdr(size_t track_size)
 {
   byte_t track_buffer[8];
 
@@ -103,36 +103,36 @@ buf_node_t *get_midifile_trackhdr(size_t track_size)
 
 #define set_first_bit(_byte) ((_byte) | 0x80)
 
-buf_node_t *get_var_len_buf(uint_t tick)
+buf_node_t *create_var_len_val(uint_t value)
 {
   byte_t buffer[4];
-  size_t size = GETVLVSIZE(tick);
+  size_t size = GETVLVSIZE(value);
 
   switch (size)
     {
     case 1:
-      *buffer = tick & 0x7F;
+      *buffer = value & 0x7F;
      break;
     case 2:
-      *buffer = (tick >> 7) & 0x7F;
+      *buffer = (value >> 7) & 0x7F;
       *buffer = set_first_bit(*buffer);
-      buffer[1] = tick & 0x7F;
+      buffer[1] = value & 0x7F;
       break;
     case 3:
-      *buffer = (tick >> 14) & 0x7F;
+      *buffer = (value >> 14) & 0x7F;
       *buffer = set_first_bit(*buffer);
-      buffer[1] = (tick >> 7) & 0x7F;
+      buffer[1] = (value >> 7) & 0x7F;
       buffer[1] = set_first_bit(buffer[1]);
-      buffer[2] = tick & 0x7F;
+      buffer[2] = value & 0x7F;
       break;
     case 4:
-      buffer[0] = (tick >> 21) & 0x7F;
+      buffer[0] = (value >> 21) & 0x7F;
       buffer[0] = set_first_bit(buffer[0]);
-      buffer[1] = (tick >> 14) & 0x7F;
+      buffer[1] = (value >> 14) & 0x7F;
       buffer[1] = set_first_bit(buffer[1]);
-      buffer[2] = (tick >> 7) & 0x7F;
+      buffer[2] = (value >> 7) & 0x7F;
       buffer[2] = set_first_bit(buffer[2]);
-      buffer[3] = tick & 0x7F;
+      buffer[3] = value & 0x7F;
       break;
     default:
       output_error("unexpected variable len");
@@ -141,7 +141,7 @@ buf_node_t *get_var_len_buf(uint_t tick)
   return add_buf_node(buffer, size);
 }
 
-buf_node_t *get_midicev_buf(midicev_t *midicev)
+buf_node_t *create_midicev_buf(midicev_t *midicev)
 {
   byte_t buffer[3];
 
@@ -163,7 +163,7 @@ midicev_t *get_next_midicev(list_iterator_t *iter)
   return NULL;
 }
 
-buf_node_t *_get_tickev_buf(buf_node_t *tail, tickev_t *tickev, uint_t last_tick)
+buf_node_t *_create_tickev_buf(buf_node_t *tail, tickev_t *tickev, uint_t last_tick)
 {
   uint_t          tickdiff;
   midicev_t       *midicev;
@@ -173,16 +173,16 @@ buf_node_t *_get_tickev_buf(buf_node_t *tail, tickev_t *tickev, uint_t last_tick
   if (NULL != (midicev = get_next_midicev(&iter)))
     {
       tickdiff = tickev->tick - last_tick;
-      tail->next = get_var_len_buf(tickdiff);
+      tail->next = create_var_len_val(tickdiff);
       tail = tail->next;
-      tail->next = get_midicev_buf(midicev);
+      tail->next = create_midicev_buf(midicev);
       tail = tail->next;
       iter_next(&iter);
       while (NULL != (midicev = get_next_midicev(&iter)))
         {
-          tail->next = get_var_len_buf(0);
+          tail->next = create_var_len_val(0);
           tail = tail->next;
-          tail->next = get_midicev_buf(midicev);
+          tail->next = create_midicev_buf(midicev);
           tail = tail->next;
           iter_next(&iter);
         }
@@ -205,7 +205,7 @@ buf_node_t *_append_tickev_list(buf_node_t *tail, list_t *tickevlist)
       tickev = iter_node_ptr(&iter);
       if (tickev->deleted == FALSE)
         {
-          tmp = _get_tickev_buf(tail, tickev, last_tick);
+          tmp = _create_tickev_buf(tail, tickev, last_tick);
           if (tmp != NULL)
             {
               tail = tmp;
@@ -226,7 +226,7 @@ buf_node_t *_append_metaev_track_name(buf_node_t *tail, char *name)
   name_len = strlen(name);
   tail->next = add_buf_node(me_name_type, 3);
   tail = tail->next;
-  tail->next = get_var_len_buf(name_len);
+  tail->next = create_var_len_val(name_len);
   tail = tail->next;
   tail->next = add_buf_node((byte_t *) name, name_len);
   return tail->next;
@@ -256,7 +256,7 @@ buf_node_t *_append_sysex_header(buf_node_t *tail, size_t buflen, byte_t type)
 
   tail->next = add_buf_node(hdr, 2);
   tail = tail->next;
-  tail->next = get_var_len_buf(buflen + 5);
+  tail->next = create_var_len_val(buflen + 5);
   tail = tail->next;
   tail->next = add_buf_node(msq_hdr, 5);
   return tail->next;
@@ -376,10 +376,11 @@ size_t get_buf_list_size(buf_node_t *buff)
   return size;
 }
 
-void write_midifile_track(int fd, midifile_track_t *mtrack)
+void write_midifile_track(int fd, midifile_track_t *mtrack, bool_t template)
 {
   buf_node_t *tail = NULL, *header = NULL, head = {NULL, 0, NULL};
   char       *name = NULL;
+
   if (mtrack->track.name)
     name = mtrack->track.name;
   else
@@ -393,12 +394,13 @@ void write_midifile_track(int fd, midifile_track_t *mtrack)
   if (mtrack->sysex_portid != -1)
     tail = _append_sysex_portid(tail, mtrack->sysex_portid);
 
-  tail = _append_tickev_list(tail, &(mtrack->track.tickev_list));
+  if (template == FALSE)
+    tail = _append_tickev_list(tail, &(mtrack->track.tickev_list));
   /* tail = _append_metaev_eot(tail); */
   _append_metaev_eot(tail);
 
-
-  header = get_midifile_trackhdr(get_buf_list_size(head.next));
+  /* Adding midifile track size information */
+  header = create_midifile_trackhdr(get_buf_list_size(head.next));
 
   header->next = head.next;
 

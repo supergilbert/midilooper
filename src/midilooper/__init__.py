@@ -57,7 +57,7 @@ class MidiLooper(Gtk.Window):
             saverq, savepath = save_rq_ret
             self.filename = savepath
             if saverq == 1:     # save template
-                self.msq.save(savepath)
+                self.msq.savetpl(savepath)
             if saverq == 2:     # save
                 self.msq.save(savepath)
             if saverq == 3:     # save and auit
@@ -86,6 +86,15 @@ class MidiLooper(Gtk.Window):
     def stop_msq(self, button):
         self.msq.stop()
         return True
+
+    def file_save_tpl(self, menuitem):
+        fchooser = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE,
+                                         buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                                  Gtk.STOCK_SAVE, Gtk.ResponseType.OK))
+        if fchooser.run() == Gtk.ResponseType.OK:
+            filename = fchooser.get_filename()
+            self.msq.savetpl(filename)
+        fchooser.destroy()
 
     def file_save_as(self, menuitem):
         fchooser = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE,
@@ -156,13 +165,16 @@ class MidiLooper(Gtk.Window):
         hbox.pack_start(button_stop, True, True, 0)
         hbox.pack_start(self.spinbut, True, True, 0)
 
-        save_mi = Gtk.MenuItem("Save (Experimental)")
+        save_mi = Gtk.MenuItem("Save")
         save_mi.connect("activate", self.file_save)
-        save_as_mi = Gtk.MenuItem("Save as (Experimental)")
+        save_as_mi = Gtk.MenuItem("Save as")
         save_as_mi.connect("activate", self.file_save_as)
+        save_tpl_mi = Gtk.MenuItem("Save template")
+        save_tpl_mi.connect("activate", self.file_save_tpl)
         menu = Gtk.Menu()
         menu.append(save_mi)
         menu.append(save_as_mi)
+        menu.append(save_tpl_mi)
         mi = Gtk.MenuItem("Menu")
         mi.set_submenu(menu)
         menubar = Gtk.MenuBar()

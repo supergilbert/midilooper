@@ -122,7 +122,7 @@ buf_node_t *get_var_len_buf(uint_t tick);
 buf_node_t *_append_sysex_header(buf_node_t *tail, size_t len, byte_t type);
 void free_buf_list(buf_node_t *buff);
 size_t write_buf_list(int fd, buf_node_t *buff);
-buf_node_t *get_midifile_trackhdr(size_t track_size);
+buf_node_t *create_midifile_trackhdr(size_t track_size);
 
 #define MSQ_SYSEX_TRACK_LOOPSTART 0   /* 4 byte track sequence length */
 #define MSQ_SYSEX_TRACK_LOOPLEN   1   /* 4 byte track sequence length */
@@ -158,6 +158,6 @@ buf_node_t *_append_metaev_eot(buf_node_t *tail);
 
 void write_midifile_trackhdr(int fd, size_t track_size);
 size_t write_midifile_header(int fd, uint_t track_list_len, uint_t ppq);
-void write_midifile_track(int fd, midifile_track_t *mtrack);
+void write_midifile_track(int fd, midifile_track_t *mtrack, bool_t template);
 
 #endif
