@@ -233,7 +233,7 @@ class GridSettingTable(Gtk.HBox):
 
     def scale_changed(self, cbbox):
         val_int = cbbox.get_model()[cbbox.get_active()][0]
-        self.chaned.grid.set_scale(val_int)
+        self.chaned.grid.set_notes_scale(val_int)
         self.chaned.grid.draw_all()
 
     def __init__(self, chaned, chan_list):
@@ -242,7 +242,7 @@ class GridSettingTable(Gtk.HBox):
         self.set_border_width(10)
         self.chaned = chaned
 
-        label = Gtk.Label(label="Scale: ")
+        label = Gtk.Label(label="Major Scale: ")
         scale_list = Gtk.ListStore(int, str)
         scale_str_list = ("C",
                           "C#",
