@@ -23,6 +23,17 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk, Gdk
 
+from Xlib import display
+
+
+def get_dpy_info():
+    mouse_data = display.Display().screen().root.query_pointer()._data
+    root_data = display.Display().screen().root.get_geometry()._data
+    return {"mouse_x": mouse_data["root_x"],
+            "mouse_y": mouse_data["root_y"],
+            "root_width": root_data["width"],
+            "root_height": root_data["height"]}
+
 
 class FocusOutDialog(Gtk.Dialog):
     "Cancel on focus out Gtk.Dialog"
@@ -31,6 +42,23 @@ class FocusOutDialog(Gtk.Dialog):
             dialog.response(Gtk.ResponseType.CANCEL)
         Gtk.Dialog.__init__(self, flags=Gtk.DialogFlags.MODAL, parent=parent_win)
         self.connect("focus-out-event", emit_cancel)
+
+    # Temp hack waiting for a gtk solution that work on all window manager
+    def show_on_mouse_pos(self):
+        self.show_all()
+        dpy_info = get_dpy_info()
+        width, height= self.get_size()
+        new_x = dpy_info["mouse_x"] - (width / 2)
+        if new_x < 0:
+            new_x = 0
+        elif new_x + width > dpy_info["root_width"]:
+            new_x = dpy_info["root_width"] - (width + 1)
+        new_y = dpy_info["mouse_y"] - (height / 2)
+        if new_y < 0:
+            new_y = 0
+        elif new_y + height > dpy_info["root_height"]:
+            new_y = dpy_info["mouse_y"] - (height + 1)
+        self.move(new_x, new_y)
 
 
 def prompt_gettext(parent_win, label, prev_text=None):
@@ -48,7 +76,7 @@ def prompt_gettext(parent_win, label, prev_text=None):
     entry.connect("activate", emit_resp, dialog)
     dialog.vbox.pack_start(label, True, True, 0)
     dialog.vbox.pack_end(entry, True, True, 0)
-    dialog.show_all()
+    dialog.show_on_mouse_pos()
     resp = dialog.run()
     text = None
     if resp == Gtk.ResponseType.OK:
@@ -78,7 +106,7 @@ Press any alpha-numeric key (timeout in 5 sec)""" % name)
     dialog.connect("key_press_event", emit_resp, dialog, key_press)
     timeoutid = GObject.timeout_add(5000, timeout_func, dialog)
 
-    dialog.show_all()
+    dialog.show_on_mouse_pos()
     resp = dialog.run()
     if resp == Gtk.ResponseType.OK:
         GObject.source_remove(timeoutid)
@@ -119,7 +147,7 @@ Press any note (timeout in 5 sec)""" % name)
                                     timeout_func,
                                     dialog, seq, timeout_data, check_period)
 
-    dialog.show_all()
+    dialog.show_on_mouse_pos()
     resp = dialog.run()
     if resp == Gtk.ResponseType.DELETE_EVENT:
         GObject.source_remove(timeoutid)
@@ -180,7 +208,7 @@ def prompt_get_loop(parent_win, loop_start, loop_len):
 
     dialog.vbox.pack_start(hbox, True, True, 0)
 
-    dialog.show_all()
+    dialog.show_on_mouse_pos()
     resp_type = dialog.run()
     dialog.destroy()
     if resp_type != Gtk.ResponseType.OK or loop_pos[0] == None:
@@ -229,7 +257,7 @@ def prompt_get_output(parent_win, portlist, idx=None):
 
     dialog.vbox.pack_start(hbox, True, True, 0)
 
-    dialog.show_all()
+    dialog.show_on_mouse_pos()
     dialog.run()
     dialog.destroy()
     return output_res
