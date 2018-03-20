@@ -112,6 +112,21 @@ class MidiLooper(Gtk.Window):
         else:
             self.file_save_as(menuitem)
 
+    def close_check_save(self, wgt, ev):
+        for idx, model in enumerate(self.tracklist_frame.liststore):
+            tedit = model[0]
+            if len(tedit.chaned.grid.history_list) > 0:
+                msg_dialog = Gtk.MessageDialog(text="The session has been modified.\nDo you really want to exit.",
+                                               flags=Gtk.DialogFlags.MODAL,
+                                               buttons=Gtk.ButtonsType.OK_CANCEL,
+                                               parent=self)
+                if msg_dialog.run() == Gtk.ResponseType.OK:
+                    break
+                else:
+                    msg_dialog.destroy()
+                    return True
+        Gtk.main_quit()
+
     def __init__(self, seq_name="MidiLooper", filename=None, engine_type=0, jacksessionid=""):
         Gtk.Window.__init__(self)
         self.set_resizable(False)
@@ -187,5 +202,5 @@ class MidiLooper(Gtk.Window):
         vbox.pack_start(self.tracklist_frame, True, True, 0)
         self.add(vbox)
         self.connect("key_press_event", self.key_press)
-        self.connect('delete_event', Gtk.main_quit)
+        self.connect('delete_event', self.close_check_save)
         self.show_all()

@@ -23,7 +23,8 @@ from gi.repository import Gtk, Gdk
 
 import cairo
 
-from midilooper.msqwidget.wgttools import Xpos2Tick, Ypos2Note, MIDI_NOTEOFF_EVENT, MIDI_NOTEON_EVENT, evwr_to_repr_list
+from midilooper.msqwidget.wgttools import Xpos2Tick, Ypos2Note,\
+    MIDI_NOTEOFF_EVENT, MIDI_NOTEON_EVENT, evwr_to_repr_list
 
 # Quater note x size
 DEFAULT_QNOTE_XSZ = 90
@@ -34,12 +35,12 @@ MAX_QNOTE_XSZ = 720
 
 MSQ_FG_COLOR = (0, 0, 0)
 MSQ_BG_COLOR = (0.9, 0.9, 0.9)
-poid1 = 1
-poid2 = 1
-poidtot = poid1 + poid2
-MSQ_GR_COLOR = ((MSQ_FG_COLOR[0] * poid1) + (MSQ_BG_COLOR[0] * poid2) / poidtot,
-                (MSQ_FG_COLOR[1] * poid1) + (MSQ_BG_COLOR[1] * poid2) / poidtot,
-                (MSQ_FG_COLOR[2] * poid1) + (MSQ_BG_COLOR[2] * poid2) / poidtot)
+def msq_gray_color(poid1 = 1, poid2 = 1):
+    poidtot = poid1 + poid2
+    return ((MSQ_FG_COLOR[0] * poid1) + (MSQ_BG_COLOR[0] * poid2) / poidtot,
+            (MSQ_FG_COLOR[1] * poid1) + (MSQ_BG_COLOR[1] * poid2) / poidtot,
+            (MSQ_FG_COLOR[2] * poid1) + (MSQ_BG_COLOR[2] * poid2) / poidtot)
+MSQ_GR_COLOR = msq_gray_color()
 
 NOTE_MAX = 127
 
