@@ -87,10 +87,18 @@ class MidiLooper(Gtk.Window):
         self.msq.stop()
         return True
 
+    def _file_save(self, filename):
+        self.msq.save(filename)
+        self.filename = filename
+        for idx, model in enumerate(self.tracklist_frame.liststore):
+            tedit = model[0]
+            tedit.chaned.grid.history_list = []
+
     def file_save_tpl(self, menuitem):
         fchooser = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE,
                                          buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                                                  Gtk.STOCK_SAVE, Gtk.ResponseType.OK))
+                                                  Gtk.STOCK_SAVE, Gtk.ResponseType.OK),
+                                         parent=self)
         if fchooser.run() == Gtk.ResponseType.OK:
             filename = fchooser.get_filename()
             self.msq.savetpl(filename)
@@ -99,16 +107,16 @@ class MidiLooper(Gtk.Window):
     def file_save_as(self, menuitem):
         fchooser = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE,
                                          buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                                                  Gtk.STOCK_SAVE, Gtk.ResponseType.OK))
+                                                  Gtk.STOCK_SAVE, Gtk.ResponseType.OK),
+                                         parent=self)
         if fchooser.run() == Gtk.ResponseType.OK:
             filename = fchooser.get_filename()
-            self.msq.save(filename)
-            self.filename = filename
+            self._file_save(filename)
         fchooser.destroy()
 
     def file_save(self, menuitem):
         if self.filename:
-            self.msq.save(self.filename)
+            self._file_save(self.filename)
         else:
             self.file_save_as(menuitem)
 
