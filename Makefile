@@ -7,13 +7,14 @@ current_dir := $(patsubst %/,%,$(dir $(firstword $(MAKEFILE_LIST))))
 
 help:
 	@echo "Makefile targets:"
-	@echo " test      Compile and run midilooper (without installing it)"
-	@echo "           (Arguments can be passed with MIDILOOPER_ARGS environment variable"
-	@echo "           more option available with the script ./test_midilooper.sh)"
-	@echo " deb_check Check for debian package build dependencies"
-	@echo " deb_pkg   Build a debian package"
-	@echo " clean     Remove all compilated files"
-	@echo " help      Show this help"
+	@echo " test       Compile and run midilooper (without installing it)"
+	@echo "            (Arguments can be passed with MIDILOOPER_ARGS environment variable"
+	@echo "            more option available with the script ./test_midilooper.sh)"
+	@echo " test_build Build midilooper for testing."
+	@echo " deb_check  Check for debian package build dependencies"
+	@echo " deb_pkg    Build a debian package"
+	@echo " clean      Remove all compilated files"
+	@echo " help       Show this help"
 	@echo ""
 	@echo "Note:"
 	@echo " - For old jack api, the environment variable OLDJACKAPI must be set."
@@ -22,8 +23,12 @@ help:
 	@echo "   custom installations instead of this Makefile."
 
 test:
-	@echo "Running midilooper_dev. (more option available with the script ./test_midilooper.sh"
+	@echo "Running midilooper_dev. (more option available with the script ./test_midilooper.sh)"
 	@$(current_dir)/test_midilooper.sh $(MIDILOOPER_ARGS)
+
+test_build:
+	@echo "Building midilooper_dev. (for ./test_midilooper.sh)"
+	make -f $(current_dir)/src/midiseq_ext_dev.mk
 
 $(current_dir)/src/debian:
 	cp -Rf $(current_dir)/src/debian.in $(current_dir)/src/debian
