@@ -23,7 +23,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 
-from midilooper.msqwidget import MIDI_NOTEON_EVENT, MIDI_NOTEOFF_EVENT
+from midilooper.msqwidget.wgttools import MIDI_NOTEON_EVENT, MIDI_NOTEOFF_EVENT, MIDI_CTRL_EVENT, MIDI_PITCH_EVENT
 from midilooper.track_editor import TrackEditor
 from midilooper.tools import prompt_gettext, prompt_keybinding, prompt_notebinding, MsqListMenu, prompt_get_loop, prompt_get_output
 
@@ -242,7 +242,7 @@ class TrackList(Gtk.Frame):
                             break
                         else:
                             self.rec_noteon_list.remove(ev_on)
-            else:
+            elif ev[2] == MIDI_CTRL_EVENT or ev[2] == MIDI_PITCH_EVENT:
                 tick = track.get_loop_pos(ev[0])
                 new_ev = (tick, ev[1], ev[2], ev[3], ev[4])
                 ev_to_add.append(new_ev)
