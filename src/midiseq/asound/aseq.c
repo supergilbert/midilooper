@@ -48,8 +48,8 @@ void free_aseqh(snd_seq_t *handle)
 
 aseq_output_t  *create_aseq_output(snd_seq_t *handle,
                                    const char *name,
-                                   bool_t *ev_to_drain,
-                                   bool_t *is_running)
+                                   msq_bool_t *ev_to_drain,
+                                   msq_bool_t *is_running)
 {
   aseq_output_t        *aseqoutput = myalloc(sizeof (aseq_output_t));
 

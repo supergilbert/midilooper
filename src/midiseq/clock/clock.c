@@ -22,7 +22,7 @@
 #include "debug_tool/debug_tool.h"
 #include <strings.h>
 
-static void	add_time(struct timespec *t1, struct timespec *t2)
+static void add_time(struct timespec *t1, struct timespec *t2)
 {
   t1->tv_sec += t2->tv_sec;
   t1->tv_nsec += t2->tv_nsec;
@@ -49,23 +49,23 @@ void dump_clockres(clockid_t clkid)
   output("Clock resolution: %ds %dns\n", res.tv_sec, res.tv_nsec);
 }
 
-bool_t _clockloop(clocktick_t *tick, struct timespec *res, clockloop_cb cb_func, void *cb_arg)
+msq_bool_t _clockloop(clocktick_t *tick, struct timespec *res, clockloop_cb cb_func, void *cb_arg)
 {
-  clockid_t	clkid = CLOCK_REALTIME;
+  clockid_t clkid = CLOCK_REALTIME;
 
   debug("%s: start loop with res at %ds %dns\n",
         __FUNCTION__, res->tv_sec, res->tv_nsec);
   if (0 != clock_gettime(clkid, &(tick->time)))
     {
       perror("line: __LINE__ function: __FUNCTION__");
-      return FALSE;
+      return MSQ_FALSE;
     }
   while (CLOCK_STOP != cb_func(cb_arg))
     next_tick(tick, res, clkid);
-  return TRUE;
+  return MSQ_TRUE;
 }
 
-bool_t clockloop(clockloop_t *looph)
+msq_bool_t clockloop(clockloop_t *looph)
 {
   return _clockloop(&(looph->clocktick),
                     &(looph->res),

@@ -40,8 +40,8 @@ jbe_output_t  *create_jack_output(jack_client_t *client,
 void          free_jbe_output(jbe_output_t *jbe);
 const char    *jbe_output_get_name(void *hdl);
 void          jbe_output_set_name(void *hdl, const char *name);
-bool_t        jbe_output_write(struct midioutput *output,
+msq_bool_t    jbe_output_write(struct midioutput *output,
                                midicev_t *midicev);
-bool_t        _jbe_output_write(struct midioutput *output, midicev_t *midicev);
+msq_bool_t    _jbe_output_write(struct midioutput *output, midicev_t *midicev);
 
 #endif

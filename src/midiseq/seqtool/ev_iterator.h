@@ -50,11 +50,11 @@ midicev_t *evit_next_midiallchannel(ev_iterator_t *ev_iterator);
 void      evit_del_event(ev_iterator_t *ev_iterator);
 void      evit_add_midicev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev);
 
-bool_t  search_note_collision(list_t *tickev_list,
-                              uint_t tick, byte_t channel, byte_t note,
-                              uint_t *noteon_tick);
+msq_bool_t  search_note_collision(list_t *tickev_list,
+                                  uint_t tick, byte_t channel, byte_t note,
+                                  uint_t *noteon_tick);
 
-bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list);
+msq_bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list);
 #ifdef __ROUGH
 #define evit_check(evit, tickev_list) (TRUE)
 #else
@@ -70,6 +70,5 @@ midicev_t *evit_next_noteoff_num(ev_iterator_t *ev_iterator, byte_t channel, byt
 midicev_t *evit_next_ctrl_num(ev_iterator_t *ev_iterator, byte_t channel, byte_t ctrl_num);
 midicev_t *evit_init_ctrl_num(ev_iterator_t *ev_iterator, list_t *tickev_list, byte_t channel, byte_t ctrl_num);
 midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator, list_t *tickev_list, byte_t channel);
-
 
 #endif

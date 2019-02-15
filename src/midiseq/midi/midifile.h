@@ -40,7 +40,7 @@
 #define FRAME_PER_SEC 1
 typedef struct
 {
-  bool_t     flag;              /* True=FPS FALE=TPB (tick per beat) */
+  msq_bool_t flag;              /* True=FPS FALE=TPB (tick per beat) */
 
   union {
     uint16_t tick_per_beat;
@@ -146,7 +146,7 @@ buf_node_t *create_midifile_trackhdr(size_t track_size);
 /* void read_midifile(char *filepath); */
 size_t get_midifile_track_size(byte_t *buffer);
 
-bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr);
+msq_bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr);
 midifile_t *read_midifile_fd(int fd);
 void free_midifile_track(midifile_track_t *mtrack);
 void free_midifile(midifile_t *sequence);
@@ -158,6 +158,6 @@ buf_node_t *_append_metaev_eot(buf_node_t *tail);
 
 void write_midifile_trackhdr(int fd, size_t track_size);
 size_t write_midifile_header(int fd, uint_t track_list_len, uint_t ppq);
-void write_midifile_track(int fd, midifile_track_t *mtrack, bool_t template);
+void write_midifile_track(int fd, midifile_track_t *mtrack, msq_bool_t template);
 
 #endif

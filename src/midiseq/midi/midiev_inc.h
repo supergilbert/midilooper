@@ -115,13 +115,13 @@ uint_t get_varlen_from_idx(byte_t *buffer, uint_t *offset);
 uint_t get_varlen_from_ptr(byte_t **buffer);
 /* uint_t get_deltatime_from_ptr(byte_t **); /\* a modifier *\/ */
 
-uint_t get_midi_meta_event(midimev_t *meta_ev, byte_t *buffer);
-uint_t get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer);
-void   set_pending_note(byte_t *pending_notes, byte_t channel, byte_t num);
-void   unset_pending_note(byte_t *pending_notes, byte_t channel, byte_t num);
-void   update_pending_notes(byte_t *noteson_state, midicev_t *midicev);
-bool_t is_pending_notes(byte_t *pending_notes, byte_t channel, byte_t num);
-bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2);
+uint_t     get_midi_meta_event(midimev_t *meta_ev, byte_t *buffer);
+uint_t     get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer);
+void       set_pending_note(byte_t *pending_notes, byte_t channel, byte_t num);
+void       unset_pending_note(byte_t *pending_notes, byte_t channel, byte_t num);
+void       update_pending_notes(byte_t *noteson_state, midicev_t *midicev);
+msq_bool_t is_pending_notes(byte_t *pending_notes, byte_t channel, byte_t num);
+msq_bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2);
 
 
 #endif

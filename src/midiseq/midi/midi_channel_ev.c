@@ -149,9 +149,9 @@ void unset_pending_note(byte_t *pending_notes, byte_t channel, byte_t num)
 }
 
 
-#define _GETBIT(byte, bitnb)   (((byte) >> (bitnb)) & 1 ? TRUE : FALSE)
+#define _GETBIT(byte, bitnb)   (((byte) >> (bitnb)) & 1 ? MSQ_TRUE : MSQ_FALSE)
 
-bool_t is_pending_notes(byte_t *pending_notes, byte_t channel, byte_t num)
+msq_bool_t is_pending_notes(byte_t *pending_notes, byte_t channel, byte_t num)
 {
   uint_t idx    = ((channel * 128) + num) / 8;
   uint_t bitnum = ((channel * 128) + num) % 8;
@@ -172,7 +172,7 @@ void update_pending_notes(byte_t *pending_notes, midicev_t *midicev)
                        midicev->event.note.num);
 }
 
-bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2)
+msq_bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2)
 {
   if (mcev1->type == mcev2->type && mcev1->chan == mcev2->chan)
     switch (mcev1->type)
@@ -181,35 +181,35 @@ bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2)
       case NOTEON:
         if (mcev1->event.note.num == mcev2->event.note.num &&
             mcev1->event.note.val == mcev2->event.note.val)
-          return TRUE;
+          return MSQ_TRUE;
         break;
       case KEYAFTERTOUCH:
         if (mcev1->event.aftertouch.num == mcev2->event.aftertouch.num &&
             mcev1->event.aftertouch.val == mcev2->event.aftertouch.val)
-          return TRUE;
+          return MSQ_TRUE;
         break;
       case CONTROLCHANGE:
         if (mcev1->event.ctrl.num == mcev2->event.ctrl.num &&
             mcev1->event.ctrl.val == mcev2->event.ctrl.val)
-          return TRUE;
+          return MSQ_TRUE;
         break;
       case PROGRAMCHANGE:
         if (mcev1->event.prg_chg == mcev2->event.prg_chg)
-          return TRUE;
+          return MSQ_TRUE;
         break;
       case CHANNELAFTERTOUCH:
         if (mcev1->event.chan_aftertouch == mcev2->event.chan_aftertouch)
-          return TRUE;
+          return MSQ_TRUE;
         break;
       case PITCHWHEELCHANGE:
         if (mcev1->event.pitchbend.Lval == mcev2->event.pitchbend.Lval &&
             mcev1->event.pitchbend.Hval == mcev2->event.pitchbend.Hval)
-          return TRUE;
+          return MSQ_TRUE;
         break;
       default:
-        return FALSE;
+        return MSQ_FALSE;
       }
-  return FALSE;
+  return MSQ_FALSE;
 }
 
 
@@ -224,7 +224,7 @@ void dump_seqev(seqev_t *seqev)
 
   output("\tseqev: addr=%p deleted=%s",
          seqev,
-         seqev->deleted == TRUE ? "\033[31mTRUE\033[0m" : "FALSE");
+         seqev->deleted == MSQ_TRUE ? "\033[31mTRUE\033[0m" : "FALSE");
   if (seqev->type == MIDICEV)
     {
       midicev = (midicev_t *) seqev->addr;
@@ -289,7 +289,7 @@ void _list_copy_seqev(void *addr, void *arg)
   if (seqev->type == MIDICEV)
     {
       debug_midi("adding midi channel event\n");
-      if (seqev->deleted == FALSE)
+      if (seqev->deleted == MSQ_FALSE)
         copy_midicev_to_track(list_arg->track, list_arg->tick, seqev->addr);
     }
   else
@@ -304,7 +304,7 @@ void _list_copy_tickev(void *addr, void *track_addr)
   track_t *track_dst = NULL;
   list_copy_seqev_t list_arg;
 
-  if (tickev->deleted == FALSE)
+  if (tickev->deleted == MSQ_FALSE)
     {
       track_dst = (track_t *) track_addr;
       list_arg.tick = tickev->tick;

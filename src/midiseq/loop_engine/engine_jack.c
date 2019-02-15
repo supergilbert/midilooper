@@ -26,10 +26,10 @@ typedef struct
   uint_t         tick;
   jack_port_t    *remote_input;
   jack_port_t    *record_input;
-  bool_t         stopped;
+  msq_bool_t         stopped;
 } jbe_hdl_t;
 
-bool_t jbe_is_running(engine_ctx_t *ctx)
+msq_bool_t jbe_is_running(engine_ctx_t *ctx)
 {
   jbe_hdl_t              *hdl  = (jbe_hdl_t *) ctx->hdl;
   jack_transport_state_t state = jack_transport_query(hdl->client, NULL);
@@ -37,8 +37,8 @@ bool_t jbe_is_running(engine_ctx_t *ctx)
   if (state == JackTransportRolling
       || state == JackTransportLooping
       || state == JackTransportStarting)
-	  return TRUE;
-  return FALSE;
+	  return MSQ_TRUE;
+  return MSQ_FALSE;
 }
 
 void jbe_stop(engine_ctx_t *ctx)
@@ -47,8 +47,8 @@ void jbe_stop(engine_ctx_t *ctx)
   const jack_position_t pos = {valid:0, frame:0};
 
   jack_transport_stop(hdl->client);
-  hdl->stopped = TRUE;
-  while (jbe_is_running(ctx) == TRUE)
+  hdl->stopped = MSQ_TRUE;
+  while (jbe_is_running(ctx) == MSQ_TRUE)
     usleep(100000);
   _engine_free_trash(ctx);
   jack_transport_reposition(hdl->client, &pos);
@@ -176,21 +176,21 @@ void jbe_handle_frames(engine_ctx_t *ctx,
                        jack_nframes_t nframes)
 {
   jbe_hdl_t      *be_hdl = (jbe_hdl_t *) ctx->hdl;
-  static bool_t  running = FALSE;
+  static msq_bool_t  running = MSQ_FALSE;
   jack_nframes_t tick_frame;
 
-  if (be_hdl->stopped == TRUE)
+  if (be_hdl->stopped == MSQ_TRUE)
     {
-      if (running == TRUE)
+      if (running == MSQ_TRUE)
         {
           play_tracks_pending_notes(ctx);
-          running = FALSE;
+          running = MSQ_FALSE;
         }
     }
   else
     {
-      if (running == FALSE)
-        running = TRUE;
+      if (running == MSQ_FALSE)
+        running = MSQ_TRUE;
 
       /* Handling all tick in buffer */
       while (be_hdl->cur_frame < nframes)
@@ -215,14 +215,14 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
     case JackTransportStarting:
       jbe_update_tick_n_frame(ctx, position.frame, position.frame_rate);
       engine_prepare_tracklist(ctx);
-      be_hdl->stopped = FALSE;
+      be_hdl->stopped = MSQ_FALSE;
       break;
     case JackTransportRolling:
     case JackTransportLooping:
       tick_bkp = be_hdl->tick;
       jbe_update_tick_n_frame(ctx, position.frame, position.frame_rate);
-      if (be_hdl->stopped != FALSE)
-        be_hdl->stopped = FALSE;
+      if (be_hdl->stopped != MSQ_FALSE)
+        be_hdl->stopped = MSQ_FALSE;
       else
         {
           if (tick_bkp != be_hdl->tick)
@@ -246,8 +246,8 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
                         nframes);
       break;
     case JackTransportStopped:
-      if (be_hdl->stopped != TRUE)
-        be_hdl->stopped = TRUE;
+      if (be_hdl->stopped != MSQ_TRUE)
+        be_hdl->stopped = MSQ_TRUE;
       jbe_handle_frames(ctx,
                         position.frame,
                         position.frame_rate,
@@ -285,7 +285,7 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
             {
             case MMC_STOP:
               jack_transport_stop(hdl->client);
-              hdl->stopped = TRUE;
+              hdl->stopped = MSQ_TRUE;
               break;
             case MMC_PAUSE:
               jbe_start(ctx);
@@ -319,7 +319,7 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
         }
     }
 
-  if (ctx->rec == TRUE)
+  if (ctx->rec == MSQ_TRUE)
     {
       /* Must change with stopped and frame frame_rate to avoid transport */
       state = jack_transport_query(hdl->client, &position);
@@ -334,7 +334,7 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
                idx < event_count;
                idx++) {
             jack_midi_event_get(&jackev, port_buf, idx);
-            if (convert_mididata_to_midicev(jackev.buffer, &midicev) == TRUE) {
+            if (convert_mididata_to_midicev(jackev.buffer, &midicev) == MSQ_TRUE) {
               tick = convert_frame_to_tick(position.frame + jackev.time,
                                            position.frame_rate,
                                            ctx->ppq,
@@ -404,13 +404,13 @@ void jack_session_cb(jack_session_event_t *event, void *arg)
   jack_session_event_free(event);
 }
 
-bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid)
+msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid)
 {
   jbe_hdl_t     *hdl = NULL;
   jack_client_t *client = create_jackh(name, jacksessionid);
 
   if (client == NULL)
-    return FALSE;
+    return MSQ_FALSE;
 
   ctx->destroy_hdl        = jbe_destroy_hdl;
   ctx->is_running         = jbe_is_running;
@@ -446,8 +446,8 @@ bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid)
   if (jack_activate (client)) {
     output_error("Cannot activate jack client");
     engine_destroy_hdl(ctx);
-    return FALSE;
+    return MSQ_FALSE;
   }
 
-  return TRUE;
+  return MSQ_TRUE;
 }

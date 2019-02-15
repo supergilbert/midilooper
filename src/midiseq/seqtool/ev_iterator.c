@@ -37,7 +37,7 @@ seqev_t *_it_next_seqev(list_iterator_t *seqevit)
        iter_next(seqevit))
     {
       ev = (seqev_t *) iter_node_ptr(seqevit);
-      if (ev->deleted == FALSE)
+      if (ev->deleted == MSQ_FALSE)
         return ev;
     }
   return NULL;
@@ -54,7 +54,7 @@ seqev_t *_evit_seqevit_head(list_iterator_t *seqevit)
   if (iter_node(seqevit))
     {
       ev = (seqev_t *) iter_node_ptr(seqevit);
-      if (ev->deleted == TRUE)
+      if (ev->deleted == MSQ_TRUE)
         {
           ev = _it_next_seqev(seqevit);
         }
@@ -82,7 +82,7 @@ seqev_t *evit_next_tick(ev_iterator_t *ev_iterator)
            iter_next(&(ev_iterator->tickit)))
         {
           tickev = (tickev_t *) iter_node_ptr(&(ev_iterator->tickit));
-          if (tickev->deleted == FALSE)
+          if (tickev->deleted == MSQ_FALSE)
             {
               seqev = _evit_seqevit_init(&(ev_iterator->seqevit), &(tickev->seqev_list));
               if (seqev)
@@ -105,7 +105,7 @@ seqev_t *evit_tick_head(ev_iterator_t *ev_iterator)
   if (iter_node(&(ev_iterator->tickit)))
     {
       tickev = (tickev_t *) iter_node_ptr(&(ev_iterator->tickit));
-      if (tickev->deleted == TRUE)
+      if (tickev->deleted == MSQ_TRUE)
         {
           seqev = evit_next_tick(ev_iterator);
         }
@@ -218,7 +218,7 @@ midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator,
   return midicev;
 }
 
-bool_t compare_midicev_type(midicev_t *mcev1, midicev_t *mcev2)
+msq_bool_t compare_midicev_type(midicev_t *mcev1, midicev_t *mcev2)
 {
   if (mcev1->type == mcev2->type && mcev1->chan == mcev2->chan)
     switch (mcev1->type)
@@ -226,25 +226,25 @@ bool_t compare_midicev_type(midicev_t *mcev1, midicev_t *mcev2)
       case NOTEOFF:
       case NOTEON:
         if (mcev1->event.note.num == mcev2->event.note.num)
-          return TRUE;
+          return MSQ_TRUE;
         break;
       case KEYAFTERTOUCH:
         if (mcev1->event.aftertouch.num == mcev2->event.aftertouch.num)
-          return TRUE;
+          return MSQ_TRUE;
         break;
       case CONTROLCHANGE:
         if (mcev1->event.ctrl.num == mcev2->event.ctrl.num)
-          return TRUE;
+          return MSQ_TRUE;
         break;
       case PROGRAMCHANGE:
       case CHANNELAFTERTOUCH:
       case PITCHWHEELCHANGE:
-        return TRUE;
+        return MSQ_TRUE;
         break;
       default:
-        return FALSE;
+        return MSQ_FALSE;
       }
-  return FALSE;
+  return MSQ_FALSE;
 }
 
 midicev_t *evit_searchev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev)
@@ -394,7 +394,7 @@ node_t *search_or_add_midicev(list_t *seqev_list, midicev_t *midicev)
     if (ev->type == MIDICEV)
       {
         mcev = (midicev_t *) ev->addr;
-        if (compare_midicev_type(midicev, mcev) == TRUE)
+        if (compare_midicev_type(midicev, mcev) == MSQ_TRUE)
           {
             /* TODO (function to copy only the necessary) */
             bcopy(midicev, mcev, sizeof (midicev_t));
@@ -420,7 +420,7 @@ void evit_add_midicev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev)
 
 #include "debug_tool/debug_tool.h"
 
-bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list)
+msq_bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list)
 {
   ev_iterator_t evit_ptr;
   seqev_t       *ev;
@@ -428,7 +428,7 @@ bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list)
   if (evit->tickit.list != tickev_list)
     {
       output_error("Tick event list mismatch");
-      return FALSE;
+      return MSQ_FALSE;
     }
   for (ev = evit_init(&evit_ptr, tickev_list);
        ev;
@@ -447,17 +447,17 @@ bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list)
               break;
             }
           if (iter_node(&(evit_ptr.seqevit)) == iter_node(&(evit->seqevit)))
-            return TRUE;
+            return MSQ_TRUE;
           else
             while ((ev = _it_next_seqev(&(evit_ptr.seqevit))) != NULL)
               {
                 if (iter_node(&(evit_ptr.seqevit)) == iter_node(&(evit->seqevit)))
-                  return TRUE;
+                  return MSQ_TRUE;
               }
           output_error("sequencer event iterator mismatch");
-          return FALSE;
+          return MSQ_FALSE;
         }
     }
   output_error("tick iterator mismatch");
-  return FALSE;
+  return MSQ_FALSE;
 }

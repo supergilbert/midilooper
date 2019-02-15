@@ -22,9 +22,9 @@
 #include "tool/compilation_config.h"
 
 typedef enum {
-  FALSE = 0,
-  TRUE
-}	bool_t;
+  MSQ_FALSE = 0,
+  MSQ_TRUE
+}	msq_bool_t;
 
 typedef unsigned int uint_t;
 typedef int          int_t;
@@ -67,7 +67,7 @@ void foreach_list_node(list_t *list, list_func func, void *args);
 #define LIST_HEAD(list) ((list)->head)
 #define LIST_TAIL(list) ((list)->tail)
 
-#define COPY_LIST_NODE(src, dest) (dest)->head = (src)->head; (dest)->tail = (src)->tail
+#define COPY_LIST_NODE(src, dest) (dest)->head = (src)->head; (dest)->tail = (src)->tail; (dest)->len = (src)->len
 
 typedef struct
 {
@@ -77,7 +77,7 @@ typedef struct
 
 void iter_init(list_iterator_t *iterator, list_t *list);
 void iter_copy(list_iterator_t *iter_src, list_iterator_t *iter_dst);
-bool_t iter_move_to_addr(list_iterator_t *iterator, void *addr);
+msq_bool_t iter_move_to_addr(list_iterator_t *iterator, void *addr);
 /* #define iter_init(iterator, list) (iterator)->node = (list)->head; (iterator)->list = (list) */
 #define iter_node(iterator) ((iterator)->node)
 #define iter_node_ptr(iterator) ((iterator)->node->addr)

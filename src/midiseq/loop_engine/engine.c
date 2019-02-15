@@ -49,7 +49,7 @@ void _engine_free_trash(engine_ctx_t *ctx)
   while (iter_node(&trackit) != NULL)
     {
       track_ctx = iter_node_ptr(&trackit);
-      if (track_ctx->deleted == TRUE)
+      if (track_ctx->deleted == MSQ_TRUE)
         iter_node_del(&trackit, _free_trackctx); /* /!\ Memory corruption while asking tracklist */
       else
         {
@@ -57,7 +57,7 @@ void _engine_free_trash(engine_ctx_t *ctx)
               pthread_rwlock_trywrlock(&(track_ctx->lock)) == 0)
             {
               free_list_node(&(track_ctx->trash), _free_trash_ctn);
-              track_ctx->need_sync = TRUE;
+              track_ctx->need_sync = MSQ_TRUE;
               pthread_rwlock_unlock(&(track_ctx->lock));
             }
           iter_next(&trackit);
@@ -75,7 +75,7 @@ void play_tracks_pending_notes(engine_ctx_t *ctx)
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
-      if (track_ctx->deleted == FALSE
+      if (track_ctx->deleted == MSQ_FALSE
           && track_ctx->output != NULL)
         output_pending_notes(track_ctx->output, track_ctx->notes_on_state);
     }
@@ -92,12 +92,12 @@ void play_tracks(engine_ctx_t *ctx)
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
-      if (track_ctx->deleted != TRUE)
+      if (track_ctx->deleted != MSQ_TRUE)
         play_trackctx(tick, track_ctx);
     }
 }
 
-bool_t engine_delete_trackctx(engine_ctx_t *ctx, track_ctx_t *trackctx)
+msq_bool_t engine_delete_trackctx(engine_ctx_t *ctx, track_ctx_t *trackctx)
 {
   list_iterator_t trackit;
   track_ctx_t     *track_ctx = NULL;
@@ -109,15 +109,15 @@ bool_t engine_delete_trackctx(engine_ctx_t *ctx, track_ctx_t *trackctx)
       track_ctx = iter_node_ptr(&trackit);
       if (track_ctx == trackctx)
         {
-          if (engine_is_running(ctx) == TRUE)
-            track_ctx->deleted = TRUE;
+          if (engine_is_running(ctx) == MSQ_TRUE)
+            track_ctx->deleted = MSQ_TRUE;
           else
             iter_node_del(&trackit, _free_trackctx);
           /* free_track(track_ctx); */
-          return TRUE;
+          return MSQ_TRUE;
         }
     }
-  return FALSE;
+  return MSQ_FALSE;
 }
 
 track_ctx_t *_engine_gen_trackctx(engine_ctx_t *ctx,
@@ -131,8 +131,8 @@ track_ctx_t *_engine_gen_trackctx(engine_ctx_t *ctx,
   trackctx->track = track;
   trackctx->loop_start = loop_start;
   trackctx->loop_len = loop_len;
-  trackctx->mute = FALSE;
-  trackctx->deleted = FALSE;
+  trackctx->mute = MSQ_FALSE;
+  trackctx->deleted = MSQ_FALSE;
   pthread_rwlock_init(&(trackctx->lock), NULL);
   iter_init(&(trackctx->current_tickev), &(trackctx->track->tickev_list));
   return trackctx;
@@ -289,7 +289,7 @@ void engine_clean_tracklist(engine_ctx_t *ctx)
        iter_next(&trackit))
     {
       track_ctx = iter_node_ptr(&trackit);
-      if (track_ctx->deleted == TRUE)
+      if (track_ctx->deleted == MSQ_TRUE)
         iter_node_del(&trackit, _free_trackctx);
     }
 }
@@ -309,7 +309,7 @@ void output_evlist(output_t *output,
        iter_next(&iter))
     {
       seqev = (seqev_t *) iter_node_ptr(&(iter));
-      if (seqev->deleted == FALSE && seqev->type == MIDICEV)
+      if (seqev->deleted == MSQ_FALSE && seqev->type == MIDICEV)
         {
           midicev = (midicev_t *) seqev->addr;
           if (_output_write(output, midicev))
@@ -367,7 +367,7 @@ output_t *engine_create_output(engine_ctx_t *ctx, const char *name)
   return output;
 }
 
-bool_t engine_delete_output(engine_ctx_t *ctx, output_t *output)
+msq_bool_t engine_delete_output(engine_ctx_t *ctx, output_t *output)
 {
   list_iterator_t output_it;
   output_t        *ptr = NULL;
@@ -383,10 +383,10 @@ bool_t engine_delete_output(engine_ctx_t *ctx, output_t *output)
           pthread_mutex_destroy(&(output->req_lock));
           ctx->delete_output_node(ctx, output);
           iter_node_del(&output_it, NULL);
-          return TRUE;
+          return MSQ_TRUE;
         }
     }
-  return FALSE;
+  return MSQ_FALSE;
 }
 
 byte_t engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size)
@@ -413,10 +413,10 @@ byte_t engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size)
   return 0;
 }
 
-bool_t engine_toggle_rec(engine_ctx_t *ctx)
+msq_bool_t engine_toggle_rec(engine_ctx_t *ctx)
 {
-  if (ctx->rec == TRUE)
-    ctx->rec = FALSE;
+  if (ctx->rec == MSQ_TRUE)
+    ctx->rec = MSQ_FALSE;
   else
     {
       if (ctx->track_rec == NULL)
@@ -424,15 +424,15 @@ bool_t engine_toggle_rec(engine_ctx_t *ctx)
           if (ctx->track_list.len > 0)
             ctx->track_rec = ctx->track_list.head->addr;
           else
-            return FALSE;
+            return MSQ_FALSE;
         }
-      ctx->rec = TRUE;
+      ctx->rec = MSQ_TRUE;
     }
-  ctx->rec_state_changed = TRUE;
-  return TRUE;
+  ctx->rec_state_changed = MSQ_TRUE;
+  return MSQ_TRUE;
 }
 
-bool_t init_engine(engine_ctx_t *engine,
+msq_bool_t init_engine(engine_ctx_t *engine,
                    char *name,
                    int type,
                    char *jacksessionid)
@@ -446,17 +446,17 @@ bool_t init_engine(engine_ctx_t *engine,
 
   if (type == 0)
     {
-      if (nns_init_engine(engine, name) != TRUE)
-        return FALSE;
+      if (nns_init_engine(engine, name) != MSQ_TRUE)
+        return MSQ_FALSE;
     }
   else
     {
-      if (jbe_init_engine(engine, name, jacksessionid) != TRUE)
-        return FALSE;
+      if (jbe_init_engine(engine, name, jacksessionid) != MSQ_TRUE)
+        return MSQ_FALSE;
     }
 
   engine_set_tempo(engine, 500);
-  return TRUE;
+  return MSQ_TRUE;
 }
 
 void free_output_list(engine_ctx_t *ctx)

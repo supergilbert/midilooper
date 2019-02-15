@@ -52,7 +52,7 @@ void _output_warning(char *fmt, ...);
 
 #define trace_func output(TRACE_FMT, TRACE_ARG)
 
-void _msq_assert(bool_t bool, char *format, ...);
+void _msq_assert(msq_bool_t bool, char *format, ...);
 #ifdef __ROUGH
 #define msq_assert(bool, format, ...)(TRUE)
 #else

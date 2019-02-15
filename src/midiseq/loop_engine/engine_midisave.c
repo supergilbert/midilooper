@@ -222,7 +222,7 @@ void gen_miditrack_info(char *ret_str,
 }
 
 #include <errno.h>
-void engine_save_project(engine_ctx_t *ctx, char *file_path, bool_t template)
+void engine_save_project(engine_ctx_t *ctx, char *file_path, msq_bool_t template)
 {
   int              fd;
   list_iterator_t  iter;
