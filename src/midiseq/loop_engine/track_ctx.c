@@ -68,7 +68,7 @@ uint_t _seqev_len(tickev_t *tickev)
        iter_next(&seqevit))
     {
       ev = (seqev_t *) iter_node_ptr(&seqevit);
-      if (ev->deleted == FALSE)
+      if (ev->deleted == MSQ_FALSE)
         len++;
     }
 
@@ -87,9 +87,9 @@ void trackctx_event2trash(track_ctx_t *trackctx,
   /* tickev_t    *tickev = (tickev_t *) iter_node_ptr(tickit); */
 
   if (_seqev_len(tickev) == 1)
-    tickev->deleted = TRUE;
+    tickev->deleted = MSQ_TRUE;
 
-  seqev->deleted = TRUE;
+  seqev->deleted = MSQ_TRUE;
 
   if (trackctx->output != NULL)
     _play_if_noteoff(trackctx, seqev);
@@ -100,7 +100,7 @@ void trackctx_event2trash(track_ctx_t *trackctx,
   /* bcopy(tickit, &(ctn->tickit), sizeof (list_iterator_t)); */
 
   push_to_list_tail(&(trackctx->trash), ctn);
-  trackctx->need_sync = TRUE;
+  trackctx->need_sync = MSQ_TRUE;
 }
 
 
@@ -115,7 +115,7 @@ uint_t trackctx_loop_pos(track_ctx_t *track_ctx, uint_t tick)
 void play_trackctx(uint_t tick, track_ctx_t *track_ctx)
 {
   tickev_t *tickev  = NULL;
-  /* static bool_t   to_reload  = FALSE; */
+  /* static bool_t   to_reload  = MSQ_FALSE; */
   uint_t   last_pulse = track_ctx->loop_start + track_ctx->loop_len - 1;
 
   if (track_ctx->output == NULL)
@@ -127,19 +127,19 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx)
 
   tick = trackctx_loop_pos(track_ctx, tick);
 
-  if (track_ctx->need_sync == TRUE)
+  if (track_ctx->need_sync == MSQ_TRUE)
     /* reload of the iterator if some node has been deleted
        and reload again after the trash has been empty */
     {
       goto_next_available_tick(&(track_ctx->current_tickev), tick);
       if (track_ctx->trash.len == 0)
-        track_ctx->need_sync = FALSE;
+        track_ctx->need_sync = MSQ_FALSE;
     }
 
   if (tick == last_pulse || track_ctx->play_pending_notes)
     {
       output_pending_notes(track_ctx->output, track_ctx->notes_on_state);
-      track_ctx->play_pending_notes = FALSE;
+      track_ctx->play_pending_notes = MSQ_FALSE;
     }
 
   if (iter_node(&(track_ctx->current_tickev)) == NULL)
@@ -154,7 +154,7 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx)
       tickev = iter_node_ptr(&(track_ctx->current_tickev));
       if (tickev->tick == tick)
         {
-          if (track_ctx->mute == FALSE)
+          if (track_ctx->mute == MSQ_FALSE)
             output_evlist(track_ctx->output,
                           &(tickev->seqev_list),
                           track_ctx->notes_on_state);
@@ -175,16 +175,16 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx)
 
 void _trackctx_mute(track_ctx_t *track_ctx)
 {
-  track_ctx->mute = TRUE;
+  track_ctx->mute = MSQ_TRUE;
   if (track_ctx->output)
     if (track_ctx->engine && engine_is_running(track_ctx->engine))
-      track_ctx->play_pending_notes = TRUE;
+      track_ctx->play_pending_notes = MSQ_TRUE;
 }
 
 void trackctx_toggle_mute(track_ctx_t *track_ctx)
 {
   if (track_ctx->mute)
-    track_ctx->mute = FALSE;
+    track_ctx->mute = MSQ_FALSE;
   else
     _trackctx_mute(track_ctx);
 }

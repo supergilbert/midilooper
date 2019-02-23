@@ -31,7 +31,7 @@ midireq_t *output_getunused_req(output_t *output)
       do
         {
           midireq = (midireq_t *) node->addr;
-          if (midireq->used == TRUE)
+          if (midireq->used == MSQ_TRUE)
             break;
           else
             ret = midireq;
@@ -41,7 +41,7 @@ midireq_t *output_getunused_req(output_t *output)
         return ret;
     }
   ret = myalloc(sizeof (midireq_t));
-  ret->used = FALSE;
+  ret->used = MSQ_FALSE;
   push_to_list_tail(&(output->req_list), ret);
   return ret;
 }
@@ -55,7 +55,7 @@ void output_add_req(output_t *output, midicev_t *midicev)
   pthread_mutex_lock(&(output->req_lock));
   midireq = output_getunused_req(output);
   bcopy(midicev, &(midireq->midicev), sizeof(midicev_t));
-  midireq->used = TRUE;
+  midireq->used = MSQ_TRUE;
   pthread_mutex_unlock(&(output->req_lock));
 }
 
@@ -70,7 +70,7 @@ midireq_t *output_getnext_req(output_t *output)
        node = node->next)
     {
       midireq = (midireq_t *) node->addr;
-      if (midireq->used == TRUE)
+      if (midireq->used == MSQ_TRUE)
         return midireq;
     }
   return NULL;
@@ -85,6 +85,6 @@ void output_play_reqlist(output_t *output)
        req = output_getnext_req(output))
     {
       _output_write(output, &(req->midicev));
-      req->used = FALSE;
+      req->used = MSQ_FALSE;
     }
 }

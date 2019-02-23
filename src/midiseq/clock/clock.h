@@ -44,7 +44,7 @@ typedef struct
   struct timespec res;
 } clockloop_t;
 
-bool_t clockloop(clockloop_t *looph);
+msq_bool_t clockloop(clockloop_t *looph);
 
 void free_clockloop_struct(clockloop_t *clockloop);
 void set_msnppq_to_timespec(struct timespec *res, uint_t ppq, uint_t ms);

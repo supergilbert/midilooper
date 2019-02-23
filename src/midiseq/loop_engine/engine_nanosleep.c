@@ -13,7 +13,7 @@ typedef enum
 
 typedef struct
 {
-  bool_t           is_running;
+  msq_bool_t       is_running;
   pthread_rwlock_t lock;
   clockloop_t      looph;
   snd_seq_t        *aseqh;
@@ -21,17 +21,17 @@ typedef struct
   int              record_input;
   engine_rq        rq;
   pthread_t        thread_id;
-  bool_t           thread_ret;
-  bool_t           ev_to_drain;
+  msq_bool_t       thread_ret;
+  msq_bool_t       ev_to_drain;
   output_t         *del_output_req;
   char             *add_output_req;
   aseq_output_t    *add_output_req_res;
 } nns_hdl_t;
 
-bool_t nns_is_running(engine_ctx_t *ctx)
+msq_bool_t nns_is_running(engine_ctx_t *ctx)
 {
   nns_hdl_t *hdl = (nns_hdl_t *) ctx->hdl;
-  bool_t     isrunning;
+  msq_bool_t     isrunning;
 
   pthread_rwlock_rdlock(&(hdl->lock));
   isrunning = hdl->is_running;
@@ -94,7 +94,7 @@ void nns_start(engine_ctx_t *ctx)
 
 void nns_create_output(engine_ctx_t *ctx, output_t *output, const char *name)
 {
-  nns_hdl_t     *hdl = (nns_hdl_t *) ctx->hdl;
+  nns_hdl_t *hdl = (nns_hdl_t *) ctx->hdl;
 
   pthread_rwlock_rdlock(&(hdl->lock));
   if (hdl->is_running)
@@ -144,16 +144,16 @@ void nns_set_tempo(engine_ctx_t *ctx, uint_t ms)
                          ctx->tempo);
 }
 
-bool_t nns_drain_output(nns_hdl_t *hdl)
+msq_bool_t nns_drain_output(nns_hdl_t *hdl)
 {
   if (hdl->ev_to_drain)
     {
       snd_seq_drain_output(hdl->aseqh);
-      hdl->ev_to_drain = FALSE;
-      return TRUE;
+      hdl->ev_to_drain = MSQ_FALSE;
+      return MSQ_TRUE;
     }
   else
-    return FALSE;
+    return MSQ_FALSE;
 }
 
 void nns_handle_input(engine_ctx_t *ctx)
@@ -200,8 +200,8 @@ void nns_handle_input(engine_ctx_t *ctx)
               ;
             }
         }
-      else if (nns_is_running(ctx) == TRUE
-               && ctx->rec == TRUE
+      else if (nns_is_running(ctx) == MSQ_TRUE
+               && ctx->rec == MSQ_TRUE
                && ctx->track_rec != NULL
                && snd_ev->dest.port == hdl->record_input
                && (snd_ev->type == SND_SEQ_EVENT_NOTEON
@@ -252,7 +252,7 @@ clock_req_t _nns_engine_cb(void *arg)
       play_tracks_pending_notes(ctx);
       nns_drain_output(hdl);
       _nnshdl_add_del_output_req(hdl);
-      hdl->is_running = FALSE;
+      hdl->is_running = MSQ_FALSE;
       pthread_rwlock_unlock(&(hdl->lock));
       return CLOCK_STOP;
     }
@@ -280,7 +280,7 @@ void *nns_thread_wrapper(void *arg)
         {
           debug("engine: Got continue request\n");
           pthread_rwlock_wrlock(&(hdl->lock));
-          hdl->is_running = TRUE;
+          hdl->is_running = MSQ_TRUE;
           pthread_rwlock_unlock(&(hdl->lock));
           engine_prepare_tracklist(ctx);
           hdl->thread_ret = clockloop(&(hdl->looph));
@@ -291,13 +291,13 @@ void *nns_thread_wrapper(void *arg)
   return &(hdl->thread_ret);
 }
 
-bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
+msq_bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
 {
   nns_hdl_t *hdl = NULL;
   snd_seq_t *aseqh = create_aseqh(name);
 
   if (aseqh == NULL)
-    return FALSE;
+    return MSQ_FALSE;
 
   ctx->destroy_hdl        = nns_destroy_hdl;
   ctx->is_running         = nns_is_running;
@@ -314,7 +314,7 @@ bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
   hdl->looph.cb_func = _nns_engine_cb;
   hdl->looph.cb_arg  = ctx;
   hdl->rq            = engine_rq_stop;
-  hdl->is_running    = FALSE;
+  hdl->is_running    = MSQ_FALSE;
   hdl->remote_input  =
     snd_seq_create_simple_port(hdl->aseqh,
                                "remote",
@@ -333,5 +333,5 @@ bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
   engine_set_tempo(ctx, 500);
   pthread_create(&(hdl->thread_id), NULL, nns_thread_wrapper, ctx);
   usleep(200000);
-  return TRUE;
+  return MSQ_TRUE;
 }

@@ -109,23 +109,23 @@ void jbe_output_set_name(void *hdl, const char *name)
 #endif
 }
 
-bool_t jbe_output_write(struct midioutput *output,
-                        midicev_t *midicev)
+msq_bool_t jbe_output_write(struct midioutput *output,
+                            midicev_t *midicev)
 {
   output_add_req(output, midicev);
-  return TRUE;
+  return MSQ_TRUE;
 }
 
 #include "midi/midi_tool.h"
 #include <jack/midiport.h>
-bool_t _jbe_output_write(struct midioutput *output, midicev_t *midicev)
+msq_bool_t _jbe_output_write(struct midioutput *output, midicev_t *midicev)
 {
   jbe_output_t *jbe_output = (jbe_output_t *) output->hdl;
   byte_t       data[3];
 
-  if (convert_midicev_to_mididata(midicev, data) == FALSE)
-    return FALSE;
+  if (convert_midicev_to_mididata(midicev, data) == MSQ_FALSE)
+    return MSQ_FALSE;
   if (jack_midi_event_write(jbe_output->jack_buffer, *(jbe_output->cur_frame), data, 3))
-    return FALSE;
-  return TRUE;
+    return MSQ_FALSE;
+  return MSQ_TRUE;
 }

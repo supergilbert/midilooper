@@ -92,7 +92,7 @@ tickev_t *_create_new_tick_ev(uint_t tick)
 
   bzero(tickev, sizeof (tickev_t));
   tickev->tick = tick;
-  tickev->deleted = FALSE;
+  tickev->deleted = MSQ_FALSE;
   return tickev;
 }
 
@@ -116,7 +116,7 @@ node_t *search_or_add_ticknode(list_t *tickev_list, uint_t tick)
       tickev = iter_node_ptr(&iter);
       if (tickev->tick == tick)
         {
-          tickev->deleted = FALSE;
+          tickev->deleted = MSQ_FALSE;
           return iter_node(&iter);
         }
       else if (tickev->tick > tick)
@@ -145,7 +145,7 @@ seqev_t *alloc_seqev(void *addr,
   bzero(seqev, sizeof (seqev_t));
   seqev->addr = addr;
   seqev->type = type;
-  seqev->deleted = FALSE;
+  seqev->deleted = MSQ_FALSE;
   return seqev;
 }
 
@@ -204,7 +204,7 @@ void goto_next_available_tick(list_iterator_t *tickit, uint_t tick)
        iter_next(tickit))
     {
       tickev = (tickev_t *) iter_node_ptr(tickit);
-      if (tickev->tick >= tick && tickev->deleted == FALSE)
+      if (tickev->tick >= tick && tickev->deleted == MSQ_FALSE)
         return;
     }
 }
@@ -219,7 +219,7 @@ void iter_next_available_tick(list_iterator_t *tickit)
        iter_next(tickit))
     {
       tickev = (tickev_t *) iter_node_ptr(tickit);
-      if (tickev->deleted == FALSE)
+      if (tickev->deleted == MSQ_FALSE)
         return;
     }
 }

@@ -17,5 +17,5 @@
 
 #include "midi/midiev_inc.h"
 
-bool_t convert_midicev_to_mididata(midicev_t *midicev, byte_t *buf);
-bool_t convert_mididata_to_midicev(byte_t *buf, midicev_t *midicev);
+msq_bool_t convert_midicev_to_mididata(midicev_t *midicev, byte_t *buf);
+msq_bool_t convert_mididata_to_midicev(byte_t *buf, midicev_t *midicev);

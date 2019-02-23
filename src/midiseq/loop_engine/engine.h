@@ -25,8 +25,8 @@
 
 typedef struct
 {
-  bool_t    used;
-  midicev_t midicev;
+  msq_bool_t used;
+  midicev_t  midicev;
 } midireq_t;
 
 typedef struct midioutput
@@ -37,10 +37,10 @@ typedef struct midioutput
   const char      *(*get_name)(void *hdl);
   void            (*set_name)(void *hdl, const char *name);
   /* is_handled should disapear */
-  bool_t          (*write)(struct midioutput *output,
+  msq_bool_t      (*write)(struct midioutput *output,
                            midicev_t *midicev);
   /* _write must be always serialized and in the engine thread */
-  bool_t          (*_write)(struct midioutput *output, midicev_t *midicev);
+  msq_bool_t      (*_write)(struct midioutput *output, midicev_t *midicev);
 } output_t;
 
 #define output_get_name(output)        (output)->get_name((output)->hdl)
@@ -53,11 +53,11 @@ void output_add_req(output_t *output, midicev_t *midicev);
 
 typedef struct
 {
-  byte_t rec_note;
-  bool_t midib_updating;
-  bool_t midib_reading;
-  list_t notepress;
-  list_t keypress;
+  byte_t     rec_note;
+  msq_bool_t midib_updating;
+  msq_bool_t midib_reading;
+  list_t     notepress;
+  list_t     keypress;
 } bindings_t;
 
 typedef struct
@@ -68,17 +68,21 @@ typedef struct
 
 typedef struct
 {
-  midirec_t *buff;
-  midirec_t *last;
-  midirec_t *wptr;
-  midirec_t *rptr;
-  bool_t    max;
+  midirec_t  *buff;
+  midirec_t  *last;
+  midirec_t  *wptr;
+  midirec_t  *rptr;
+  msq_bool_t max;
 } midiringbuffer_t;
 
 void             free_midiringbuff(midiringbuffer_t *mrb);
 midiringbuffer_t *init_midiringbuff(uint_t size);
-bool_t           mrb_write(midiringbuffer_t *rbuff, uint tick, midicev_t *ev);
-bool_t           mrb_read(midiringbuffer_t *rbuff, uint *tick, midicev_t *ev);
+msq_bool_t           mrb_write(midiringbuffer_t *rbuff,
+                               uint tick,
+                               midicev_t *ev);
+msq_bool_t           mrb_read(midiringbuffer_t *rbuff,
+                              uint *tick,
+                              midicev_t *ev);
 
 typedef enum {
   NOSAVE_RQ = 0,
@@ -92,17 +96,17 @@ typedef struct engine_ctx
   void             *hdl;
   list_t           output_list;
   list_t           track_list;
-  bool_t           rec;
+  msq_bool_t       rec;
   void             *track_rec;
   midiringbuffer_t *rbuff;
   uint_t           ppq;               /* Pulse per quater note (beat) */
   uint_t           tempo;             /* Quater note in micro second */
   bindings_t       bindings;
-  bool_t           mute_state_changed; /* Ask to update interface */
-  bool_t           rec_state_changed;  /* Ask for recording track */
+  msq_bool_t       mute_state_changed; /* Ask to update interface */
+  msq_bool_t       rec_state_changed;  /* Ask for recording track */
   saverq_t         saverq;
   char             savepath[256];
-  bool_t           (*is_running)(struct engine_ctx *engine);
+  msq_bool_t       (*is_running)(struct engine_ctx *engine);
   void             (*destroy_hdl)(struct engine_ctx *engine);
   void             (*start)(struct engine_ctx *engine);
   void             (*stop)(struct engine_ctx *engine);
@@ -122,8 +126,8 @@ typedef struct engine_ctx
 #define engine_get_tick(eng)      (eng)->get_tick(eng)
 #define engine_set_tempo(eng, ms) (eng)->set_tempo(eng, ms)
 
-output_t *engine_create_output(engine_ctx_t *ctx, const char *name);
-bool_t   engine_delete_output(engine_ctx_t *ctx, output_t *output);
+output_t   *engine_create_output(engine_ctx_t *ctx, const char *name);
+msq_bool_t engine_delete_output(engine_ctx_t *ctx, output_t *output);
 
 typedef struct
 {
@@ -132,14 +136,14 @@ typedef struct
   track_t          *track;
   uint_t           loop_start;
   uint_t           loop_len;
-  bool_t           need_sync;
-  bool_t           has_changed;
-  bool_t           mute;
+  msq_bool_t       need_sync;
+  msq_bool_t       has_changed;
+  msq_bool_t       mute;
   list_iterator_t  current_tickev;
   pthread_rwlock_t lock;
   list_t           trash;
-  bool_t           deleted;
-  bool_t           play_pending_notes;
+  msq_bool_t       deleted;
+  msq_bool_t       play_pending_notes;
   byte_t           notes_on_state[256];
 } track_ctx_t;
 
@@ -152,10 +156,12 @@ void   play_trackctx(uint_t tick,
 void engine_flush_rbuff(engine_ctx_t *engine);
 
 track_ctx_t *engine_create_trackctx(engine_ctx_t *engine, char *name);
-bool_t      engine_delete_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
+msq_bool_t  engine_delete_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
 track_ctx_t *engine_copy_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
 void        engine_read_midifile(engine_ctx_t *engine, midifile_t *midifile);
-void        engine_save_project(engine_ctx_t *engine, char *file_path, bool_t template);
+void        engine_save_project(engine_ctx_t *engine,
+                                char *file_path,
+                                msq_bool_t template);
 void        gen_miditrack_info(char *retstr,
                                 engine_ctx_t *ctx,
                                 track_ctx_t *trackctx);
@@ -191,14 +197,17 @@ void output_evlist(output_t *output,
                    byte_t *notes_on_state);
 void output_pending_notes(output_t *output, byte_t *notes_on_state);
 
-byte_t engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size);
-bool_t engine_toggle_rec(engine_ctx_t *ctx);
+byte_t     engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size);
+msq_bool_t engine_toggle_rec(engine_ctx_t *ctx);
 
-bool_t nns_init_engine(engine_ctx_t *ctx, char *name);
-bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid);
+msq_bool_t nns_init_engine(engine_ctx_t *ctx, char *name);
+msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid);
 
-bool_t init_engine(engine_ctx_t *engine, char *name, int type, char *jacksessionid);
-void   uninit_engine(engine_ctx_t *engine);
+msq_bool_t init_engine(engine_ctx_t *engine,
+                       char *name,
+                       int type,
+                       char *jacksessionid);
+void       uninit_engine(engine_ctx_t *engine);
 
 typedef struct
 {

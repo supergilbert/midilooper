@@ -259,10 +259,10 @@ void iter_node_del(list_iterator_t *iterator, free_list_func func)
     }
 }
 
-bool_t iter_move_to_addr(list_iterator_t *iterator, void *addr)
+msq_bool_t iter_move_to_addr(list_iterator_t *iterator, void *addr)
 {
   for (iter_head(iterator); iter_node(iterator); iter_next(iterator))
     if (iter_node_ptr(iterator) == addr)
-      return TRUE;
-  return FALSE;
+      return MSQ_TRUE;
+  return MSQ_FALSE;
 }

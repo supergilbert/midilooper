@@ -23,9 +23,9 @@
 #define OUTPUT  stdout
 #define ERROUT  stderr
 
-void            print_hex(FILE *output, byte_t *buffer, uint_t size)
+void print_hex(FILE *output, byte_t *buffer, uint_t size)
 {
-  uint_t        idx = 0;
+  uint_t idx = 0;
 
   while (idx < size)
     {
@@ -34,9 +34,9 @@ void            print_hex(FILE *output, byte_t *buffer, uint_t size)
     }
 }
 
-void            print_ascii(FILE *output, byte_t *buffer, uint_t size)
+void print_ascii(FILE *output, byte_t *buffer, uint_t size)
 {
-  uint_t        idx = 0;
+  uint_t idx = 0;
 
   while (idx < size)
     {
@@ -48,7 +48,7 @@ void            print_ascii(FILE *output, byte_t *buffer, uint_t size)
     }
 }
 
-void            print_bin(FILE *output, byte_t *buffer, uint_t size)
+void print_bin(FILE *output, byte_t *buffer, uint_t size)
 {
   print_hex(output, buffer, size);
   fprintf(output, "\t");
@@ -56,19 +56,19 @@ void            print_bin(FILE *output, byte_t *buffer, uint_t size)
   fprintf(output, "\n");
 }
 
-void		output(char *fmt, ...)
+void output(char *fmt, ...)
 {
-  va_list	ap;
+  va_list ap;
 
   va_start(ap, fmt);
   vfprintf(OUTPUT, fmt, ap);
   va_end(ap);
 }
 
-void		_debug(char *fmt, ...)
+void _debug(char *fmt, ...)
 {
 #ifdef DEBUG_MODE
-  va_list	ap;
+  va_list ap;
 
   va_start(ap, fmt);
   vfprintf(OUTPUT, fmt, ap);
@@ -76,10 +76,10 @@ void		_debug(char *fmt, ...)
 #endif
 }
 
-void		_debug_midi(char *fmt, ...)
+void _debug_midi(char *fmt, ...)
 {
 #ifdef DEBUG_MIDI_MODE
-  va_list	ap;
+  va_list ap;
 
   va_start(ap, fmt);
   vfprintf(OUTPUT, fmt, ap);
@@ -87,9 +87,9 @@ void		_debug_midi(char *fmt, ...)
 #endif
 }
 
-void		_output_warning(char *fmt, ...)
+void _output_warning(char *fmt, ...)
 {
-  va_list	ap;
+  va_list ap;
 
   va_start(ap, fmt);
   fprintf(OUTPUT, "\033[33m");
@@ -105,20 +105,20 @@ void vaoutput_error(char *fmt, va_list ap)
   fprintf(ERROUT, "\033[0m");
 }
 
-void		_output_error(char *fmt, ...)
+void _output_error(char *fmt, ...)
 {
-  va_list	ap;
+  va_list ap;
 
   va_start(ap, fmt);
   vaoutput_error(fmt, ap);
   va_end(ap);
 }
 
-void _msq_assert(bool_t bool, char *format, ...)
+void _msq_assert(msq_bool_t bool, char *format, ...)
 {
-  va_list	ap;
+  va_list ap;
 
-  if (bool == FALSE)
+  if (bool == MSQ_FALSE)
     {
       va_start(ap, format);
       vaoutput_error(format, ap);

@@ -42,7 +42,7 @@ uint_t		get_midi_meta_event(midimev_t *metaev, byte_t *buffer)
       if (buffer[offset] != 2)
 	{
 	  output_error("Error: unexpected size\n");
-	  return FALSE;
+	  return MSQ_FALSE;
 	}
       offset++;
       metaev->type = ME_SEQUENCENUMBER;

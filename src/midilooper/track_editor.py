@@ -189,8 +189,7 @@ def get_track_info(track):
                             'channels',
                             'note_chan',
                             'pitch_chan',
-                            'ctrl_chan'],
-                           verbose=False)
+                            'ctrl_chan'])
 
     return trackinfo(tick_min=track_min,
                      tick_max=track_max,

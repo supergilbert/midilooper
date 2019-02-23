@@ -25,7 +25,7 @@ void dump_tickev(tickev_t *tickev)
 
   output("At tick %d %s got %d event(s)\n",
          tickev->tick,
-         tickev->deleted == TRUE ? "(\033[31mdeleted\033[0m)" : "(not deleted)",
+         tickev->deleted == MSQ_TRUE ? "(\033[31mdeleted\033[0m)" : "(not deleted)",
          tickev->seqev_list.len);
   for (iter_init(&seqevit, &(tickev->seqev_list));
        iter_node(&seqevit) != NULL;

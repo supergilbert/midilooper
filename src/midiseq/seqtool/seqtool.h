@@ -31,14 +31,14 @@ typedef struct
 {
   seqevtype_t   type;
   void          *addr;
-  bool_t        deleted;
+  msq_bool_t    deleted;
 } seqev_t;
 
 typedef struct
 {
   uint_t	tick;
   list_t        seqev_list;
-  bool_t        deleted;
+  msq_bool_t        deleted;
 }		tickev_t;
 
 typedef struct
@@ -72,9 +72,9 @@ seqev_t *alloc_seqev(void *addr, seqevtype_t type);
 node_t  *search_ticknode(list_t *tickev_list, uint_t tick);
 void    goto_next_available_tick(list_iterator_t *tickit, uint_t tick);
 void    iter_next_available_tick(list_iterator_t *tickit);
-bool_t  note_collision(list_t *tickev_list,
-                       uint_t tick, byte_t channel, byte_t note,
-                       uint_t *noteon_tick,
-                       uint_t *noteoff_tick);
+msq_bool_t  note_collision(list_t *tickev_list,
+                           uint_t tick, byte_t channel, byte_t note,
+                           uint_t *noteon_tick,
+                           uint_t *noteoff_tick);
 
 #endif

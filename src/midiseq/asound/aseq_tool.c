@@ -22,7 +22,7 @@
 #include "asound/aseq.h"
 
 
-bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
+msq_bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
 {
   bzero(ev, sizeof (snd_seq_event_t));
   switch (chnev->type)
@@ -76,9 +76,9 @@ bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
       break;
     default:
       fprintf(stderr, "Unsuported event\n");
-      return FALSE;
+      return MSQ_FALSE;
     }
-  return TRUE;
+  return MSQ_TRUE;
 }
 
 void aseq_to_mcev(snd_seq_event_t *snd_ev, midicev_t *mcev)
@@ -115,7 +115,7 @@ void aseq_to_mcev(snd_seq_event_t *snd_ev, midicev_t *mcev)
     }
 }
 
-bool_t _aseq_output_write(output_t *output, midicev_t *midicev)
+msq_bool_t _aseq_output_write(output_t *output, midicev_t *midicev)
 {
   aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
   snd_seq_event_t aseqev;
@@ -123,13 +123,13 @@ bool_t _aseq_output_write(output_t *output, midicev_t *midicev)
   if (set_aseqev(midicev, &aseqev, aseqoutput->port))
     {
       snd_seq_event_output(aseqoutput->handle, &aseqev);
-      *(aseqoutput->ev_to_drain) = TRUE;
-      return TRUE;
+      *(aseqoutput->ev_to_drain) = MSQ_TRUE;
+      return MSQ_TRUE;
     }
-  return FALSE;
+  return MSQ_FALSE;
 }
 
-bool_t aseq_output_ev_n_drain(output_t *output, midicev_t *midicev)
+msq_bool_t aseq_output_ev_n_drain(output_t *output, midicev_t *midicev)
 {
   aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
   snd_seq_event_t aseqev;
@@ -138,19 +138,19 @@ bool_t aseq_output_ev_n_drain(output_t *output, midicev_t *midicev)
     {
       snd_seq_event_output(aseqoutput->handle, &aseqev);
       snd_seq_drain_output(aseqoutput->handle);
-      return TRUE;
+      return MSQ_TRUE;
     }
-  return FALSE;
+  return MSQ_FALSE;
 }
 
-bool_t aseq_output_write(output_t *output,
-                         midicev_t *midicev)
+msq_bool_t aseq_output_write(output_t *output,
+                             midicev_t *midicev)
 {
   aseq_output_t   *aseqoutput = (aseq_output_t *) output->hdl;
 
-  if (*(aseqoutput->is_running) == TRUE)
+  if (*(aseqoutput->is_running) == MSQ_TRUE)
     output_add_req(output, midicev);
   else
     return aseq_output_ev_n_drain(output, midicev);
-  return TRUE;
+  return MSQ_TRUE;
 }

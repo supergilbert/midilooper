@@ -156,7 +156,7 @@ midicev_t *get_next_midicev(list_iterator_t *iter)
   while (iter_node(iter))
     {
       seqev = iter_node_ptr(iter);
-      if (seqev->deleted == FALSE && seqev->type == MIDICEV)
+      if (seqev->deleted == MSQ_FALSE && seqev->type == MIDICEV)
         return (midicev_t *) seqev->addr;
       iter_next(iter);
     }
@@ -203,7 +203,7 @@ buf_node_t *_append_tickev_list(buf_node_t *tail, list_t *tickevlist)
        iter_next(&iter))
     {
       tickev = iter_node_ptr(&iter);
-      if (tickev->deleted == FALSE)
+      if (tickev->deleted == MSQ_FALSE)
         {
           tmp = _create_tickev_buf(tail, tickev, last_tick);
           if (tmp != NULL)
@@ -376,7 +376,7 @@ size_t get_buf_list_size(buf_node_t *buff)
   return size;
 }
 
-void write_midifile_track(int fd, midifile_track_t *mtrack, bool_t template)
+void write_midifile_track(int fd, midifile_track_t *mtrack, msq_bool_t template)
 {
   buf_node_t *tail = NULL, *header = NULL, head = {NULL, 0, NULL};
   char       *name = NULL;
@@ -394,7 +394,7 @@ void write_midifile_track(int fd, midifile_track_t *mtrack, bool_t template)
   if (mtrack->sysex_portid != -1)
     tail = _append_sysex_portid(tail, mtrack->sysex_portid);
 
-  if (template == FALSE)
+  if (template == MSQ_FALSE)
     tail = _append_tickev_list(tail, &(mtrack->track.tickev_list));
   /* tail = _append_metaev_eot(tail); */
   _append_metaev_eot(tail);

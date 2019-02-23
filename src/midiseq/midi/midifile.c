@@ -136,10 +136,10 @@ void get_msq_sysex(midifile_info_t *info, midifile_track_t *track, byte_t *buffe
 
 /* Get midifile track information, and add
    midi channel event to track to the track structure */
-bool_t get_midifile_track(midifile_info_t *info,
-                          midifile_track_t **addr,
-                          byte_t *buffer,
-                          size_t size)
+msq_bool_t get_midifile_track(midifile_info_t *info,
+                              midifile_track_t **addr,
+                              byte_t *buffer,
+                              size_t size)
 {
   midifile_track_t *midifile_track = myalloc(sizeof (midifile_track_t));
   byte_t           *end = NULL;
@@ -148,7 +148,7 @@ bool_t get_midifile_track(midifile_info_t *info,
   midicev_t        chan_ev;
   midimev_t        meta_ev;
   byte_t           status_byte = 0;
-  bool_t           tempo_set = FALSE;
+  msq_bool_t       tempo_set = MSQ_FALSE;
 
   midifile_track->sysex_portid = -1;
   debug_midi("!!! start=%p end=%p\n", buffer, &(buffer[size]));
@@ -180,7 +180,7 @@ bool_t get_midifile_track(midifile_info_t *info,
                 buffer++;
                 offset = get_midi_meta_event(&meta_ev, buffer); /* retour donne le type et loffset */
                 if (0 == offset)
-                  return FALSE;
+                  return MSQ_FALSE;
                 debug_midi("Meta event %s detected %u\n", midime_to_str(meta_ev.type), meta_ev.type);
                 switch (meta_ev.type)
                   {
@@ -200,7 +200,7 @@ bool_t get_midifile_track(midifile_info_t *info,
                     break;
                   case ME_SETTEMPO:
                     info->tempo = meta_ev.val;
-                    tempo_set = TRUE;
+                    tempo_set = MSQ_TRUE;
                     break;
                   }
                 status_byte = 0;
@@ -227,7 +227,7 @@ bool_t get_midifile_track(midifile_info_t *info,
                   {
                     output_error("Problem while searching channel event (type=0x%02X)", *buffer);
                     free_midifile_track(midifile_track);
-                    return FALSE;
+                    return MSQ_FALSE;
                   }
                 if (chan_ev.type >= 0x8 && chan_ev.type <= 0xE)
                   {
@@ -248,7 +248,7 @@ bool_t get_midifile_track(midifile_info_t *info,
               {
                 output_error("Problem while searching channel event (type=0x%02X)", *buffer);
                 free_midifile_track(midifile_track);
-                return FALSE;
+                return MSQ_FALSE;
               }
             if (chan_ev.type >= 0x8 && chan_ev.type <= 0xE)
               {
@@ -259,7 +259,7 @@ bool_t get_midifile_track(midifile_info_t *info,
         else
           {
             output_error("Problem with event type: 0x%02X", *buffer);
-            return FALSE;
+            return MSQ_FALSE;
             /* output_warning("Skipping event(s) and searching for next command"); */
             /* for (offset = 0; */
             /*      (buffer + offset) < end; */
@@ -273,7 +273,7 @@ bool_t get_midifile_track(midifile_info_t *info,
             /* else */
             /*   { */
             /*     output_error("No command found in track"); */
-            /*     return FALSE; */
+            /*     return MSQ_FALSE; */
             /*   } */
           }
         buffer += offset;
@@ -282,7 +282,7 @@ bool_t get_midifile_track(midifile_info_t *info,
 
   if (buffer != end)
     output_error("Unexpected size of track buffer=%p end=%p\n", buffer, end);
-  if (LIST_HEAD(&(midifile_track->track.tickev_list)) != NULL || tempo_set == FALSE)
+  if (LIST_HEAD(&(midifile_track->track.tickev_list)) != NULL || tempo_set == MSQ_FALSE)
     {
       debug_midi(">> channel name \"%s\" number of event = %i\n", midifile_track->track.name, midifile_track->track.tickev_list.len);
       *addr = midifile_track;
@@ -292,7 +292,7 @@ bool_t get_midifile_track(midifile_info_t *info,
       debug_midi("No tick event found\n");
       free_midifile_track(midifile_track);
     }
-  return TRUE;
+  return MSQ_TRUE;
 }
 
 #define BUFFER_DEFAULT_SIZE 524288
@@ -358,7 +358,7 @@ midifile_t *get_midifile_tracks(int fd,
       bzero(buffer, bsize);
       size = read(fd, buffer, size);
       debug_midi("size read = %d\n", size);
-      if (FALSE == get_midifile_track(&info, &(midifile_track), buffer, size))
+      if (MSQ_FALSE == get_midifile_track(&info, &(midifile_track), buffer, size))
         {
           output_error("Problem with track %i\n", idx);
           free(buffer);
@@ -386,7 +386,7 @@ midifile_t *get_midifile_tracks(int fd,
   return midifile;
 }
 
-bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr)
+msq_bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr)
 {
   char		*str = ptr;
   unsigned char	*buffer = ptr;
@@ -408,13 +408,13 @@ bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr)
 
   if (0x8000 & buffer[0])
     {
-      mdhdr->time_division.flag = TRUE;
+      mdhdr->time_division.flag = MSQ_TRUE;
       mdhdr->time_division.value.frame_per_sec.smpte_frames = buffer[0];
       mdhdr->time_division.value.frame_per_sec.ticks_per_frame = buffer[1];
     }
   else
     {
-      mdhdr->time_division.flag = FALSE;
+      mdhdr->time_division.flag = MSQ_FALSE;
       mdhdr->time_division.value.tick_per_beat = (buffer[0] << 8) + buffer[1];
     }
   return 1;
