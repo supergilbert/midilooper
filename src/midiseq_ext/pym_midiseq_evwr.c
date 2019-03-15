@@ -31,18 +31,18 @@ static void midiseq_evwr_dealloc(PyObject *obj)
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-bool_t evwr_check(midiseq_evwrObject *evwr)
+msq_bool_t evwr_check(midiseq_evwrObject *evwr)
 {
   pthread_rwlock_rdlock(&(evwr->trackctx->lock));
   if (evit_check(&(evwr->evit), &(evwr->trackctx->track->tickev_list)))
     {
       pthread_rwlock_unlock(&(evwr->trackctx->lock));
-      return TRUE;
+      return MSQ_TRUE;
     }
   else
     {
       pthread_rwlock_unlock(&(evwr->trackctx->lock));
-      return FALSE;
+      return MSQ_FALSE;
     }
 }
 

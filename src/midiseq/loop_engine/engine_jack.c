@@ -44,7 +44,7 @@ msq_bool_t jbe_is_running(engine_ctx_t *ctx)
 void jbe_stop(engine_ctx_t *ctx)
 {
   jbe_hdl_t *hdl = (jbe_hdl_t *) ctx->hdl;
-  const jack_position_t pos = {valid:0, frame:0};
+  const jack_position_t pos = {.valid=0, .frame=0};
 
   jack_transport_stop(hdl->client);
   hdl->stopped = MSQ_TRUE;

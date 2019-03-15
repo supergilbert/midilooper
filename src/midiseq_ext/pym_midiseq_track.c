@@ -161,7 +161,7 @@ static PyObject *midiseq_track_set_len(PyObject *obj, PyObject *args)
       return NULL;
     }
   self->trackctx->loop_len = len;
-  self->trackctx->need_sync = TRUE;
+  self->trackctx->need_sync = MSQ_TRUE;
   Py_RETURN_NONE;
 }
 
@@ -176,7 +176,7 @@ static PyObject *midiseq_track_set_start(PyObject *obj, PyObject *args)
       return NULL;
     }
   self->trackctx->loop_start = start;
-  self->trackctx->need_sync = TRUE;
+  self->trackctx->need_sync = MSQ_TRUE;
   Py_RETURN_NONE;
 }
 
@@ -186,7 +186,7 @@ static PyObject *midiseq_track_mute(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  if (self->trackctx->mute == FALSE)
+  if (self->trackctx->mute == MSQ_FALSE)
     _trackctx_mute(self->trackctx);
   Py_RETURN_NONE;
 }
@@ -194,7 +194,7 @@ static PyObject *midiseq_track_unmute(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  self->trackctx->mute = FALSE;
+  self->trackctx->mute = MSQ_FALSE;
   Py_RETURN_NONE;
 }
 static PyObject *midiseq_track_toggle_mute(PyObject *obj, PyObject *args)
@@ -209,7 +209,7 @@ static PyObject *midiseq_track_get_mute_state(PyObject *obj, PyObject *args)
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  if (self->trackctx->mute == TRUE)
+  if (self->trackctx->mute == MSQ_TRUE)
     Py_RETURN_TRUE;
   Py_RETURN_FALSE;
 }
@@ -317,7 +317,7 @@ static PyObject *midiseq_track_ishandled(PyObject *obj,
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  if (self->trackctx->engine && engine_is_running(self->trackctx->engine) == TRUE)
+  if (self->trackctx->engine && engine_is_running(self->trackctx->engine) == MSQ_TRUE)
     Py_RETURN_TRUE;
   Py_RETURN_FALSE;
 }
@@ -327,9 +327,9 @@ static PyObject *midiseq_track_has_changed(PyObject *obj,
 {
   midiseq_trackObject *self = (midiseq_trackObject *) obj;
 
-  if (self->trackctx->has_changed == TRUE)
+  if (self->trackctx->has_changed == MSQ_TRUE)
     {
-      self->trackctx->has_changed = FALSE;
+      self->trackctx->has_changed = MSQ_FALSE;
       Py_RETURN_TRUE;
     }
   Py_RETURN_FALSE;

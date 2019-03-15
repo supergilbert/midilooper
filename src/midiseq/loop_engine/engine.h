@@ -91,7 +91,7 @@ typedef enum {
   SAVE_N_QUIT_RQ
 } saverq_t;
 
-typedef struct engine_ctx
+typedef struct engine_ctx_s
 {
   void             *hdl;
   list_t           output_list;
@@ -106,17 +106,17 @@ typedef struct engine_ctx
   msq_bool_t       rec_state_changed;  /* Ask for recording track */
   saverq_t         saverq;
   char             savepath[256];
-  msq_bool_t       (*is_running)(struct engine_ctx *engine);
-  void             (*destroy_hdl)(struct engine_ctx *engine);
-  void             (*start)(struct engine_ctx *engine);
-  void             (*stop)(struct engine_ctx *engine);
-  void             (*create_output)(struct engine_ctx *engine,
+  msq_bool_t       (*is_running)(struct engine_ctx_s *engine);
+  void             (*destroy_hdl)(struct engine_ctx_s *engine);
+  void             (*start)(struct engine_ctx_s *engine);
+  void             (*stop)(struct engine_ctx_s *engine);
+  void             (*create_output)(struct engine_ctx_s *engine,
                                     output_t *output,
                                     const char *name);
-  void             (*delete_output_node)(struct engine_ctx *engine,
+  void             (*delete_output_node)(struct engine_ctx_s *engine,
                                          output_t *output);
-  uint_t           (*get_tick)(struct engine_ctx *engine);
-  void             (*set_tempo)(struct engine_ctx *engine, uint_t ms);
+  uint_t           (*get_tick)(struct engine_ctx_s *engine);
+  void             (*set_tempo)(struct engine_ctx_s *engine, uint_t ms);
 } engine_ctx_t;
 
 #define engine_is_running(eng)    (eng)->is_running(eng)

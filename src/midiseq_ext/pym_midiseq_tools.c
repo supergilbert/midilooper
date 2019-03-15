@@ -184,8 +184,8 @@ PyObject *getall_noteonoff_evwr(track_ctx_t *trackctx, byte_t channel)
 /* { */
 /*   if ((tick_min <= tick_off && tick_on <= tick_max) && */
 /*       (note_min <= note && note <= note_max)) */
-/*       return TRUE; */
-/*   return FALSE; */
+/*       return MSQ_TRUE; */
+/*   return MSQ_FALSE; */
 /* } */
 
 /* #define _evit_get_midicev(evit) ((midicev_t *) (evit)->seqevit.node->addr) */
@@ -292,17 +292,17 @@ PyObject *_build_noteonoff_repr(ev_iterator_t *evit_noteon,
   return ev_repr;
 }
 
-bool_t mcev_is_in_list(list_t *mcev_list, midicev_t *mcev)
+msq_bool_t mcev_is_in_list(list_t *mcev_list, midicev_t *mcev)
 {
   node_t    *node = mcev_list->head;
 
   while (node != NULL)
     {
       if (node->addr == mcev)
-        return TRUE;
+        return MSQ_TRUE;
       node = node->next;
     }
-  return FALSE;
+  return MSQ_FALSE;
 }
 
 static midicev_t *_evit_next_noteoff_num_excl(ev_iterator_t *evit_noteoff,
@@ -485,7 +485,7 @@ void delete_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
 
   void (*del_func)(track_ctx_t *, ev_iterator_t *);
 
-  if (trackctx->engine && engine_is_running(trackctx->engine) == TRUE)
+  if (trackctx->engine && engine_is_running(trackctx->engine) == MSQ_TRUE)
     del_func = trackctx_event2trash;
   else
     del_func = trackctx_del_event;
@@ -503,13 +503,13 @@ void delete_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
 #include "seqtool/seqtool.h"
 
 
-bool_t gen_mcev_from_evrepr(PyObject *evrepr, uint_t *tick, midicev_t *mcev)
+msq_bool_t gen_mcev_from_evrepr(PyObject *evrepr, uint_t *tick, midicev_t *mcev)
 {
   Py_ssize_t    list_len = PyTuple_Size(evrepr);
   unsigned long chan, type, val1, val2;
 
   if (list_len < 5)
-    return FALSE;
+    return MSQ_FALSE;
   /* todo: more test */
   *tick = (uint_t) PyLong_AsUnsignedLong(PyTuple_GetItem(evrepr, 0));
   chan  = PyLong_AsUnsignedLong(PyTuple_GetItem(evrepr, 1));
@@ -536,7 +536,7 @@ bool_t gen_mcev_from_evrepr(PyObject *evrepr, uint_t *tick, midicev_t *mcev)
     default:
       ;
     }
-  return TRUE;
+  return MSQ_TRUE;
 }
 
 PyObject *try_gen_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
@@ -555,7 +555,7 @@ PyObject *try_gen_evwr_list(track_ctx_t *trackctx, PyObject *pylist)
          idx++)
       {
         evrepr = (PyObject *) PyList_GetItem(pylist, idx);
-        if (gen_mcev_from_evrepr(evrepr, &tick, &mcev) == TRUE)
+        if (gen_mcev_from_evrepr(evrepr, &tick, &mcev) == MSQ_TRUE)
           {
             if (evit_searchev(&evit, tick, &mcev) != NULL)
               {
@@ -666,6 +666,6 @@ PyObject *add_evrepr_list(track_ctx_t *trackctx, PyObject *pylist)
     }
   list_len = PyList_GET_SIZE(list);
   if (list_len > 0)
-    trackctx->has_changed = TRUE;
+    trackctx->has_changed = MSQ_TRUE;
   return list;
 }

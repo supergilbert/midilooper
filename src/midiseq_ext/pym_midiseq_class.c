@@ -56,7 +56,7 @@ static int midiseq_init(midiseq_Object *self,
       if (tmp != NULL)
         name = tmp;
     }
-  if (init_engine(&(self->engine_ctx), name, type, jacksessionid) == TRUE)
+  if (init_engine(&(self->engine_ctx), name, type, jacksessionid) == MSQ_TRUE)
     return 0;
   return -1;
 }
@@ -72,7 +72,7 @@ static PyObject *midiseq_save(PyObject *obj,
     return NULL;
   if (!PyArg_ParseTuple(args , "s", &filename))
     return NULL;
-  engine_save_project(&(self->engine_ctx), filename, FALSE);
+  engine_save_project(&(self->engine_ctx), filename, MSQ_FALSE);
   Py_RETURN_NONE;
 }
 
@@ -86,7 +86,7 @@ static PyObject *midiseq_savetpl(PyObject *obj,
     return NULL;
   if (!PyArg_ParseTuple(args , "s", &filename))
     return NULL;
-  engine_save_project(&(self->engine_ctx), filename, TRUE);
+  engine_save_project(&(self->engine_ctx), filename, MSQ_TRUE);
   Py_RETURN_NONE;
 }
 
@@ -178,7 +178,7 @@ static PyObject *midiseq_deltrack(PyObject *obj,
   if (!PyArg_ParseTuple(args , "O", &pytrack))
     return NULL;
 
-  if (engine_delete_trackctx(&(self->engine_ctx), pytrack->trackctx) == FALSE)
+  if (engine_delete_trackctx(&(self->engine_ctx), pytrack->trackctx) == MSQ_FALSE)
     return NULL;
   Py_RETURN_NONE;
 }
@@ -207,7 +207,7 @@ static PyObject *midiseq_copy_track(PyObject *obj,
     return NULL;
 
   trackctx = engine_copy_trackctx(&(self->engine_ctx), pytrack->trackctx);
-  trackctx->mute = TRUE;
+  trackctx->mute = MSQ_TRUE;
   trackctx->output =  pytrack->trackctx->output;
   return create_pym_track(trackctx);
 }
@@ -254,7 +254,7 @@ static PyObject *midiseq_deloutput(PyObject *obj,
 
   if (!PyArg_ParseTuple(args , "O", &port))
     return NULL;
-  if (engine_delete_output(&(self->engine_ctx), port->output) == FALSE)
+  if (engine_delete_output(&(self->engine_ctx), port->output) == MSQ_FALSE)
     return NULL;
   Py_RETURN_NONE;
 }
@@ -305,7 +305,7 @@ static PyObject *midiseq_setrecmode(PyObject *obj,
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
-  self->engine_ctx.rec = TRUE;
+  self->engine_ctx.rec = MSQ_TRUE;
   Py_RETURN_NONE;
 }
 
@@ -314,7 +314,7 @@ static PyObject *midiseq_unsetrecmode(PyObject *obj,
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
-  self->engine_ctx.rec = FALSE;
+  self->engine_ctx.rec = MSQ_FALSE;
   Py_RETURN_NONE;
 }
 
@@ -323,7 +323,7 @@ static PyObject *midiseq_recmode(PyObject *obj,
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
-  if (self->engine_ctx.rec == TRUE)
+  if (self->engine_ctx.rec == MSQ_TRUE)
     Py_RETURN_TRUE;
   else
     Py_RETURN_FALSE;
@@ -338,7 +338,7 @@ static PyObject *midiseq_getrecbuf(PyObject *obj,
   midicev_t      mcev;
 
   ret_obj = PyList_New(0);
-  while(mrb_read(self->engine_ctx.rbuff, &tick, &mcev) == TRUE)
+  while(mrb_read(self->engine_ctx.rbuff, &tick, &mcev) == MSQ_TRUE)
     {
       if (mcev.type == NOTEON && mcev.event.note.val == 0)
         mcev.type = NOTEOFF;
@@ -538,9 +538,9 @@ static PyObject *midiseq_mute_state_changed(PyObject *obj,
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
-  if (self->engine_ctx.mute_state_changed == TRUE)
+  if (self->engine_ctx.mute_state_changed == MSQ_TRUE)
     {
-      self->engine_ctx.mute_state_changed = FALSE;
+      self->engine_ctx.mute_state_changed = MSQ_FALSE;
       Py_RETURN_TRUE;
     }
   else
@@ -552,9 +552,9 @@ static PyObject *midiseq_rec_state_changed(PyObject *obj,
 {
   midiseq_Object *self = (midiseq_Object *) obj;
 
-  if (self->engine_ctx.rec_state_changed == TRUE)
+  if (self->engine_ctx.rec_state_changed == MSQ_TRUE)
     {
-      self->engine_ctx.rec_state_changed = FALSE;
+      self->engine_ctx.rec_state_changed = MSQ_FALSE;
       Py_RETURN_TRUE;
     }
   else
