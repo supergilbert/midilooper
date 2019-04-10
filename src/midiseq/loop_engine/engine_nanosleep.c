@@ -72,11 +72,8 @@ void nns_destroy_hdl(engine_ctx_t *ctx)
 {
   nns_hdl_t *hdl = (nns_hdl_t *) ctx->hdl;
 
-  if (nns_is_running(ctx))
-    {
-      nns_stop(ctx);
-      pthread_join(hdl->thread_id, NULL);
-    }
+  hdl->rq = engine_rq_desactivate;
+  pthread_join(hdl->thread_id, NULL);
   free_aseqh(hdl->aseqh);
   pthread_rwlock_destroy(&(hdl->lock));
   free(hdl);
