@@ -479,5 +479,6 @@ void uninit_engine(engine_ctx_t *engine)
   engine_destroy_hdl(engine);
   free_list_node(&(engine->track_list), _free_trackctx);
   engine_clear_all_bindings(engine);
-  bzero(engine, sizeof (engine_ctx_t));
+  free_midiringbuff(engine->rbuff);
+  /* bzero(engine, sizeof (engine_ctx_t)); */
 }

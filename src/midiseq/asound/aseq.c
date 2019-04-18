@@ -41,6 +41,7 @@ void free_aseqh(snd_seq_t *handle)
   int err = 0;
 
   err = snd_seq_close(handle);
+  snd_config_update_free_global();
   if (0 != err)
     output_error("problem while closing alsa seq handler\n%s\n",
                  snd_strerror(err));
