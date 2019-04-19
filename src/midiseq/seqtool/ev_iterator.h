@@ -45,14 +45,12 @@ seqev_t   *evit_get_seqev(ev_iterator_t *);
 seqev_t   *evit_next_seqev(ev_iterator_t *);
 void      evit_copy(ev_iterator_t *evit_src, ev_iterator_t *evit_dst);
 midicev_t *evit_next_midicev(ev_iterator_t *ev_iterator, byte_t channel);
-midicev_t *evit_next_midicev_type(ev_iterator_t *, byte_t channel, byte_t type);
+midicev_t *evit_next_midicev_type(ev_iterator_t *,
+                                  byte_t channel,
+                                  byte_t type);
 midicev_t *evit_next_midiallchannel(ev_iterator_t *ev_iterator);
 void      evit_del_event(ev_iterator_t *ev_iterator);
 void      evit_add_midicev(ev_iterator_t *evit, uint_t tick, midicev_t *mcev);
-
-msq_bool_t  search_note_collision(list_t *tickev_list,
-                                  uint_t tick, byte_t channel, byte_t note,
-                                  uint_t *noteon_tick);
 
 msq_bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list);
 #ifdef __ROUGH
@@ -61,14 +59,32 @@ msq_bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list);
 #define evit_check(evit, tickev_list) _evit_check(evit, (tickev_list))
 #endif
 
-#define evit_next_noteon(evit, chan)  (evit_next_midicev_type((evit), (chan), NOTEON))
-#define evit_next_noteoff(evit, chan) (evit_next_midicev_type((evit), (chan), NOTEOFF))
-#define evit_next_ctrl(evit, chan)    (evit_next_midicev_type((evit), (chan), CONTROLCHANGE))
-#define evit_next_pitch(evit, chan)   (evit_next_midicev_type((evit), (chan), PITCHWHEELCHANGE))
+#define evit_next_noteon(evit, chan)                    \
+  (evit_next_midicev_type((evit), (chan), NOTEON))
+#define evit_next_noteoff(evit, chan)                   \
+  (evit_next_midicev_type((evit), (chan), NOTEOFF))
+#define evit_next_ctrl(evit, chan)                              \
+  (evit_next_midicev_type((evit), (chan), CONTROLCHANGE))
+#define evit_next_pitch(evit, chan)                             \
+  (evit_next_midicev_type((evit), (chan), PITCHWHEELCHANGE))
 
-midicev_t *evit_next_noteoff_num(ev_iterator_t *ev_iterator, byte_t channel, byte_t num);
-midicev_t *evit_next_ctrl_num(ev_iterator_t *ev_iterator, byte_t channel, byte_t ctrl_num);
-midicev_t *evit_init_ctrl_num(ev_iterator_t *ev_iterator, list_t *tickev_list, byte_t channel, byte_t ctrl_num);
-midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator, list_t *tickev_list, byte_t channel);
+midicev_t *evit_next_noteoff_num(ev_iterator_t *ev_iterator,
+                                 byte_t channel,
+                                 byte_t num);
+midicev_t *evit_next_ctrl_num(ev_iterator_t *ev_iterator,
+                              byte_t channel,
+                              byte_t ctrl_num);
+midicev_t *evit_init_ctrl_num(ev_iterator_t *ev_iterator,
+                              list_t *tickev_list,
+                              byte_t channel,
+                              byte_t ctrl_num);
+midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator,
+                           list_t *tickev_list,
+                           byte_t channel);
+
+msq_bool_t note_collision(uint_t tick,
+                          byte_t channel,
+                          byte_t note,
+                          list_t *tickev_list);
 
 #endif

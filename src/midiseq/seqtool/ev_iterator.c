@@ -461,3 +461,34 @@ msq_bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list)
   output_error("tick iterator mismatch");
   return MSQ_FALSE;
 }
+
+msq_bool_t note_collision(uint_t tick,
+                          byte_t channel,
+                          byte_t note,
+                          list_t *tickev_list)
+{
+  ev_iterator_t evit_noteon, evit_noteoff;
+  midicev_t *noteon = evit_init_noteon(&evit_noteon,
+                                       tickev_list,
+                                       channel),
+    *noteoff;
+
+  while (noteon != NULL && evit_noteon.tick < tick)
+    {
+      if (noteon->event.note.num == note)
+        {
+          evit_copy(&evit_noteon, &evit_noteoff);
+          noteoff = evit_next_noteoff_num(&evit_noteoff, channel, note);
+          if (noteoff == NULL)
+            {
+              output_error("noteoff missing");
+              return MSQ_FALSE;
+            }
+          if (evit_noteoff.tick > tick)
+            return MSQ_TRUE;
+        }
+      noteon = evit_next_noteon(&evit_noteon, channel);
+    }
+
+  return MSQ_FALSE;
+}
