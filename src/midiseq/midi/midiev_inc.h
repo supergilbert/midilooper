@@ -38,7 +38,7 @@ typedef struct
   byte_t type, chan;
   union
   {
-    struct { byte_t num, vel; }   note;
+    struct { byte_t num, val; }   note;
     struct { byte_t num, val; }   aftertouch;
     struct { byte_t num, val; }   ctrl;
     byte_t                        prg_chg;

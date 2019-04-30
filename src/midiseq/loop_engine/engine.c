@@ -324,7 +324,7 @@ void output_pending_notes(output_t *output, byte_t *notes_on_state)
   midicev_t       mcev;
 
   mcev.type = NOTEOFF;
-  mcev.event.note.vel = 0;
+  mcev.event.note.val = 0;
 
   for (channel_idx = 0;
        channel_idx < 16;

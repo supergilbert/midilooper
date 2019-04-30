@@ -32,14 +32,14 @@ msq_bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
                         port,
                         chnev->chan,
                         chnev->event.note.num,
-                        chnev->event.note.vel);
+                        chnev->event.note.val);
       break;
     case NOTEON:
       ASEQ_SETNOTEONEV(ev,
                        port,
                        chnev->chan,
                        chnev->event.note.num,
-                       chnev->event.note.vel);
+                       chnev->event.note.val);
       break;
     case KEYAFTERTOUCH:
       ASEQ_SETKEYAFTERTOUCHEV(ev,
@@ -90,13 +90,13 @@ void aseq_to_mcev(snd_seq_event_t *snd_ev, midicev_t *mcev)
       mcev->type = NOTEON;
       mcev->chan = snd_ev->data.note.channel;
       mcev->event.note.num = snd_ev->data.note.note;
-      mcev->event.note.vel = snd_ev->data.note.velocity;
+      mcev->event.note.val = snd_ev->data.note.velocity;
       break;
     case SND_SEQ_EVENT_NOTEOFF:
       mcev->type = NOTEOFF;
       mcev->chan = snd_ev->data.note.channel;
       mcev->event.note.num = snd_ev->data.note.note;
-      mcev->event.note.vel = snd_ev->data.note.velocity;
+      mcev->event.note.val = snd_ev->data.note.velocity;
       break;
     case SND_SEQ_EVENT_CONTROLLER:
       mcev->type = CONTROLCHANGE;
