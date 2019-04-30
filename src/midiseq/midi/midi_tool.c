@@ -28,7 +28,7 @@ msq_bool_t convert_midicev_to_mididata(midicev_t *midicev, byte_t *buf)
     case NOTEON:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.note.num & 0xFF;
-      buf[2] = midicev->event.note.val & 0xFF;
+      buf[2] = midicev->event.note.vel & 0xFF;
       ret = MSQ_TRUE;
       break;
     case KEYAFTERTOUCH:
@@ -80,7 +80,7 @@ msq_bool_t convert_mididata_to_midicev(byte_t *buf, midicev_t *midicev)
       midicev->type = type;
       midicev->chan = buf[0] & 0xF;
       midicev->event.note.num = buf[1];
-      midicev->event.note.val = buf[2];
+      midicev->event.note.vel = buf[2];
       ret = MSQ_TRUE;
       break;
     case KEYAFTERTOUCH:

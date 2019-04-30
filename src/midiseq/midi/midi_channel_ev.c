@@ -31,16 +31,16 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
       chan_ev->event.note.num = buffer[1];
-      chan_ev->event.note.val = buffer[2];
+      chan_ev->event.note.vel = buffer[2];
       debug_midi("*** NOTEOFF Event (channel:%d num:%d val:%d) ***",
                  chan_ev->chan,
                  chan_ev->event.note.num,
-                 chan_ev->event.note.val);
+                 chan_ev->event.note.vel);
       return 3;
 
     case NOTEON:
-      chan_ev->event.note.val = buffer[2];
-      if (chan_ev->event.note.val > 0)
+      chan_ev->event.note.vel = buffer[2];
+      if (chan_ev->event.note.vel > 0)
         chan_ev->type = type;
       else
         chan_ev->type = NOTEOFF;
@@ -50,7 +50,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
       debug_midi("*** NOTEON Event (channel:%d num:%d val:%d) ***",
                  chan_ev->chan,
                  chan_ev->event.note.num,
-                 chan_ev->event.note.val);
+                 chan_ev->event.note.vel);
       return 3;
 
     case CONTROLCHANGE:
@@ -180,7 +180,7 @@ msq_bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2)
       case NOTEOFF:
       case NOTEON:
         if (mcev1->event.note.num == mcev2->event.note.num &&
-            mcev1->event.note.val == mcev2->event.note.val)
+            mcev1->event.note.vel == mcev2->event.note.vel)
           return MSQ_TRUE;
         break;
       case KEYAFTERTOUCH:
@@ -234,12 +234,12 @@ void dump_seqev(seqev_t *seqev)
         case NOTEON:
           output(" | NOTEON  num=%hhd val=%hhd\n",
                  midicev->event.note.num,
-                 midicev->event.note.val);
+                 midicev->event.note.vel);
           break;
         case NOTEOFF:
           output(" | NOTEOFF num=%hhd val=%hhd\n",
                  midicev->event.note.num,
-                 midicev->event.note.val);
+                 midicev->event.note.vel);
           break;
         case CONTROLCHANGE:
           output(" | CONTROLCHANGE num=%hhd val=%hhd\n",
