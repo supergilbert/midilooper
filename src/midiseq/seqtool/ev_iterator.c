@@ -473,7 +473,7 @@ msq_bool_t note_collision(uint_t tick,
                                        channel),
     *noteoff;
 
-  while (noteon != NULL && evit_noteon.tick < tick)
+  while (noteon != NULL && evit_noteon.tick <= tick)
     {
       if (noteon->event.note.num == note)
         {
