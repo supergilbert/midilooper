@@ -82,9 +82,4 @@ midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator,
                            list_t *tickev_list,
                            byte_t channel);
 
-msq_bool_t note_collision(uint_t tick,
-                          byte_t channel,
-                          byte_t note,
-                          list_t *tickev_list);
-
 #endif

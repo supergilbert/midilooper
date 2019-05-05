@@ -43,9 +43,6 @@ seqev_t *_it_next_seqev(list_iterator_t *seqevit)
   return NULL;
 }
 
-/* #include "debug_tool/debug_tool.h" */
-/* #define print_trace(format, ...) output(TRACE_FMT format "\n", TRACE_ARG, ##__VA_ARGS__) */
-
 seqev_t *_evit_seqevit_head(list_iterator_t *seqevit)
 {
   seqev_t *ev = NULL;
@@ -84,7 +81,8 @@ seqev_t *evit_next_tick(ev_iterator_t *ev_iterator)
           tickev = (tickev_t *) iter_node_ptr(&(ev_iterator->tickit));
           if (tickev->deleted == MSQ_FALSE)
             {
-              seqev = _evit_seqevit_init(&(ev_iterator->seqevit), &(tickev->seqev_list));
+              seqev = _evit_seqevit_init(&(ev_iterator->seqevit),
+                                         &(tickev->seqev_list));
               if (seqev)
                 {
                   ev_iterator->tick = tickev->tick;
@@ -111,7 +109,8 @@ seqev_t *evit_tick_head(ev_iterator_t *ev_iterator)
         }
       else
         {
-          seqev = _evit_seqevit_init(&(ev_iterator->seqevit), &(tickev->seqev_list));
+          seqev = _evit_seqevit_init(&(ev_iterator->seqevit),
+                                     &(tickev->seqev_list));
           ev_iterator->tick = tickev->tick;
         }
     }
@@ -332,7 +331,9 @@ midicev_t *evit_next_midicev(ev_iterator_t *ev_iterator, byte_t channel)
 }
 
 
-midicev_t *evit_next_midicev_type(ev_iterator_t *ev_iterator, byte_t channel, byte_t type)
+midicev_t *evit_next_midicev_type(ev_iterator_t *ev_iterator,
+                                  byte_t channel,
+                                  byte_t type)
 {
   midicev_t *midicev = NULL;
 
@@ -344,8 +345,9 @@ midicev_t *evit_next_midicev_type(ev_iterator_t *ev_iterator, byte_t channel, by
   return NULL;
 }
 
-
-midicev_t *evit_next_noteoff_num(ev_iterator_t *ev_iterator, byte_t channel, byte_t num)
+midicev_t *evit_next_noteoff_num(ev_iterator_t *ev_iterator,
+                                 byte_t channel,
+                                 byte_t num)
 {
   midicev_t *midicev = NULL;
 
@@ -356,7 +358,6 @@ midicev_t *evit_next_noteoff_num(ev_iterator_t *ev_iterator, byte_t channel, byt
       return midicev;
   return NULL;
 }
-
 
 void evit_copy(ev_iterator_t *evit_src, ev_iterator_t *evit_dst)
 {
@@ -451,7 +452,8 @@ msq_bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list)
           else
             while ((ev = _it_next_seqev(&(evit_ptr.seqevit))) != NULL)
               {
-                if (iter_node(&(evit_ptr.seqevit)) == iter_node(&(evit->seqevit)))
+                if (iter_node(&(evit_ptr.seqevit))
+                    == iter_node(&(evit->seqevit)))
                   return MSQ_TRUE;
               }
           output_error("sequencer event iterator mismatch");
@@ -459,36 +461,5 @@ msq_bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list)
         }
     }
   output_error("tick iterator mismatch");
-  return MSQ_FALSE;
-}
-
-msq_bool_t note_collision(uint_t tick,
-                          byte_t channel,
-                          byte_t note,
-                          list_t *tickev_list)
-{
-  ev_iterator_t evit_noteon, evit_noteoff;
-  midicev_t *noteon = evit_init_noteon(&evit_noteon,
-                                       tickev_list,
-                                       channel),
-    *noteoff;
-
-  while (noteon != NULL && evit_noteon.tick <= tick)
-    {
-      if (noteon->event.note.num == note)
-        {
-          evit_copy(&evit_noteon, &evit_noteoff);
-          noteoff = evit_next_noteoff_num(&evit_noteoff, channel, note);
-          if (noteoff == NULL)
-            {
-              output_error("noteoff missing");
-              return MSQ_FALSE;
-            }
-          if (evit_noteoff.tick > tick)
-            return MSQ_TRUE;
-        }
-      noteon = evit_next_noteon(&evit_noteon, channel);
-    }
-
   return MSQ_FALSE;
 }
