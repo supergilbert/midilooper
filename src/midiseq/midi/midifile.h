@@ -158,6 +158,6 @@ buf_node_t *_append_metaev_eot(buf_node_t *tail);
 
 void write_midifile_trackhdr(int fd, size_t track_size);
 size_t write_midifile_header(int fd, uint_t track_list_len, uint_t ppq);
-void write_midifile_track(int fd, midifile_track_t *mtrack, msq_bool_t template);
+void write_midifile_track(int fd, midifile_track_t *mtrack, msq_bool_t is_template);
 
 #endif
