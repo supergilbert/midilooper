@@ -475,6 +475,7 @@ void free_output_list(engine_ctx_t *ctx)
 
 void uninit_engine(engine_ctx_t *engine)
 {
+  engine_stop(engine);
   free_output_list(engine);
   engine_destroy_hdl(engine);
   free_list_node(&(engine->track_list), _free_trackctx);
