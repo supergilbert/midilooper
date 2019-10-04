@@ -369,20 +369,30 @@ output_t *engine_create_output(engine_ctx_t *ctx, const char *name)
 
 msq_bool_t engine_delete_output(engine_ctx_t *ctx, output_t *output)
 {
-  list_iterator_t output_it;
-  output_t        *ptr = NULL;
+  list_iterator_t it;
+  output_t        *output_ptr = NULL;
+  track_ctx_t     *track_ctx = NULL;
 
-  for (iter_init(&output_it, &(ctx->output_list));
-       iter_node(&output_it) != NULL;
-       iter_next(&output_it))
+  for (iter_init(&it, &(ctx->track_list));
+       iter_node(&it) != NULL;
+       iter_next(&it))
     {
-      ptr = iter_node_ptr(&output_it);
-      if (ptr == output)
+      track_ctx = iter_node_ptr(&it);
+      if (track_ctx->output == output)
+        track_ctx->output = NULL;
+    }
+
+  for (iter_init(&it, &(ctx->output_list));
+       iter_node(&it) != NULL;
+       iter_next(&it))
+    {
+      output_ptr = iter_node_ptr(&it);
+      if (output_ptr == output)
         {
           free_list_node(&(output->req_list), free);
           pthread_mutex_destroy(&(output->req_lock));
           ctx->delete_output_node(ctx, output);
-          iter_node_del(&output_it, NULL);
+          iter_node_del(&it, NULL);
           return MSQ_TRUE;
         }
     }
