@@ -217,7 +217,9 @@ typedef struct
 
 #include "seqtool/ev_iterator.h"
 
-void            trackctx_event2trash(track_ctx_t *traxkctx,
-                                     ev_iterator_t *ev_iterator);
+void trackctx_event2trash(track_ctx_t *traxkctx,
+                          ev_iterator_t *ev_iterator);
+
+void trackctx_set_name(track_ctx_t *traxkctx, const char *name);
 
 #endif

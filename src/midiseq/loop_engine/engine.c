@@ -493,3 +493,12 @@ void uninit_engine(engine_ctx_t *engine)
   free_midiringbuff(engine->rbuff);
   /* bzero(engine, sizeof (engine_ctx_t)); */
 }
+
+void trackctx_set_name(track_ctx_t *trackctx, const char *name)
+{
+  char *new_name = strdup(name),
+    *old_name = trackctx->track->name;
+
+  trackctx->track->name = new_name;
+  free(old_name);
+}
