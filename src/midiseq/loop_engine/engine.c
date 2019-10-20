@@ -452,7 +452,7 @@ msq_bool_t init_engine(engine_ctx_t *engine,
 
   /* Setting pulsation and tempo to prevent error */
   engine->ppq = 192;
-  engine->tempo = 500;
+  engine->tempo = 500000;
 
   if (type == 0)
     {
@@ -465,7 +465,6 @@ msq_bool_t init_engine(engine_ctx_t *engine,
         return MSQ_FALSE;
     }
 
-  engine_set_tempo(engine, 500);
   return MSQ_TRUE;
 }
 

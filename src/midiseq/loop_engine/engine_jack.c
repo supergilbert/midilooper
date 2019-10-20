@@ -412,6 +412,9 @@ msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid)
   if (client == NULL)
     return MSQ_FALSE;
 
+  ctx->ppq = 192;
+  ctx->tempo = 500000;
+
   ctx->destroy_hdl        = jbe_destroy_hdl;
   ctx->is_running         = jbe_is_running;
   ctx->start              = jbe_start;
@@ -443,7 +446,7 @@ msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid)
 
   jack_set_session_callback(hdl->client, jack_session_cb, (void *) ctx);
 
-  if (jack_activate (client)) {
+  if (jack_activate(client)) {
     output_error("Cannot activate jack client");
     engine_destroy_hdl(ctx);
     return MSQ_FALSE;

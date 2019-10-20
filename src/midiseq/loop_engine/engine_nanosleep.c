@@ -296,6 +296,9 @@ msq_bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
   if (aseqh == NULL)
     return MSQ_FALSE;
 
+  ctx->ppq = 192;
+  ctx->tempo = 500000;
+
   ctx->destroy_hdl        = nns_destroy_hdl;
   ctx->is_running         = nns_is_running;
   ctx->start              = nns_start;
@@ -326,8 +329,9 @@ msq_bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
                                SND_SEQ_PORT_TYPE_APPLICATION);
   ctx->hdl = hdl;
 
-  ctx->ppq = 192;
-  engine_set_tempo(ctx, 500);
+  set_msnppq_to_timespec(&(hdl->looph.res),
+                         ctx->ppq,
+                         ctx->tempo);
   pthread_create(&(hdl->thread_id), NULL, nns_thread_wrapper, ctx);
   usleep(200000);
   return MSQ_TRUE;
