@@ -77,14 +77,10 @@ uint_t _seqev_len(tickev_t *tickev)
 
 void trackctx_event2trash(track_ctx_t *trackctx,
                           ev_iterator_t *ev_iterator)
-/* list_iterator_t *tickit, */
-/* list_iterator_t *evit) */
 {
   trash_ctn_t *ctn = myalloc(sizeof (trash_ctn_t));
   seqev_t     *seqev = (seqev_t *) iter_node_ptr(&(ev_iterator->seqevit));
   tickev_t    *tickev = (tickev_t *) iter_node_ptr(&(ev_iterator->tickit));
-  /* seqev_t     *seqev = (seqev_t *) iter_node_ptr(evit); */
-  /* tickev_t    *tickev = (tickev_t *) iter_node_ptr(tickit); */
 
   if (_seqev_len(tickev) == 1)
     tickev->deleted = MSQ_TRUE;
@@ -96,8 +92,7 @@ void trackctx_event2trash(track_ctx_t *trackctx,
   bcopy(&(ev_iterator->seqevit), &(ctn->evit), sizeof (list_iterator_t));
   bcopy(&(ev_iterator->tickit), &(ctn->tickit), sizeof (list_iterator_t));
 
-  /* bcopy(evit, &(ctn->evit), sizeof (list_iterator_t)); */
-  /* bcopy(tickit, &(ctn->tickit), sizeof (list_iterator_t)); */
+  evit_next_seqev(ev_iterator);
 
   push_to_list_tail(&(trackctx->trash), ctn);
   trackctx->need_sync = MSQ_TRUE;

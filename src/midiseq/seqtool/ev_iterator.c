@@ -292,15 +292,19 @@ seqev_t *evit_get_seqev(ev_iterator_t *ev_iterator)
 /*   return _it_next_seqev(&(ev_iterator->seqevit)); */
 /* } */
 
-
 seqev_t *evit_next_seqev(ev_iterator_t *ev_iterator)
 {
   seqev_t *ev = NULL;
 
-  if (iter_node(&(ev_iterator->tickit)) && iter_node(&(ev_iterator->seqevit)))
+  if (iter_node(&(ev_iterator->tickit)))
     {
-      ev = _it_next_seqev(&(ev_iterator->seqevit));
-      if (ev == NULL)
+      if (iter_node(&(ev_iterator->seqevit)))
+        {
+          ev = _it_next_seqev(&(ev_iterator->seqevit));
+          if (ev == NULL)
+            ev = evit_next_tick(ev_iterator);
+        }
+      else
         ev = evit_next_tick(ev_iterator);
     }
   return ev;
@@ -368,9 +372,14 @@ void evit_copy(ev_iterator_t *evit_src, ev_iterator_t *evit_dst)
 
 void evit_del_event(ev_iterator_t *ev_iterator)
 {
-  iter_node_del(&(ev_iterator->seqevit), free_seqev);
-  if (ev_iterator->seqevit.list->len <= 0)
-    iter_node_del(&(ev_iterator->tickit), free_tickev);
+  ev_iterator_t evit_tmp;
+
+  evit_copy(ev_iterator, &evit_tmp);
+  evit_next_seqev(ev_iterator);
+
+  iter_node_del(&(evit_tmp.seqevit), free_seqev);
+  if (evit_tmp.seqevit.list->len <= 0)
+    iter_node_del(&(evit_tmp.tickit), free_tickev);
 }
 
 node_t *_add_new_midicev(list_t *seqev_list, midicev_t *midicev)
