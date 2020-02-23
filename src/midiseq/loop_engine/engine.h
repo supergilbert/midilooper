@@ -160,7 +160,7 @@ msq_bool_t  engine_delete_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
 track_ctx_t *engine_copy_trackctx(engine_ctx_t *engine, track_ctx_t *trackctx);
 void        engine_read_midifile(engine_ctx_t *engine, midifile_t *midifile);
 void        engine_save_project(engine_ctx_t *engine,
-                                char *file_path,
+                                const char *file_path,
                                 msq_bool_t is_template);
 void        gen_miditrack_info(char *retstr,
                                 engine_ctx_t *ctx,
