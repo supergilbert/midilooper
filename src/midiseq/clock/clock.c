@@ -1,4 +1,4 @@
-/* Copyright 2012-2016 Gilbert Romer */
+/* Copyright 2012-2020 Gilbert Romer */
 
 /* This file is part of midilooper. */
 

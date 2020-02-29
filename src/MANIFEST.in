@@ -1,2 +1,0 @@
-recursive-include midiseq *.h
-recursive-include midiseq_ext *.h

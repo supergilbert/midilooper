@@ -4,7 +4,7 @@ Section: python
 Priority: optional
 Build-Depends: dh-python, python3-all-dev, debhelper (>= 9), python3-dev, libasound-dev, libjack-dev-session
 Standards-Version: 3.9.6
-Homepage: https://github.com/supergilbert/midiseq
+Homepage: https://github.com/supergilbert/midilooper
 
 Package: midilooper
 Architecture: any
