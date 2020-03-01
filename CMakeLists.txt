@@ -94,3 +94,26 @@ include_directories(${CMAKE_BINARY_DIR}
   ${PBT_DIR}/src
   ${IMGUI_DIR}
   ${MSQ_DIR})
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+  include(ProcessorCount)
+  ProcessorCount(PROC_COUNT)
+  math(EXPR JOBS_COUNT "${PROC_COUNT} + 1")
+
+  add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/debian ${CMAKE_BINARY_DIR}/midilooper.1
+    COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/src/debian ${CMAKE_BINARY_DIR}/debian
+    COMMAND cmake -E copy ${CMAKE_SOURCE_DIR}/src/midilooper.1 ${CMAKE_BINARY_DIR}
+    DEPENDS ${CMAKE_SOURCE_DIR}/src/debian)
+
+  add_custom_target(debsrc
+    DEPENDS ${CMAKE_BINARY_DIR}/debian ${CMAKE_BINARY_DIR}/midilooper.1)
+
+  add_custom_target(debpkg
+    COMMAND cmake -E copy ${CMAKE_SOURCE_DIR}/src/debian/changelog ${CMAKE_BINARY_DIR}/debian/changelog
+    COMMAND ${CMAKE_SOURCE_DIR}/src/update_debchangelog.sh ${CMAKE_SOURCE_DIR}/src
+    COMMAND debuild -nc -j${JOBS_COUNT} -b -us -uc
+    DEPENDS
+    ${CMAKE_BINARY_DIR}/debian
+    ${CMAKE_SOURCE_DIR}/src/midilooper.1
+    ${CMAKE_SOURCE_DIR}/src/update_debchangelog.sh)
+endif()

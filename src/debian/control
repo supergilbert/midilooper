@@ -1,16 +1,15 @@
 Source: midilooper
 Maintainer: Gilbert Romer <gilbux@gmail.com>
-Section: python
+Section: sound
 Priority: optional
-Build-Depends: dh-python, python3-all-dev, debhelper (>= 9), python3-dev, libasound-dev, libjack-dev-session
+Build-Depends: debhelper (>= 9), libasound-dev, libjack-dev-session
 Standards-Version: 3.9.6
 Homepage: https://github.com/supergilbert/midilooper
 
 Package: midilooper
 Architecture: any
 Section: sound
-Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}, python3-gi-cairo, python3-xlib, gir1.2-gtk-3.0
+Depends: ${misc:Depends}, ${shlibs:Depends}
 Recommends: jackd
 Description: Midi loop sequencer
  Midi loop sequencer that can be controlled via keyboard and (or) midi shortcut.
-
