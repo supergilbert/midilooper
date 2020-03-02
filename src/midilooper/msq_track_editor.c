@@ -212,7 +212,7 @@ static const char *channel_list[] = {"Channel  0",
 
 static const char *resolution_list[] = {"4xqn",
                                         "2xqn",
-                                        "qn",
+                                        "qn (beat)",
                                         "qn/2",
                                         "qn/4",
                                         "qn/8",
@@ -2782,14 +2782,15 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
             }
           else if (wbe_key_pressed(winev->keys, WBE_KEY_CONTROL) == WBE_TRUE)
             {
-              editor_ctx->zoom_adj.pos += 10;
-              if (editor_ctx->zoom_adj.pos > 100)
-                editor_ctx->zoom_adj.pos = 100;
+              if (editor_ctx->zoom_adj.pos < 10)
+                editor_ctx->zoom_adj.pos = 0;
+              else
+                editor_ctx->zoom_adj.pos -= 10;
               _msq_update_zoom(editor_ctx, grid->vggts);
             }
           else
             {
-              msq_adj_inc(&(editor_ctx->vadj), SCROLL_INC);
+              msq_adj_dec(&(editor_ctx->vadj), SCROLL_INC);
               msq_draw_hggts(grid->hggts);
             }
         }
@@ -2802,15 +2803,14 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
             }
           else if (wbe_key_pressed(winev->keys, WBE_KEY_CONTROL) == WBE_TRUE)
             {
-              if (editor_ctx->zoom_adj.pos < 10)
-                editor_ctx->zoom_adj.pos = 0;
-              else
-                editor_ctx->zoom_adj.pos -= 10;
+              editor_ctx->zoom_adj.pos += 10;
+              if (editor_ctx->zoom_adj.pos > 100)
+                editor_ctx->zoom_adj.pos = 100;
               _msq_update_zoom(editor_ctx, grid->vggts);
             }
           else
             {
-              msq_adj_dec(&(editor_ctx->vadj), SCROLL_INC);
+              msq_adj_inc(&(editor_ctx->vadj), SCROLL_INC);
               msq_draw_hggts(grid->hggts);
             }
         }
@@ -2877,7 +2877,7 @@ void _draw_value_num(pbt_pbarea_t *pbarea,
   unsigned int str_width;
   unsigned int xpos;
 
-  snprintf(value_label, 4, "%d", value);
+  snprintf(value_label, 4, "%hhd", value);
 
   pbt_pbarea_fill(pbarea, tctx_wgt_normal_bg(&(track_editor->editor_ctx)));
 

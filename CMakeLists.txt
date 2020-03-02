@@ -57,20 +57,17 @@ set(MIDISEQ_SRC
   ${MSQ_DIR}/seqtool/ev_iterator.c)
 
 add_executable(${PROJECT_NAME}
+  ${IMGUI_SRC}
+  ${MIDISEQ_SRC}
   ${MIDILOOPER_DIR}/msq_gui.c
   ${MIDILOOPER_DIR}/msq_track_editor.c
   ${MIDILOOPER_DIR}/msq_imgui.cxx
-  ${MIDILOOPER_DIR}/msq_main_gui.cxx
-  ${MIDISEQ_SRC}
-  ${IMGUI_SRC})
+  ${MIDILOOPER_DIR}/msq_main_gui.cxx)
 
 include(${PBT_DIR}/CMakeLists.txt)
 
 find_package(PkgConfig)
 
-# pkg_check_modules(GLES      REQUIRED glesv2)
-# pkg_check_modules(GLFW      REQUIRED glfw3)
-# pkg_check_modules(FREETYPE2 REQUIRED freetype2)
 pkg_check_modules(ALSA      REQUIRED alsa)
 pkg_check_modules(JACK      REQUIRED jack)
 pkg_check_modules(LIBCONFIG REQUIRED libconfig)
@@ -95,25 +92,14 @@ include_directories(${CMAKE_BINARY_DIR}
   ${IMGUI_DIR}
   ${MSQ_DIR})
 
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-  include(ProcessorCount)
-  ProcessorCount(PROC_COUNT)
-  math(EXPR JOBS_COUNT "${PROC_COUNT} + 1")
+install(TARGETS ${PROJECT_NAME}
+  RUNTIME DESTINATION "bin")
 
-  add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/debian ${CMAKE_BINARY_DIR}/midilooper.1
-    COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/src/debian ${CMAKE_BINARY_DIR}/debian
-    COMMAND cmake -E copy ${CMAKE_SOURCE_DIR}/src/midilooper.1 ${CMAKE_BINARY_DIR}
-    DEPENDS ${CMAKE_SOURCE_DIR}/src/debian)
-
-  add_custom_target(debsrc
-    DEPENDS ${CMAKE_BINARY_DIR}/debian ${CMAKE_BINARY_DIR}/midilooper.1)
-
-  add_custom_target(debpkg
-    COMMAND cmake -E copy ${CMAKE_SOURCE_DIR}/src/debian/changelog ${CMAKE_BINARY_DIR}/debian/changelog
-    COMMAND ${CMAKE_SOURCE_DIR}/src/update_debchangelog.sh ${CMAKE_SOURCE_DIR}/src
-    COMMAND debuild -nc -j${JOBS_COUNT} -b -us -uc
-    DEPENDS
-    ${CMAKE_BINARY_DIR}/debian
-    ${CMAKE_SOURCE_DIR}/src/midilooper.1
-    ${CMAKE_SOURCE_DIR}/src/update_debchangelog.sh)
-endif()
+# Temp hack to remove
+# TODO Suppress cmake warning on dpkg-buildpackage (better than that).
+message(VERBOSE
+  "Following variable wont be used\n"
+  "CMAKE_EXPORT_NO_PACKAGE_REGISTRY: ${CMAKE_EXPORT_NO_PACKAGE_REGISTRY}\n"
+  "CMAKE_INSTALL_LIBDIR: ${CMAKE_INSTALL_LIBDIR}\n"
+  "CMAKE_INSTALL_LOCALSTATEDIR: ${CMAKE_INSTALL_LOCALSTATEDIR}\n"
+  "CMAKE_INSTALL_SYSCONFDIR: ${CMAKE_INSTALL_SYSCONFDIR}\n")
