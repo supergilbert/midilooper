@@ -67,7 +67,7 @@ void pbt_ggt_win_set_min_size(pbt_ggt_win_t *ggt_win)
   wbe_pbw_set_size(&(ggt_win->pb_win), width, height);
   pbt_ggt_win_update_area(ggt_win);
   _pbt_ggt_draw(ggt_win->ggt);
-  pbt_ggt_win_put_buffer(ggt_win); /* TODO RESOLVE THE ARTEFACT ON UPDATING SIZE */
+  pbt_ggt_win_put_buffer(ggt_win); /* TODO RESOLVE PROBLEMS ON UPDATING SIZE */
 }
 
 void pbt_ggt_win_init_child_ev(pbt_ggt_win_t *ggt_win, pbt_ggt_node_t *child)

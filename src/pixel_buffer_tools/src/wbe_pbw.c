@@ -34,8 +34,8 @@ void wbe_pbw_set_size(wbe_pbw_t *win,
                       unsigned int height)
 {
   /* wbe_pbw_make_context(win); */
-  _wbe_window_set_size(win->win_be, width, height);
   wbe_pbw_update_size(win, width, height);
+  _wbe_window_set_size(win->win_be, width, height);
 }
 
 void _wbe_pbw_texture_load(wbe_pbw_t *win)
