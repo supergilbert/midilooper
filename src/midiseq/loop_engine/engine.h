@@ -77,12 +77,12 @@ typedef struct
 
 void             free_midiringbuff(midiringbuffer_t *mrb);
 midiringbuffer_t *init_midiringbuff(uint_t size);
-msq_bool_t           mrb_write(midiringbuffer_t *rbuff,
-                               uint tick,
-                               midicev_t *ev);
-msq_bool_t           mrb_read(midiringbuffer_t *rbuff,
-                              uint *tick,
-                              midicev_t *ev);
+msq_bool_t       mrb_write(midiringbuffer_t *rbuff,
+                           uint tick,
+                           midicev_t *ev);
+msq_bool_t       mrb_read(midiringbuffer_t *rbuff,
+                          uint *tick,
+                          midicev_t *ev);
 
 typedef enum {
   NOSAVE_RQ = 0,

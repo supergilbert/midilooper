@@ -139,9 +139,11 @@ public:
   void popup_file_browser(void);
   void popup_list(void);
   void popup_string_input(void);
+  void popup_text(void);
   void render_file_browser(void);
   void render_list(void);
   void render_string_input(void);
+  void render_text(void);
   void new_frame(void);
   void render_frame(void);
   void handle_window(void);

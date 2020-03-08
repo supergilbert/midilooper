@@ -108,6 +108,7 @@ typedef enum
   {
    LIST,
    FILE_BROWSER,
+   STRING,
    STRING_INPUT
   } msq_dialog_type_t;
 
@@ -117,12 +118,15 @@ typedef void (*msq_dialog_idx_result_cb_t)(size_t idx, void *addr);
 
 typedef void (*msq_dialog_str_result_cb_t)(char *str, void *addr);
 
+typedef double msq_time_t;
+
 typedef struct
 {
   msq_bool_t                 activated;
   msq_bool_t                 need_popup;
   msq_bool_t                 need_update;
   msq_dialog_type_t          type;
+  char                       *str;
   char                       **str_list;
   size_t                     str_list_len;
   msq_dialog_idx_result_cb_t result_idx_cb;

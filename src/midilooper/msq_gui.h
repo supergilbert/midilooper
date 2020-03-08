@@ -54,6 +54,9 @@ void msq_dialog_string_input(msq_dialog_iface_t *dialog_iface,
                              msq_dialog_str_result_cb_t result_str_cb,
                              void *arg_addr);
 
+void msq_dialog_text(msq_dialog_iface_t *dialog_iface,
+                     const char *str);
+
 void msq_transport_init(msq_transport_iface_t *transport_iface,
                         msq_gui_theme_t *global_theme,
                         engine_ctx_t *engine_ctx);

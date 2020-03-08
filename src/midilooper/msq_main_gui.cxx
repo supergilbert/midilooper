@@ -98,6 +98,7 @@ public:
   void remove_output(output_t *output);
   void remove_track(track_editor_t *track_editor);
   void save_file_as(const char *str);
+  void show_add_key_binding(void);
   void show_add_track(void);
   void show_add_output(void);
   void redraw(void);
@@ -838,10 +839,13 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
     case 1:                     // Output
       mainwin->show_set_output(mainwin->dialog_track);
       break;
-    case 2:                     // Add
+    case 2:                     // Add key binding
+      mainwin->show_add_key_binding();
+      break;
+    case 3:                     // Add
       mainwin->show_add_track();
       break;
-    case 3:                     // Remove
+    case 4:                     // Remove
       mainwin->remove_track(mainwin->dialog_track);
       break;
     default:
@@ -1021,7 +1025,9 @@ void midilooper_main_window::handle_dialog(void)
         imgui_dialog->popup_list();
       else if (dialog_iface.type == FILE_BROWSER)
         imgui_dialog->popup_file_browser();
-      else
+      else if (dialog_iface.type == STRING)
+        imgui_dialog->popup_text();
+      else if (dialog_iface.type == STRING_INPUT)
         imgui_dialog->popup_string_input();
 
       dialog_iface.need_popup = MSQ_FALSE;
@@ -1136,11 +1142,15 @@ void midilooper_main_window::show_set_output(track_editor_t *track_editor)
 
 void midilooper_main_window::show_track_dialog(track_editor_t *track_editor)
 {
-  static const char *track_menu[] = {"Rename", "Output", "Add", "Remove"};
+  static const char *track_menu[] = {"Rename",
+                                     "Output",
+                                     "Add key binding",
+                                     "Add",
+                                     "Remove"};
 
   msq_dialog_list(&(dialog_iface),
                   (char **) track_menu,
-                  4,
+                  5,
                   track_dialog_res_cb,
                   this);
   dialog_track = track_editor;
@@ -1221,6 +1231,12 @@ void midilooper_main_window::remove_track(track_editor_t *track_editor)
   // track_editor_destroy(track_editor);
   engine_delete_trackctx(track_ctx->engine, track_ctx);
   pbt_ggt_win_set_min_size(&ggt_win);
+}
+
+void midilooper_main_window::show_add_key_binding(void)
+{
+  msq_dialog_text(&(dialog_iface),
+                  "Press a key (abort in 5s)");
 }
 
 void midilooper_main_window::show_add_track(void)

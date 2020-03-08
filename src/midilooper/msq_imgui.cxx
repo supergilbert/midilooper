@@ -110,6 +110,17 @@ void msq_imgui_dialog::popup_file_browser(void)
   map_window();
 }
 
+void msq_imgui_dialog::popup_text(void)
+{
+  unsigned int width = font_size * 14;
+
+  glfwSetWindowSize(glfw_win, width, frame_height);
+  msq_dialog_activate(dialog_iface);
+  hide_on_focus_lost = false;
+  map_window();
+  set_pos_at_cursor();
+}
+
 void msq_imgui_dialog::popup_string_input(void)
 {
   unsigned int width = font_size * 14;
@@ -228,7 +239,7 @@ void msq_imgui_dialog::render_frame(void)
           idx_buffer_offset += pcmd->ElemCount;
         }
     }
-  glfwSwapBuffers(glfw_win);
+  glFlush();
 }
 
 #include <iostream>
@@ -404,6 +415,32 @@ void msq_imgui_dialog::render_string_input(void)
     }
 }
 
+void msq_imgui_dialog::render_text(void)
+{
+  ImGuiIO& io = ImGui::GetIO();
+  bool bool_var = true;
+
+  new_frame();
+
+  ImGui::SetNextWindowPos(ImVec2(0, 0));
+  ImGui::SetNextWindowSize(io.DisplaySize);
+  ImGui::SetNextWindowBgAlpha(1.0f);
+  ImGui::Begin("string",
+               &bool_var,
+               ImGuiWindowFlags_NoTitleBar
+               | ImGuiWindowFlags_NoDecoration
+               | ImGuiWindowFlags_NoMove
+               | ImGuiWindowFlags_AlwaysUseWindowPadding
+               | ImGuiWindowFlags_AlwaysAutoResize);
+  ImGui::Text(dialog_iface->str);
+  ImGui::End();
+
+  if (io.NavInputs[ImGuiNavInput_Cancel] == 1.0f)
+    msq_dialog_desactivate(dialog_iface);
+
+  render_frame();
+}
+
 void msq_imgui_dialog::handle_window(void)
 {
   if (dialog_iface->activated && window_mapped())
@@ -416,6 +453,8 @@ void msq_imgui_dialog::handle_window(void)
             render_list();
           else if (dialog_iface->type == FILE_BROWSER)
             render_file_browser();
+          else if (dialog_iface->type == STRING)
+            render_text();
           else
             render_string_input();
         }
@@ -576,6 +615,7 @@ msq_imgui_dialog::msq_imgui_dialog(msq_dialog_iface_t *dialog_iface_arg, msq_gui
 
   dialog_iface = dialog_iface_arg;
 
+  glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
   glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
   glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);

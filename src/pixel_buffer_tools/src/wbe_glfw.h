@@ -65,6 +65,8 @@ void wbe_window_map(wbe_window_t *win);
 
 #define wbe_window_make_context(_window) glfwMakeContextCurrent(_window)
 
+#define wbe_get_time() glfwGetTime()
+
 /* #define wbe_window_swap_buffer(_window) glfwSwapBuffers(_window) */
 
 /* #define wbe_next_windows_double_buffer()        \ */

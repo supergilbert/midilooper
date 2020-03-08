@@ -772,6 +772,15 @@ void msq_dialog_filebrowser(msq_dialog_iface_t *dialog_iface,
   dialog_iface->arg_addr = arg_addr;
 }
 
+void msq_dialog_text(msq_dialog_iface_t *dialog_iface,
+                     const char *str)
+{
+  dialog_iface->type = STRING;
+  dialog_iface->need_popup = MSQ_TRUE;
+  dialog_iface->need_update = MSQ_TRUE;
+  dialog_iface->str = (char *) str;
+}
+
 void msq_dialog_string_input(msq_dialog_iface_t *dialog_iface,
                              msq_dialog_str_result_cb_t result_str_cb,
                              void *arg_addr)
