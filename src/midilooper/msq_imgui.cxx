@@ -432,7 +432,7 @@ void msq_imgui_dialog::render_text(void)
                | ImGuiWindowFlags_NoMove
                | ImGuiWindowFlags_AlwaysUseWindowPadding
                | ImGuiWindowFlags_AlwaysAutoResize);
-  ImGui::Text(dialog_iface->str);
+  ImGui::Text("%s", dialog_iface->str);
   ImGui::End();
 
   if (io.NavInputs[ImGuiNavInput_Cancel] == 1.0f)
