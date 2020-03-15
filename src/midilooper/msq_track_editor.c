@@ -1423,26 +1423,6 @@ void draw_notes(pbt_pbarea_t *pbarea, track_editor_ctx_t *editor_ctx)
     }
 }
 
-void _draw_veil(pbt_pbarea_t *pbarea,
-                unsigned int xmin,
-                unsigned int xmax,
-                unsigned int ymin,
-                unsigned int ymax)
-{
-  unsigned int xidx, yidx;
-  unsigned char color[4];
-
-  for (xidx = xmin; xidx < xmax; xidx++)
-    for (yidx = ymin; yidx < ymax; yidx++)
-      {
-        pbt_pbarea_get_pxl(pbarea, xidx, yidx, color);
-        color[0] >>= 1;
-        color[1] >>= 1;
-        color[2] >>= 1;
-        pbt_pbarea_put_pxl(pbarea, xidx, yidx, color);
-      }
-}
-
 void draw_loop_veil(pbt_pbarea_t *pbarea, track_editor_ctx_t *editor_ctx)
 {
   unsigned int tmp;
@@ -1455,7 +1435,7 @@ void draw_loop_veil(pbt_pbarea_t *pbarea, track_editor_ctx_t *editor_ctx)
         - editor_ctx->hadj.pos;
       if (tmp > pbarea->width)
         tmp = pbarea->width;
-      _draw_veil(pbarea, 0, tmp, 0, pbarea->height);
+      msq_draw_veil(pbarea, 0, tmp, 0, pbarea->height);
     }
 
   if ((editor_ctx->hadj.pos + editor_ctx->hadj.size)
@@ -1467,7 +1447,7 @@ void draw_loop_veil(pbt_pbarea_t *pbarea, track_editor_ctx_t *editor_ctx)
                       editor_ctx->track_ctx->loop_start
                       + editor_ctx->track_ctx->loop_len)
         - editor_ctx->hadj.pos;
-      _draw_veil(pbarea, tmp, pbarea->width, 0, pbarea->height);
+      msq_draw_veil(pbarea, tmp, pbarea->width, 0, pbarea->height);
     }
 }
 
@@ -3200,9 +3180,9 @@ void draw_values_cb(pbt_ggt_t *ggt)
 
       if (value_wgt->in_selection_mode == MSQ_TRUE)
         {
-          _draw_veil(&(ggt->pbarea),
-                     value_wgt->selection_coo[0], value_wgt->selection_coo[1],
-                     0, pbt_ggt_height(wgt));
+          msq_draw_veil(&(ggt->pbarea),
+                        value_wgt->selection_coo[0], value_wgt->selection_coo[1],
+                        0, pbt_ggt_height(wgt));
         }
     }
 }

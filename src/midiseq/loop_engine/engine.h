@@ -53,6 +53,12 @@ void output_add_req(output_t *output, midicev_t *midicev);
 
 typedef struct
 {
+  byte_t val;
+  list_t tracks;
+} binding_t;
+
+typedef struct
+{
   byte_t     rec_note;
   msq_bool_t midib_updating;
   msq_bool_t midib_reading;
@@ -162,18 +168,12 @@ void        engine_read_midifile(engine_ctx_t *engine, midifile_t *midifile);
 void        engine_save_project(engine_ctx_t *engine,
                                 const char *file_path,
                                 msq_bool_t is_template);
-void        gen_miditrack_info(char *retstr,
-                                engine_ctx_t *ctx,
-                                track_ctx_t *trackctx);
+/* void gen_miditrack_info(char *retstr, */
+/*                         engine_ctx_t *ctx, */
+/*                         track_ctx_t *trackctx); */
 void        engine_prepare_tracklist(engine_ctx_t *ctx);
 void        engine_clean_tracklist(engine_ctx_t *ctx);
 void        _engine_free_trash(engine_ctx_t *ctx);
-
-typedef struct
-{
-  byte_t val;
-  list_t tracks;
-} binding_t;
 
 void engine_del_track_bindings(engine_ctx_t *engine, track_ctx_t *track_ctx);
 void engine_clear_all_bindings(engine_ctx_t *engine);
@@ -182,10 +182,14 @@ void _add_binding(list_t *bindings, byte_t val, track_ctx_t *track_ctx);
 void engine_add_notebinding(engine_ctx_t *engine,
                             byte_t key,
                             track_ctx_t *track_ctx);
-void engine_call_keypress_b(engine_ctx_t *engine, byte_t key);
+msq_bool_t engine_call_keypress_b(engine_ctx_t *engine, byte_t key);
 void engine_add_keybinding(engine_ctx_t *engine,
                            byte_t key,
                            track_ctx_t *track_ctx);
+size_t _fill_byte_array_w_track_bindings(byte_t *byte_array,
+                                         size_t max_sz,
+                                         list_t *bindings,
+                                         track_ctx_t *trackctx);
 
 void play_outputs_reqs(engine_ctx_t *ctx);
 void play_tracks_pending_notes(engine_ctx_t *ctx);

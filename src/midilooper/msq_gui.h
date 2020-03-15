@@ -111,4 +111,10 @@ void msq_margin_ggt_init(msq_margin_ggt_t *ggt,
                       (_bottom),                \
                       (_color))
 
+void msq_draw_veil(pbt_pbarea_t *pbarea,
+                   unsigned int xmin,
+                   unsigned int xmax,
+                   unsigned int ymin,
+                   unsigned int ymax);
+
 EXTERN_C_END

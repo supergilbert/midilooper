@@ -162,6 +162,8 @@ void _pbt_wgt_vsplitted_area_init_ww(pbt_wgt_splitted_area_t *splitted_area,
                                   (_grab_cursor),               \
                                   (_leave_cursor))
 
+void pbt_wgt_button_draw_cb(pbt_ggt_t *ggt);
+
 void pbt_wgt_button_init(pbt_wgt_button_t *button,
                          pbt_pixbuf_t *pb_released,
                          pbt_pixbuf_t *pb_pressed,

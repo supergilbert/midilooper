@@ -101,7 +101,7 @@ void _del_track_bindings(list_t *bindings, track_ctx_t *track_ctx)
           if (track_ctx_ptr == track_ctx)
             {
               iter_node_del(&iter_tracks, NULL);
-              return;
+              break;
             }
         }
     }
@@ -171,7 +171,42 @@ void engine_add_keybinding(engine_ctx_t *engine,
   _add_binding(&(engine->bindings.keypress), key, track_ctx);
 }
 
-void engine_call_keypress_b(engine_ctx_t *engine, byte_t key)
+msq_bool_t engine_call_keypress_b(engine_ctx_t *engine, byte_t key)
 {
   engine->mute_state_changed = _call_binding(&(engine->bindings.keypress), key);
+  return engine->mute_state_changed;
+}
+
+#include <string.h>
+
+size_t _fill_byte_array_w_track_bindings(byte_t *byte_array,
+                                         size_t max_sz,
+                                         list_t *bindings,
+                                         track_ctx_t *trackctx)
+{
+  list_iterator_t iter_binding, iter_track;
+  uint_t          idx;
+  track_ctx_t     *trackctx_ptr = NULL;
+  binding_t       *binding = NULL;
+
+  memset(byte_array, 0, max_sz);
+  for (iter_init(&iter_binding, bindings), idx = 0;
+       iter_node(&iter_binding) && idx < max_sz;
+       iter_next(&iter_binding))
+    {
+      binding = iter_node_ptr(&iter_binding);
+      for (iter_init(&iter_track, &(binding->tracks));
+           iter_node(&iter_track);
+           iter_next(&iter_track))
+        {
+          trackctx_ptr = iter_node_ptr(&iter_track);
+          if (trackctx == trackctx_ptr)
+            {
+              byte_array[idx] = binding->val;
+              idx++;
+              break;
+            }
+        }
+    }
+  return idx;
 }

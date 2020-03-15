@@ -657,7 +657,6 @@ unsigned int pbt_wgt_button_get_height(pbt_ggt_t *ggt)
 void pbt_wgt_button_update_area_cb(pbt_ggt_t *ggt,
                                    pbt_pbarea_t *pbarea)
 {
-
   memcpy(&(ggt->pbarea), pbarea, sizeof (pbt_pbarea_t));
 }
 

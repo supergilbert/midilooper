@@ -62,10 +62,13 @@ class midilooper_main_window
   msq_transport_iface_t transport_iface = {};
   msq_margin_ggt_t margin = {};
   pbt_ggt_ctnr_t root_child_vctnr = {};
+  bool wait_key_binding = false;
+  msq_time_t wait_since;
 
   char **gen_output_str_list(size_t *str_list_len);
 
 public:
+  track_ctx_t *track_waiting_binding = NULL;
   string save_path;
   engine_ctx_t *engine_ctx = NULL;
   msq_gui_theme_t theme = {};
@@ -98,11 +101,13 @@ public:
   void remove_output(output_t *output);
   void remove_track(track_editor_t *track_editor);
   void save_file_as(const char *str);
-  void show_add_key_binding(void);
+  void set_add_key_binding_mode(void);
   void show_add_track(void);
   void show_add_output(void);
   void redraw(void);
   void refresh(void);
+  void handle_key_bindings(wbe_window_input_t *winev);
+  void run(void);
 };
 
 void _msq_draw_list_title(pbt_pbarea_t *pbarea,
@@ -361,8 +366,6 @@ typedef struct
 {
   midilooper_main_window *main_win;
   track_editor_t *track_editor;
-  // char *key_bindings_str;
-  // char *note_bindings_str;
   pbt_wgt_t wgt;
 } msq_track_node_t;
 
@@ -373,6 +376,8 @@ void msq_track_node_draw_cb(pbt_ggt_t *ggt)
   track_ctx_t *track_ctx = track_node->track_editor->editor_ctx.track_ctx;
   unsigned int output_str_width;
   std::string output_name;
+  byte_t string_key_bindings[MSQ_BINDINGS_KEY_MAX];
+  size_t array_size;
 
   if (track_ctx->output != NULL)
     output_name = output_get_name(track_ctx->output);
@@ -382,6 +387,14 @@ void msq_track_node_draw_cb(pbt_ggt_t *ggt)
   pbt_font_get_string_width(&(track_node->main_win->theme.theme.font),
                             output_name.c_str(),
                             &output_str_width);
+
+  array_size =
+    _fill_byte_array_w_track_bindings(string_key_bindings,
+                                      MSQ_BINDINGS_KEY_MAX,
+                                      &(track_ctx->engine->bindings.keypress),
+                                      track_ctx);
+
+  string_key_bindings[array_size] = '\0';
 
   pbt_pbarea_fill(&(ggt->pbarea),
                   track_node->main_win->theme.theme.frame_bg);
@@ -395,10 +408,17 @@ void msq_track_node_draw_cb(pbt_ggt_t *ggt)
                     track_node->main_win->theme.theme.frame_fg,
                     _pbt_ggt_width(ggt) - output_str_width, 0,
                     output_name.c_str());
+  pbt_pbarea_printf(&(ggt->pbarea),
+                    &(track_node->main_win->theme.theme.font),
+                    track_node->main_win->theme.theme.frame_fg,
+                    0, track_node->main_win->theme.theme.font.max_height,
+                    "Bindings: %s", string_key_bindings);
   pbt_pbarea_fillrect(&(ggt->pbarea),
                       track_node->main_win->theme.default_separator,
-                      track_node->main_win->theme.theme.font.max_height * 2,
-                      _pbt_ggt_width(ggt) - (track_node->main_win->theme.default_separator * 2),
+                      _pbt_ggt_height(ggt)
+                      - track_node->main_win->theme.theme.font.max_height,
+                      _pbt_ggt_width(ggt)
+                      - (track_node->main_win->theme.default_separator * 2),
                       track_node->main_win->theme.theme.font.max_height / 2,
                       track_node->main_win->theme.theme.window_bg);
 }
@@ -416,7 +436,7 @@ unsigned int msq_track_node_get_height(pbt_ggt_t *ggt)
   pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
   msq_track_node_t *track_node = (msq_track_node_t *) wgt->priv;
 
-  return track_node->main_win->theme.theme.font.max_height * 3;
+  return track_node->main_win->theme.theme.font.max_height * 4;
 }
 
 pbt_bool_t msq_track_node_set_focus_cb(pbt_ggt_t *ggt,
@@ -517,15 +537,18 @@ void msq_track_node_draw_progress(msq_track_node_t *track_node)
   wbe_pbw_make_context(&(track_node->wgt.ggt_win->pb_win));
   pbt_wgt_gl_fillrect(&(track_node->wgt),
                       track_node->main_win->theme.default_separator,
-                      track_node->main_win->theme.theme.font.max_height * 2,
+                      pbt_ggt_height(&(track_node->wgt))
+                      - track_node->main_win->theme.theme.font.max_height,
                       xpos,
                       track_node->main_win->theme.theme.font.max_height / 2,
                       track_node->main_win->theme.theme.frame_fg);
   pbt_wgt_gl_fillrect(&(track_node->wgt),
                       track_node->main_win->theme.default_separator + xpos,
-                      track_node->main_win->theme.theme.font.max_height * 2,
-                      _pbt_ggt_width(&(track_node->wgt.ggt))
-                      - (track_node->main_win->theme.default_separator * 2) - xpos,
+                      pbt_ggt_height(&(track_node->wgt))
+                      - track_node->main_win->theme.theme.font.max_height,
+                      pbt_ggt_width(&(track_node->wgt))
+                      - (track_node->main_win->theme.default_separator * 2)
+                      - xpos,
                       track_node->main_win->theme.theme.font.max_height / 2,
                       track_node->main_win->theme.theme.window_bg);
   wbe_gl_flush();
@@ -544,31 +567,44 @@ typedef struct
 void msq_mute_button_cb(void *track_line_addr)
 {
   msq_track_line_t *track_line = (msq_track_line_t *) track_line_addr;
-  pbt_pixbuf_t *track_mute_imgs =
-    track_line->track_editor.editor_ctx.theme->global_theme->track_mute_imgs;
-  pbt_wgt_button_t *mute_button = &(track_line->mute_button);
   track_ctx_t *track_ctx = track_line->track_editor.editor_ctx.track_ctx;
 
   trackctx_toggle_mute(track_ctx);
+}
+
+void _msq_mute_button_draw_cb(pbt_ggt_t *ggt)
+{
+  pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
+  pbt_wgt_button_t *mute_button = (pbt_wgt_button_t *) wgt->priv;
+  msq_track_line_t *track_line = (msq_track_line_t *) mute_button->cb_arg;
+  pbt_pixbuf_t *track_mute_imgs =
+    track_line->track_editor.editor_ctx.theme->global_theme->track_mute_imgs;
+  track_ctx_t *track_ctx = track_line->track_editor.editor_ctx.track_ctx;
 
   if (track_ctx->mute == MSQ_FALSE)
     {
-      mute_button->pb_released = &(track_mute_imgs[0]);
-      mute_button->pb_pressed = &(track_mute_imgs[1]);
-      mute_button->pb_hovered = &(track_mute_imgs[2]);
-      mute_button->bg_released = track_mute_imgs[0].pixels;
-      mute_button->bg_pressed = track_mute_imgs[1].pixels;
-      mute_button->bg_hovered = track_mute_imgs[2].pixels;
+      if (mute_button->pb_released != &(track_mute_imgs[0]))
+        {
+          mute_button->pb_released = &(track_mute_imgs[0]);
+          mute_button->pb_pressed = &(track_mute_imgs[1]);
+          mute_button->pb_hovered = &(track_mute_imgs[2]);
+          mute_button->bg_released = track_mute_imgs[0].pixels;
+          mute_button->bg_pressed = track_mute_imgs[1].pixels;
+          mute_button->bg_hovered = track_mute_imgs[2].pixels;
+        }
     }
   else
-    {
-      mute_button->pb_released = &(track_mute_imgs[1]);
-      mute_button->pb_pressed = &(track_mute_imgs[0]);
-      mute_button->pb_hovered = &(track_mute_imgs[3]);
-      mute_button->bg_released = track_mute_imgs[1].pixels;
-      mute_button->bg_pressed = track_mute_imgs[0].pixels;
-      mute_button->bg_hovered = track_mute_imgs[3].pixels;
-    }
+    if (mute_button->pb_released != &(track_mute_imgs[1]))
+      {
+        mute_button->pb_released = &(track_mute_imgs[1]);
+        mute_button->pb_pressed = &(track_mute_imgs[0]);
+        mute_button->pb_hovered = &(track_mute_imgs[3]);
+        mute_button->bg_released = track_mute_imgs[1].pixels;
+        mute_button->bg_pressed = track_mute_imgs[0].pixels;
+        mute_button->bg_hovered = track_mute_imgs[3].pixels;
+      }
+
+  pbt_wgt_button_draw_cb(ggt);
 }
 
 msq_track_line_t *msq_track_node_add(msq_list_t *track_list,
@@ -608,6 +644,7 @@ msq_track_line_t *msq_track_node_add(msq_list_t *track_list,
                       msq_theme_cursor_arrow(track_editor_theme->global_theme),
                       msq_mute_button_cb,
                       track_line);
+  track_line->mute_button.wgt.ggt.draw_cb = _msq_mute_button_draw_cb;
   pbt_ggt_hctnr_init(&(track_line->hctnr));
   pbt_ggt_add_child_wgt(&(track_line->hctnr), &(track_line->track_node));
   pbt_ggt_ctnr_add_static_separator(&(track_line->hctnr),
@@ -840,12 +877,18 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
       mainwin->show_set_output(mainwin->dialog_track);
       break;
     case 2:                     // Add key binding
-      mainwin->show_add_key_binding();
+      mainwin->set_add_key_binding_mode();
       break;
-    case 3:                     // Add
+    case 3:                     // Delete key bindings
+      engine_del_track_bindings(mainwin->engine_ctx,
+                                mainwin->dialog_track->editor_ctx.track_ctx);
+      pbt_ggt_draw(&(mainwin->track_list.vctnr));
+      mainwin->refresh();
+      break;
+    case 4:                     // Add
       mainwin->show_add_track();
       break;
-    case 4:                     // Remove
+    case 5:                     // Remove
       mainwin->remove_track(mainwin->dialog_track);
       break;
     default:
@@ -869,6 +912,7 @@ void main_window_input_cb(wbe_window_input_t *winev, void *main_window_addr)
   midilooper_main_window *main_window =
     (midilooper_main_window *) main_window_addr;
 
+  main_window->handle_key_bindings(winev);
   pbt_evh_handle(&(main_window->ggt_win.evh), winev);
 }
 
@@ -1145,12 +1189,13 @@ void midilooper_main_window::show_track_dialog(track_editor_t *track_editor)
   static const char *track_menu[] = {"Rename",
                                      "Output",
                                      "Add key binding",
+                                     "Del all bindings",
                                      "Add",
                                      "Remove"};
 
   msq_dialog_list(&(dialog_iface),
                   (char **) track_menu,
-                  5,
+                  6,
                   track_dialog_res_cb,
                   this);
   dialog_track = track_editor;
@@ -1233,10 +1278,39 @@ void midilooper_main_window::remove_track(track_editor_t *track_editor)
   pbt_ggt_win_set_min_size(&ggt_win);
 }
 
-void midilooper_main_window::show_add_key_binding(void)
+void midilooper_main_window::set_add_key_binding_mode(void)
 {
-  msq_dialog_text(&(dialog_iface),
-                  "Press a key (abort in 5s)");
+  const string str1 = "Press a key from A to Z";
+  const string str2 = "(abort 5 sec or press ESC)";
+  unsigned int
+    str_ypos = (_pbt_ggt_height(ggt_win.ggt) >> 1) - theme.theme.font.max_height,
+    str_xpos,
+    str_width;
+
+  pbt_font_get_string_width(&(theme.theme.font), str2.c_str(), &str_width);
+  str_xpos = (_pbt_ggt_width(ggt_win.ggt) - str_width) >> 1;
+
+  msq_draw_veil(&(ggt_win.ggt->pbarea),
+                0, _pbt_ggt_width(ggt_win.ggt),
+                0, _pbt_ggt_height(ggt_win.ggt));
+  pbt_pbarea_fillrect(&(ggt_win.ggt->pbarea),
+                      str_xpos, str_ypos,
+                      str_width, theme.theme.font.max_height << 1,
+                      theme.theme.window_bg);
+  pbt_pbarea_printf(&(ggt_win.ggt->pbarea),
+                    &(theme.theme.font),
+                    theme.theme.window_fg,
+                    str_xpos, str_ypos,
+                    str1.c_str());
+  pbt_pbarea_printf(&(ggt_win.ggt->pbarea),
+                    &(theme.theme.font),
+                    theme.theme.window_fg,
+                    str_xpos, str_ypos + theme.theme.font.max_height,
+                    str2.c_str());
+  pbt_ggt_win_put_buffer(&ggt_win);
+  wait_since = wbe_get_time();
+  wait_key_binding = true;
+  track_waiting_binding = dialog_track->editor_ctx.track_ctx;
 }
 
 void midilooper_main_window::show_add_track(void)
@@ -1257,6 +1331,92 @@ void midilooper_main_window::save_file_as(const char *file_path)
 {
   engine_save_project(engine_ctx, file_path, MSQ_FALSE);
   save_path = file_path;
+}
+
+#define _check_alpha_keys(byte_array)           \
+  (((byte_array)[1] != 0)                       \
+   || ((byte_array)[2] != 0)                    \
+   || ((byte_array)[3] != 0)                    \
+   || ((byte_array)[4] != 0))
+
+void midilooper_main_window::handle_key_bindings(wbe_window_input_t *winev)
+{
+  static uint32_t keys = 0;
+  char key;
+
+  if (_check_alpha_keys(winev->keys))
+    {
+      if (wait_key_binding)
+        {
+          for (key = 'A'; key <= 'Z'; key++)
+            if (wbe_key_pressedA(winev->keys, key) == WBE_TRUE)
+              {
+                _add_binding(&(engine_ctx->bindings.keypress),
+                             key,
+                             track_waiting_binding);
+                _pbt_ggt_draw(ggt_win.ggt);
+                pbt_ggt_win_put_buffer(&ggt_win);
+                track_waiting_binding = NULL;
+                wait_key_binding = false;
+                WBE_SET_BIT(keys, key - 'A', 1);
+                return;
+              }
+        }
+      else
+        {
+          for (key = 'A'; key <= 'Z'; key++)
+            {
+              if (wbe_key_pressedA(winev->keys, key) == WBE_TRUE)
+                {
+                  if (WBE_GET_BIT(keys, key - 'A') == WBE_FALSE)
+                    {
+                      engine_call_keypress_b(engine_ctx, key);
+                      WBE_SET_BIT(keys, key - 'A', 1);
+                    }
+                }
+              else
+                WBE_SET_BIT(keys, key - 'A', 0);
+            }
+          if (engine_ctx->mute_state_changed == MSQ_TRUE)
+            {
+              _pbt_ggt_draw(ggt_win.ggt);
+              pbt_ggt_win_put_buffer(&ggt_win);
+            }
+        }
+    }
+  else
+    keys = 0;
+}
+
+void midilooper_main_window::run(void)
+{
+  while (!closed())
+    {
+      if (engine_is_running(engine_ctx) == MSQ_TRUE)
+        glfwWaitEventsTimeout(0.05);
+      else if (dialog_iface.need_update == MSQ_TRUE)
+        {
+          dialog_iface.need_update = MSQ_FALSE;
+          glfwWaitEventsTimeout(0.05);
+        }
+      else if (track_waiting_binding)
+        {
+          if (wait_since + 5.0 < wbe_get_time())
+            {
+              _pbt_ggt_draw(ggt_win.ggt);
+              pbt_ggt_win_put_buffer(&ggt_win);
+              track_waiting_binding = NULL;
+              wait_key_binding = false;
+            }
+          glfwWaitEventsTimeout(1.0);
+        }
+      else
+        wbe_wait_events();
+
+      wbe_window_handle_events();
+
+      handle_windows();
+    }
 }
 
 #define PATH_MAX_LEN 256
@@ -1312,23 +1472,7 @@ int main(int ac, char **av)
   else
     main_window = new midilooper_main_window();
 
-  while (!main_window->closed())
-    {
-      if (engine_is_running(main_window->engine_ctx) == MSQ_TRUE
-          || main_window->dialog_iface.need_update == MSQ_TRUE)
-        {
-          main_window->dialog_iface.need_update = MSQ_FALSE;
-          glfwWaitEventsTimeout(0);
-        }
-      else
-        wbe_wait_events();
-
-      wbe_window_handle_events();
-
-      main_window->handle_windows();
-
-      usleep(50000);
-    }
+  main_window->run();
 
   delete main_window;
 

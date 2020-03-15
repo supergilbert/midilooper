@@ -942,3 +942,23 @@ void msq_margin_ggt_init(msq_margin_ggt_t *margin,
   margin->ggt.draw_cb = msq_margin_ggt_draw_cb;
   margin->ggt.destroy_cb = msq_margin_ggt_destroy_cb;
 }
+
+void msq_draw_veil(pbt_pbarea_t *pbarea,
+                   unsigned int xmin,
+                   unsigned int xmax,
+                   unsigned int ymin,
+                   unsigned int ymax)
+{
+  unsigned int xidx, yidx;
+  unsigned char color[4];
+
+  for (xidx = xmin; xidx < xmax; xidx++)
+    for (yidx = ymin; yidx < ymax; yidx++)
+      {
+        pbt_pbarea_get_pxl(pbarea, xidx, yidx, color);
+        color[0] >>= 1;
+        color[1] >>= 1;
+        color[2] >>= 1;
+        pbt_pbarea_put_pxl(pbarea, xidx, yidx, color);
+      }
+}

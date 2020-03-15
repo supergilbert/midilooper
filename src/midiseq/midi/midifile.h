@@ -80,10 +80,13 @@ typedef struct
   /* char      *name; */
 }           midifile_info_t;
 
+#define MSQ_BINDINGS_NOTE_MAX 127
+#define MSQ_BINDINGS_KEY_MAX 27 /* +1 for 0 at end of str in raw display*/
+
 typedef struct
 {
-  byte_t notes[256];
-  byte_t keys[256];
+  byte_t notes[MSQ_BINDINGS_NOTE_MAX];
+  byte_t keys[MSQ_BINDINGS_KEY_MAX];
   size_t notes_sz;
   size_t keys_sz;
 } midif_trackb_t;
