@@ -36,6 +36,8 @@ void track_editor_init(track_editor_t *track_editor,
                        unsigned char note_scale);
 void draw_progress_line(track_editor_t *track_editor);
 void clear_progress_line(track_editor_t *track_editor);
+void msq_draw_vggts(msq_vggts_t *vggts);
+
 /* void pbt_evh_button_label_add(pbt_evh_t *evh, */
 /*                               pbt_button_label_t *button, */
 /*                               const char *label, */

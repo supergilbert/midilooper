@@ -22,6 +22,7 @@
 #include "pbt_gadget.h"
 #include "pbt_gadget_window_inc.h"
 #include "pbt_font_inc.h"
+#include "wbe_pbw.h"
 
 #define pbt_wgt_win_put_buffer(_wgt)                       \
   wbe_pbw_put_buffer(&((_wgt)->ggt_win->pb_win))

@@ -365,11 +365,39 @@ void handle_stop_cb(void *transport_iface_addr)
   engine_stop(transport_iface->engine_ctx);
 }
 
-void handle_rec_cb(void *transport_iface_addr)
+void msq_transport_update_button(msq_transport_iface_t *transport_iface)
 {
-  /* msq_transport_iface_t *transport_iface = transport_iface_addr; */
+  list_iterator_t iter;
+  msq_transport_child_t *transport_child;
 
-  pbt_logmsg("Soon");
+  for (iter_init(&iter, &(transport_iface->transport_childs));
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      transport_child = iter_node_ptr(&iter);
+      pbt_wgt_draw(&(transport_child->rec));
+      pbt_wgt_win_put_buffer(&(transport_child->rec.wgt));
+    }
+}
+
+void handle_rec_cb(void *transport_child_addr)
+{
+  msq_transport_child_t *transport_child = transport_child_addr;
+  track_ctx_t *track_ctx = transport_child->track_ctx;
+
+  if (track_ctx->engine->rec == MSQ_TRUE)
+    {
+      if (track_ctx->engine->track_rec == track_ctx)
+        track_ctx->engine->rec = MSQ_FALSE;
+      else
+        track_ctx->engine->track_rec = track_ctx;
+    }
+  else
+    {
+      track_ctx->engine->track_rec = track_ctx;
+      track_ctx->engine->rec = MSQ_TRUE;
+    }
+  msq_transport_update_button(transport_child->parent);
 }
 
 void msq_destroy_transport_button(pbt_ggt_t *ggt)
@@ -427,8 +455,8 @@ void msq_transport_tempo_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 }
 
 void msq_transport_tempo_init(msq_transport_tempo_t *transport_tempo,
-                            engine_ctx_t *engine_ctx,
-                            msq_gui_theme_t *global_theme)
+                              engine_ctx_t *engine_ctx,
+                              msq_gui_theme_t *global_theme)
 {
   pbt_ggt_t *ggt = &(transport_tempo->wgt.ggt);
 
@@ -624,12 +652,47 @@ void msq_transport_child_destroy(pbt_ggt_t *ggt)
   _pbt_ggt_destroy(ctnr_ggt);
 }
 
+void _msq_child_button_rec_draw_cb(pbt_ggt_t *ggt)
+{
+  pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
+  pbt_wgt_button_t *rec_button = (pbt_wgt_button_t *) wgt->priv;
+  msq_transport_child_t *transport_child
+    = (msq_transport_child_t *) rec_button->cb_arg;
+  track_ctx_t *track_ctx = transport_child->track_ctx;
+  pbt_pixbuf_t *rec_button_imgs
+    = transport_child->parent->tempo_wgt.global_theme->rec_button_imgs;
+
+  if (track_ctx->engine->rec == MSQ_TRUE
+      && track_ctx->engine->track_rec == track_ctx)
+    {
+      if (rec_button->pb_released != &(rec_button_imgs[3]))
+        {
+          rec_button->pb_released = &(rec_button_imgs[3]);
+          rec_button->pb_pressed = &(rec_button_imgs[4]);
+          rec_button->pb_hovered = &(rec_button_imgs[5]);
+        }
+    }
+  else
+    {
+      if (rec_button->pb_released != &(rec_button_imgs[0]))
+        {
+          rec_button->pb_released = &(rec_button_imgs[0]);
+          rec_button->pb_pressed = &(rec_button_imgs[1]);
+          rec_button->pb_hovered = &(rec_button_imgs[2]);
+        }
+    }
+
+  pbt_wgt_button_draw_cb(ggt);
+}
+
 void msq_transport_child_init(msq_transport_child_t *transport_child,
-                              msq_transport_iface_t *transport_iface)
+                              msq_transport_iface_t *transport_iface,
+                              track_ctx_t *track_ctx)
 {
   msq_gui_theme_t *global_theme = transport_iface->tempo_wgt.global_theme;
 
   transport_child->parent = transport_iface;
+  transport_child->track_ctx = track_ctx;
   push_to_list(&(transport_iface->transport_childs), transport_child);
 
   msq_button_init(&(transport_child->play),
@@ -652,7 +715,8 @@ void msq_transport_child_init(msq_transport_child_t *transport_child,
                   &(global_theme->rec_button_imgs[2]),
                   global_theme,
                   handle_rec_cb,
-                  transport_iface);
+                  transport_child);
+  transport_child->rec.wgt.ggt.draw_cb = _msq_child_button_rec_draw_cb;
   pbt_ggt_hctnr_init(&(transport_child->root_ctnr));
   pbt_ggt_add_child_wgt(&(transport_child->root_ctnr),
                         &(transport_child->play));

@@ -83,7 +83,6 @@ typedef struct
   pbt_ggt_ctnr_t root_ctnr;
   pbt_wgt_button_t play;
   pbt_wgt_button_t stop;
-  pbt_wgt_button_t rec;
   engine_ctx_t *engine_ctx;
   pbt_wgt_button_t tempo_dec;
   pbt_wgt_button_t tempo_inc;
@@ -102,6 +101,7 @@ typedef struct
   pbt_wgt_t wgt;
   pbt_ggt_node_t child;
   msq_transport_iface_t *parent;
+  track_ctx_t *track_ctx;
 } msq_transport_child_t;
 
 typedef enum

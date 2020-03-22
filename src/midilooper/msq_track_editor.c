@@ -2393,14 +2393,11 @@ pbt_bool_t handle_grid_paste_mode(wbe_window_input_t *winev,
   if (WBE_GET_BIT(winev->buttons, 0) == 1)
     {
       grid->state = GRID_NO_MODE;
-      ret_bool = PBT_TRUE;
-    }
-
-  if (WBE_GET_BIT(winev->buttons, 1) == 1
-      || WBE_GET_BIT(winev->buttons, 2) == 1)
-    {
-      grid->state = GRID_NO_MODE;
-      return PBT_TRUE;
+      if (WBE_GET_BIT(winev->buttons, 1) == 1
+          || WBE_GET_BIT(winev->buttons, 2) == 1)
+        return PBT_TRUE;
+      else
+        ret_bool = PBT_TRUE;
     }
 
   tick_offset = XPOS2TICK(grid->editor_ctx,
@@ -2442,7 +2439,7 @@ pbt_bool_t handle_grid_paste_mode(wbe_window_input_t *winev,
           evit_init(&(noteonoff->evit_noteoff),
                     &(grid->editor_ctx->track_ctx->track->tickev_list));
 
-          mcev.chan = note->channel;
+          mcev.chan = grid->editor_ctx->channel;
           mcev.event.note.num = note->num + num_offset;
 
           mcev.type = NOTEON;
@@ -2653,7 +2650,7 @@ pbt_bool_t grid_wgt_unset_focus_cb(pbt_ggt_t *ggt,
 void _msq_update_zoom(track_editor_ctx_t *editor_ctx,
                       msq_vggts_t *vggts)
 {
-  editor_ctx->qn_size = 10 + (editor_ctx->zoom_adj.pos * 90 / 50);
+  editor_ctx->qn_size = 10 + (editor_ctx->zoom_adj.pos * editor_ctx->zoom_adj.pos * 90 / 2500);
   msq_update_hadj_startnlen(editor_ctx);
   msq_draw_vggts(vggts);
 }
@@ -2740,7 +2737,23 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
               editor_ctx->tmp_coo[1] = winev->ypos - pbt_wgt_ypos(grid);
               editor_ctx->tmp_coo[2] = editor_ctx->tmp_coo[0];
               editor_ctx->tmp_coo[3] = editor_ctx->tmp_coo[1];
-              grid->state = GRID_SELECT_NOTE_MODE;
+              if (editor_ctx->selected_notes.len == 0)
+                {
+                  handle_selection(editor_ctx);
+                  if (editor_ctx->selected_notes.len != 0)
+                    {
+                      _draw_grid(&(ggt->pbarea), editor_ctx);
+                      draw_notes_filter_selection(&(ggt->pbarea), editor_ctx);
+                      draw_loop_veil(&(ggt->pbarea), editor_ctx);
+                      _wbe_pbw_texture_load(&(grid->wgt.ggt_win->pb_win));
+                      grid->state = GRID_MOVE_NOTE_MODE;
+                      handle_move_note_mode(winev, grid);
+                    }
+                  else
+                    grid->state = GRID_SELECT_NOTE_MODE;
+                }
+              else
+                grid->state = GRID_SELECT_NOTE_MODE;
             }
           return PBT_TRUE;
         }
@@ -4252,7 +4265,7 @@ void track_editor_init(track_editor_t *track_editor,
   track_editor->vggts.hscroll  = &(track_editor->hscrollbar_wgt.wgt.ggt);
   track_editor->vggts.zoom     = &(track_editor->hscrollbar_zoom_wgt.wgt.ggt);
 
-  msq_transport_child_init(&(track_editor->transport), transport_iface);
+  msq_transport_child_init(&(track_editor->transport), transport_iface, track_ctx);
 
   msq_combobox_init(&(track_editor->resolution_combobox),
                     track_editor->dialog_iface,

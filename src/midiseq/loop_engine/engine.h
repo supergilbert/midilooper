@@ -202,7 +202,7 @@ void output_evlist(output_t *output,
 void output_pending_notes(output_t *output, byte_t *notes_on_state);
 
 byte_t     engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size);
-msq_bool_t engine_toggle_rec(engine_ctx_t *ctx);
+void engine_toggle_rec(engine_ctx_t *ctx);
 
 msq_bool_t nns_init_engine(engine_ctx_t *ctx, char *name);
 msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid);
@@ -225,5 +225,9 @@ void trackctx_event2trash(track_ctx_t *traxkctx,
                           ev_iterator_t *ev_iterator);
 
 void trackctx_set_name(track_ctx_t *traxkctx, const char *name);
+
+void gen_midinote_bindings_str(char *mnb_str,
+                               byte_t *notes,
+                               size_t notes_sz);
 
 #endif

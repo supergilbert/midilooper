@@ -423,23 +423,24 @@ byte_t engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size)
   return 0;
 }
 
-msq_bool_t engine_toggle_rec(engine_ctx_t *ctx)
+void engine_set_rec(engine_ctx_t *ctx, void *track_ctx_addr)
+{
+  ctx->rec = MSQ_TRUE;
+  ctx->track_rec = track_ctx_addr;
+  ctx->rec_state_changed = MSQ_TRUE;
+}
+
+void engine_toggle_rec(engine_ctx_t *ctx)
 {
   if (ctx->rec == MSQ_TRUE)
     ctx->rec = MSQ_FALSE;
   else
     {
-      if (ctx->track_rec == NULL)
-        {
-          if (ctx->track_list.len > 0)
-            ctx->track_rec = ctx->track_list.head->addr;
-          else
-            return MSQ_FALSE;
-        }
-      ctx->rec = MSQ_TRUE;
+      if (ctx->track_rec == NULL
+          && ctx->track_list.len > 0)
+        engine_set_rec(ctx, ctx->track_list.head->addr);
     }
   ctx->rec_state_changed = MSQ_TRUE;
-  return MSQ_TRUE;
 }
 
 msq_bool_t init_engine(engine_ctx_t *engine,

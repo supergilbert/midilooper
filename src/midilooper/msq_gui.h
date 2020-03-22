@@ -62,7 +62,8 @@ void msq_transport_init(msq_transport_iface_t *transport_iface,
                         engine_ctx_t *engine_ctx);
 
 void msq_transport_child_init(msq_transport_child_t *transport_child,
-                              msq_transport_iface_t *transport_iface);
+                              msq_transport_iface_t *transport_iface,
+                              track_ctx_t *track_ctx);
 
 void msq_dialog_result_idx(msq_dialog_iface_t *dialog_iface, size_t idx);
 
