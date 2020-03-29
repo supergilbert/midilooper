@@ -1228,15 +1228,6 @@ void set_gradient_color(track_editor_theme_t *theme,
     }
 }
 
-typedef struct
-{
-  unsigned char channel;
-  unsigned char num;
-  unsigned char val;
-  unsigned int tick;
-  unsigned int len;
-} note_t;
-
 void draw_note(pbt_pbarea_t *pbarea,
                track_editor_ctx_t *editor_ctx,
                note_t *note,
@@ -1451,14 +1442,18 @@ void draw_loop_veil(pbt_pbarea_t *pbarea, track_editor_ctx_t *editor_ctx)
     }
 }
 
-uint_t msq_get_track_tick(track_ctx_t *track_ctx)
+uint_t msq_get_track_loop_tick(track_ctx_t *track_ctx, uint_t tick)
 {
-  uint_t current_tick = engine_get_tick(track_ctx->engine)
-    % track_ctx->loop_len;
+  uint_t loop_tick = tick % track_ctx->loop_len;
 
-  if (current_tick < track_ctx->loop_start)
-    current_tick += track_ctx->loop_len;
-  return current_tick;
+  if (loop_tick < track_ctx->loop_start)
+    loop_tick += track_ctx->loop_len;
+  return loop_tick;
+}
+
+uint_t msq_get_current_track_tick(track_ctx_t *track_ctx)
+{
+  return msq_get_track_loop_tick(track_ctx, engine_get_tick(track_ctx->engine));
 }
 
 void pixbuf_safe_destroy(pbt_pixbuf_t *pixbuf)
@@ -1468,7 +1463,8 @@ void pixbuf_safe_destroy(pbt_pixbuf_t *pixbuf)
 }
 
 #define msq_get_progress_tick(_editor_ctx)                              \
-  (TICK2XPOS((_editor_ctx), msq_get_track_tick((_editor_ctx)->track_ctx)) \
+  (TICK2XPOS((_editor_ctx),                                             \
+             msq_get_current_track_tick((_editor_ctx)->track_ctx))      \
    - (_editor_ctx)->hadj.pos)
 
 void draw_progress_line(track_editor_t *track_editor)

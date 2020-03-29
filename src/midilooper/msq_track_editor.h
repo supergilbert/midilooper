@@ -38,6 +38,14 @@ void draw_progress_line(track_editor_t *track_editor);
 void clear_progress_line(track_editor_t *track_editor);
 void msq_draw_vggts(msq_vggts_t *vggts);
 
+uint_t msq_get_track_loop_tick(track_ctx_t *track_ctx, uint_t tick);
+
+void add_note(track_editor_ctx_t *editor_ctx, note_t *note);
+
+msq_bool_t note_collision(note_t *note,
+                          track_editor_ctx_t *editor_ctx,
+                          msq_bool_t filter_selection);
+
 /* void pbt_evh_button_label_add(pbt_evh_t *evh, */
 /*                               pbt_button_label_t *button, */
 /*                               const char *label, */

@@ -1490,6 +1490,7 @@ void midilooper_main_window::handle_midi_rec(void)
   msq_track_line_t *track_line
     = msq_track_list_get(&track_list, engine_ctx->track_rec);
   track_editor_t *track_editor;
+  note_t note;
 
   if (engine_ctx->rec == MSQ_FALSE || track_line == NULL)
     {
@@ -1522,12 +1523,17 @@ void midilooper_main_window::handle_midi_rec(void)
                 && (*it).mcev.event.note.num == mcev_tick.mcev.event.note.num
                 && (*it).tick < mcev_tick.tick)
               {
-                evit_add_midicev(&evit,
-                                 (*it).tick,
-                                 &((*it).mcev));
-                evit_add_midicev(&evit,
-                                 mcev_tick.tick,
-                                 &(mcev_tick.mcev));
+                note.channel = (*it).mcev.chan;
+                note.num = (*it).mcev.event.note.num;
+                note.val = (*it).mcev.event.note.val;
+                note.tick =
+                  msq_get_track_loop_tick(track_editor->editor_ctx.track_ctx,
+                                          (*it).tick);
+                note.len = mcev_tick.tick - (*it).tick;
+                if (note_collision(&note,
+                                   &(track_editor->editor_ctx),
+                                   MSQ_FALSE) == MSQ_FALSE)
+                  add_note(&(track_editor->editor_ctx), &note);
                 noteon_list.erase(it);
                 midicev_added = true;
                 break;

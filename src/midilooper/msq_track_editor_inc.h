@@ -193,4 +193,13 @@ typedef struct
 #define track_editor_font(track_editor)                 \
   (&((track_editor)->theme->global_theme->font))
 
+typedef struct
+{
+  unsigned char channel;
+  unsigned char num;
+  unsigned char val;
+  unsigned int tick;
+  unsigned int len;
+} note_t;
+
 EXTERN_C_END
