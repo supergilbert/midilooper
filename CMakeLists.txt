@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.6.2)
 
+if(NOT UNIX)
+  message(FATAL_ERROR "Unhandled OS type")
+endif()
+
 project(midilooper)
 
 set(PBT_DIR "${CMAKE_SOURCE_DIR}/src/pixel_buffer_tools")
