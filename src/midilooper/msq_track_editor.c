@@ -1615,7 +1615,7 @@ void draw_grid_cb(pbt_ggt_t *ggt)
   draw_loop_veil(&(ggt->pbarea), grid_wgt->editor_ctx);
 }
 
-msq_bool_t is_in_note_selection(uint_t tick,
+noteonoff_t *is_in_note_selection(uint_t tick,
                                 byte_t channel,
                                 byte_t note,
                                 list_t *selected_notes)
@@ -1631,15 +1631,15 @@ msq_bool_t is_in_note_selection(uint_t tick,
     {
       noteonoff = iter_node_ptr(&iter);
       if (noteonoff->evit_noteon.tick > tick)
-        return MSQ_FALSE;
+        continue;
       seqev = evit_get_seqev(&(noteonoff->evit_noteon));
       midicev = seqev->addr;
       if (midicev->chan == channel
           && midicev->event.note.num == note
           && noteonoff->evit_noteoff.tick > tick)
-        return MSQ_TRUE;
+        return noteonoff;
     }
-  return MSQ_FALSE;
+  return NULL;
 }
 
 msq_bool_t mcev_is_in_list(list_t *mcev_list, midicev_t *mcev)
@@ -1801,7 +1801,6 @@ void add_note(track_editor_ctx_t *editor_ctx, note_t *note)
   evit_add_midicev(&(noteonoff->evit_noteoff),
                    note->tick + note->len, &mcev);
 
-  free_list_node(&(editor_ctx->selected_notes), free);
   push_to_list_tail(&(editor_ctx->selected_notes),
                     noteonoff);
 }
@@ -1958,7 +1957,10 @@ void handle_writting_note_mode(wbe_window_input_t *winev,
           /* editor_ctx previously set in else */
           handle_writting_note_mode_gen_note(&note, editor_ctx);
           if (note_collision(&note, editor_ctx, MSQ_FALSE) == MSQ_FALSE)
-            add_note(editor_ctx, &note);
+            {
+                free_list_node(&(editor_ctx->selected_notes), free);
+                add_note(editor_ctx, &note);
+            }
         }
       msq_draw_vggts(grid_wgt->vggts);
       grid_wgt->state = GRID_WRITE_MODE;
@@ -1989,17 +1991,62 @@ void handle_writting_note_mode(wbe_window_input_t *winev,
     }
 }
 
-#define msq_quantify_tick_end(_editor_ctx, _tick)       \
-  (msq_quantify_tick((_editor_ctx), (_tick)) - 1)
-
-msq_bool_t check_move_note_end(track_editor_ctx_t *editor_ctx,
-                               int tick_offset)
+msq_bool_t msq_move_note_start_list_init(list_t *new_note_list,
+                                         track_editor_ctx_t *editor_ctx,
+                                         int tick_offset)
 {
   list_iterator_t iter = {};
   noteonoff_t *noteonoff;
   seqev_t *seqev;
   midicev_t *noteev;
-  note_t note;
+  note_t note, *note_ptr;
+  int tmp_tick_start;
+
+  for (iter_init(&iter, &(editor_ctx->selected_notes));
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      noteonoff = iter_node_ptr(&iter);
+      seqev = evit_get_seqev(&(noteonoff->evit_noteon));
+      noteev = seqev->addr;
+      tmp_tick_start = noteonoff->evit_noteon.tick + tick_offset;
+      tmp_tick_start = msq_quantify_tick(editor_ctx, tmp_tick_start);
+      if ((int) noteonoff->evit_noteoff.tick <= tmp_tick_start)
+        {
+          tmp_tick_start = msq_quantify_tick(editor_ctx,
+                                             noteonoff->evit_noteoff.tick);
+          if ((int) noteonoff->evit_noteoff.tick <= tmp_tick_start)
+            tmp_tick_start -= editor_ctx->quantize;
+        }
+      note.num =  noteev->event.note.num;
+      note.tick = tmp_tick_start;
+      note.channel = noteev->chan;
+      note.val = noteev->event.note.val;
+      note.len = noteonoff->evit_noteoff.tick -  tmp_tick_start;
+      if (note_collision(&note, editor_ctx, MSQ_TRUE) == MSQ_TRUE)
+        {
+          free_list_node(new_note_list, free);
+          return MSQ_FALSE;
+        }
+      note_ptr = malloc(sizeof (note_t));
+      memcpy(note_ptr, &note, sizeof (note_t));
+      push_to_list(new_note_list, note_ptr);
+    }
+  return MSQ_TRUE;
+}
+
+#define msq_quantify_tick_end(_editor_ctx, _tick)       \
+  (msq_quantify_tick((_editor_ctx), (_tick)) - 1)
+
+msq_bool_t msq_move_note_end_list_init(list_t *new_note_list,
+                                       track_editor_ctx_t *editor_ctx,
+                                       int tick_offset)
+{
+  list_iterator_t iter = {};
+  noteonoff_t *noteonoff;
+  seqev_t *seqev;
+  midicev_t *noteev;
+  note_t note, *note_ptr;
   int tmp_tick_end;
 
   for (iter_init(&iter, &(editor_ctx->selected_notes));
@@ -2012,17 +2059,115 @@ msq_bool_t check_move_note_end(track_editor_ctx_t *editor_ctx,
       tmp_tick_end = noteonoff->evit_noteoff.tick + tick_offset;
       tmp_tick_end = msq_quantify_tick_end(editor_ctx, tmp_tick_end);
       if ((int) noteonoff->evit_noteon.tick >= tmp_tick_end)
-        return MSQ_FALSE;
-      note.num = noteev->event.note.num;
+        {
+          tmp_tick_end = msq_quantify_tick_end(editor_ctx,
+                                               noteonoff->evit_noteon.tick);
+          if ((int) noteonoff->evit_noteon.tick >= tmp_tick_end)
+            tmp_tick_end += editor_ctx->quantize;
+        }
+      note.num =  noteev->event.note.num;
       note.tick = noteonoff->evit_noteon.tick;
       note.channel = noteev->chan;
       note.val = noteev->event.note.val;
       note.len = tmp_tick_end - noteonoff->evit_noteon.tick;
       if (note_collision(&note, editor_ctx, MSQ_TRUE) == MSQ_TRUE)
-        return MSQ_FALSE;
+        {
+          free_list_node(new_note_list, free);
+          return MSQ_FALSE;
+        }
+      note_ptr = malloc(sizeof (note_t));
+      memcpy(note_ptr, &note, sizeof (note_t));
+      push_to_list(new_note_list, note_ptr);
     }
   return MSQ_TRUE;
 }
+
+
+typedef msq_bool_t (*msq_move_note_list_init_t)(list_t *new_note_list,
+                                                 track_editor_ctx_t *editor_ctx,
+                                                 int tick_offset);
+
+void msq_draw_move_note(msq_grid_wgt_t *grid,
+                        wbe_window_input_t *winev,
+                        msq_move_note_list_init_t new_note_list_init)
+{
+  list_iterator_t iter = {};
+  track_editor_ctx_t *editor_ctx = grid->editor_ctx;
+  int tick_offset = XPOS2TICK(editor_ctx,
+                              winev->xpos - editor_ctx->tmp_coo[0]);
+  list_t new_note_list = {};
+  note_t note, *note_ptr;
+  noteonoff_t *noteonoff;
+  seqev_t *seqev;
+  midicev_t *noteev;
+
+  pbt_wgt_gl_refresh(&(grid->wgt));
+  if (new_note_list_init(&new_note_list, editor_ctx, tick_offset) == MSQ_TRUE)
+    {
+      for (iter_init(&iter, &(new_note_list));
+           iter_node(&iter);
+           iter_next(&iter))
+      {
+        note_ptr = iter_node_ptr(&iter);
+        draw_tmp_note(&(grid->wgt), editor_ctx, note_ptr);
+      }
+      free_list_node(&new_note_list, free);
+    }
+  else
+    {
+      for (iter_init(&iter, &(editor_ctx->selected_notes));
+           iter_node(&iter);
+           iter_next(&iter))
+        {
+          noteonoff = iter_node_ptr(&iter);
+          seqev = evit_get_seqev(&(noteonoff->evit_noteon));
+          noteev = seqev->addr;
+          note.tick = noteonoff->evit_noteon.tick;
+          note.channel = noteev->chan;
+          note.num = noteev->event.note.num;
+          note.val = noteev->event.note.val;
+          note.len = noteonoff->evit_noteoff.tick - note.tick;
+          draw_tmp_note(&(grid->wgt), editor_ctx, &note);
+        }
+    }
+  wbe_gl_flush();
+}
+
+void msq_write_move_note(msq_grid_wgt_t *grid,
+                         wbe_window_input_t *winev,
+                         msq_move_note_list_init_t new_note_list_init)
+{
+  track_editor_ctx_t *editor_ctx = grid->editor_ctx;
+  int tick_offset = XPOS2TICK(editor_ctx,
+                              winev->xpos - editor_ctx->tmp_coo[0]);
+  list_iterator_t iter = {};
+  list_t new_note_list = {};
+  note_t *note_ptr;
+
+  if (new_note_list_init(&new_note_list, editor_ctx, tick_offset)
+      == MSQ_TRUE)
+    {
+      delete_selection(grid);
+      for (iter_init(&iter, &(new_note_list));
+           iter_node(&iter);
+           iter_next(&iter))
+        {
+          note_ptr = iter_node_ptr(&iter);
+          add_note(editor_ctx, note_ptr);
+        }
+      free_list_node(&new_note_list, free);
+    }
+}
+
+#define msq_draw_move_note_start(grid, winev)                           \
+  msq_draw_move_note((grid), (winev), msq_move_note_start_list_init)
+#define msq_draw_move_note_end(grid, winev)                             \
+  msq_draw_move_note((grid), (winev), msq_move_note_end_list_init)
+
+#define msq_write_move_note_start(grid, winev)                          \
+  msq_write_move_note((grid), (winev), msq_move_note_start_list_init)
+#define msq_write_move_note_end(grid, winev)                            \
+  msq_write_move_note((grid), (winev), msq_move_note_end_list_init)
 
 msq_bool_t check_move_note(track_editor_ctx_t *editor_ctx,
                            int tick_offset,
@@ -2058,98 +2203,6 @@ msq_bool_t check_move_note(track_editor_ctx_t *editor_ctx,
         return MSQ_FALSE;
     }
   return MSQ_TRUE;
-}
-
-void msq_draw_move_note_end(wbe_window_input_t *winev,
-                            msq_grid_wgt_t *grid)
-{
-  track_editor_ctx_t *editor_ctx = grid->editor_ctx;
-  int tick_offset = XPOS2TICK(editor_ctx,
-                              winev->xpos - editor_ctx->tmp_coo[0]);
-  list_iterator_t iter = {};
-  noteonoff_t *noteonoff;
-  seqev_t *seqev;
-  midicev_t *noteev;
-  note_t note;
-  int tmp_tick_end;
-
-  wbe_pbw_make_context(&(grid->wgt.ggt_win->pb_win));
-  /* TODO refresh last pos */
-  pbt_wgt_gl_refresh(&(grid->wgt));
-  if (check_move_note_end(editor_ctx, tick_offset) == MSQ_TRUE)
-    for (iter_init(&iter, &(editor_ctx->selected_notes));
-         iter_node(&iter);
-         iter_next(&iter))
-      {
-        noteonoff = iter_node_ptr(&iter);
-        seqev = evit_get_seqev(&(noteonoff->evit_noteon));
-        noteev = seqev->addr;
-        note.tick = noteonoff->evit_noteon.tick;
-        note.channel = noteev->chan;
-        note.num = noteev->event.note.num;
-        note.val = noteev->event.note.val;
-        tmp_tick_end = noteonoff->evit_noteoff.tick + tick_offset;
-        tmp_tick_end = msq_quantify_tick_end(editor_ctx, tmp_tick_end);
-        note.len = tmp_tick_end - note.tick;
-        draw_tmp_note(&(grid->wgt),
-                      editor_ctx,
-                      &note);
-      }
-  wbe_gl_flush();
-}
-
-void msq_write_move_note_end(wbe_window_input_t *winev,
-                             msq_grid_wgt_t *grid)
-{
-  track_editor_ctx_t *editor_ctx = grid->editor_ctx;
-  int tick_offset = XPOS2TICK(editor_ctx,
-                              winev->xpos - editor_ctx->tmp_coo[0]);
-  list_iterator_t iter = {};
-  noteonoff_t *noteonoff;
-  seqev_t *seqev;
-  midicev_t *noteev;
-  midicev_t mcev;
-  int tmp_tick_end;
-  void (*del_func)(track_ctx_t *, ev_iterator_t *);
-
-  if (check_move_note_end(editor_ctx, tick_offset) == MSQ_FALSE)
-    return;
-
-  /* /!\ TODO
-     trackctx_del_event must be locked until all deletion is passed
-     (SEGFAULT race condition) */
-  if (editor_ctx->track_ctx->engine
-      && engine_is_running(editor_ctx->track_ctx->engine) == MSQ_TRUE)
-    del_func = trackctx_event2trash;
-  else
-    del_func = trackctx_del_event;
-
-  for (iter_init(&iter, &(editor_ctx->selected_notes));
-       iter_node(&iter);
-       iter_next(&iter))
-    {
-      noteonoff = iter_node_ptr(&iter);
-
-      tmp_tick_end = noteonoff->evit_noteoff.tick + tick_offset;
-      tmp_tick_end = msq_quantify_tick_end(editor_ctx, tmp_tick_end);
-
-      seqev = evit_get_seqev(&(noteonoff->evit_noteon));
-      noteev = seqev->addr;
-
-      mcev.type = NOTEOFF;
-      mcev.chan = noteev->chan;
-      mcev.event.note.num = noteev->event.note.num;
-      mcev.event.note.val = 0;
-
-      del_func(editor_ctx->track_ctx, &(noteonoff->evit_noteoff));
-
-      memcpy(&(noteonoff->evit_noteoff), &(noteonoff->evit_noteon),
-             sizeof (ev_iterator_t));
-
-      evit_add_midicev(&(noteonoff->evit_noteoff),
-                       tmp_tick_end,
-                       &mcev);
-    }
 }
 
 pbt_bool_t handle_move_note_mode(wbe_window_input_t *winev,
@@ -2617,21 +2670,32 @@ pbt_bool_t grid_wgt_unset_focus_cb(pbt_ggt_t *ggt,
       ret_bool = handle_grid_paste_mode(winev, grid);
       break;
 
-    case GRID_MOVE_NOTE_END_MODE:
+    case GRID_MOVE_NOTE_START_MODE:
       if (WBE_GET_BIT(winev->buttons, 2) == 0)
         {
-          msq_write_move_note_end(winev, grid);
-          _draw_grid(&(ggt->pbarea), editor_ctx);
-          draw_notes(&(ggt->pbarea), editor_ctx);
-          draw_loop_veil(&(ggt->pbarea), editor_ctx);
-          pbt_wgt_win_put_buffer(&(grid->wgt));
+          msq_write_move_note_start(grid, winev);
+          msq_draw_vggts(grid->vggts);
           wbe_window_set_cursor(grid->wgt.ggt_win->pb_win.win_be,
                                 tctx_cursor_arrow(editor_ctx));
           grid->state = GRID_NO_MODE;
           ret_bool = PBT_TRUE;
         }
       else if (WBE_GET_BIT(winev->buttons, 2) == 1)
-        msq_draw_move_note_end(winev, grid);
+        msq_draw_move_note_start(grid, winev);
+      break;
+
+    case GRID_MOVE_NOTE_END_MODE:
+      if (WBE_GET_BIT(winev->buttons, 2) == 0)
+        {
+          msq_write_move_note_end(grid, winev);
+          msq_draw_vggts(grid->vggts);
+          wbe_window_set_cursor(grid->wgt.ggt_win->pb_win.win_be,
+                                tctx_cursor_arrow(editor_ctx));
+          grid->state = GRID_NO_MODE;
+          ret_bool = PBT_TRUE;
+        }
+      else if (WBE_GET_BIT(winev->buttons, 2) == 1)
+        msq_draw_move_note_end(grid, winev);
       break;
 
     case GRID_NO_MODE:
@@ -2672,6 +2736,8 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
 {
   msq_grid_wgt_t *grid = grid_addr;
   track_editor_ctx_t *editor_ctx = grid->editor_ctx;
+  int tick;
+  noteonoff_t *noteonoff;
   unsigned int xpos, ypos;
 
   if (editor_ctx->selected_notes.len != 0
@@ -2712,8 +2778,7 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
                                    editor_ctx->channel,
                                    YPOS2NOTE(editor_ctx,
                                              ypos),
-                                   &(editor_ctx->selected_notes))
-              == MSQ_TRUE)
+                                   &(editor_ctx->selected_notes)) != NULL)
             {
               editor_ctx->tmp_coo[0] = xpos;
               editor_ctx->tmp_coo[1] = ypos;
@@ -2753,35 +2818,42 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
             }
           return PBT_TRUE;
         }
-      else if (WBE_GET_BIT(winev->buttons, 1) == 1
-               && is_in_note_selection(XPOS2TICK(editor_ctx, xpos),
-                                       editor_ctx->channel,
-                                       YPOS2NOTE(editor_ctx, ypos),
-                                       &(editor_ctx->selected_notes))
-               == MSQ_FALSE)
+      else if (WBE_GET_BIT(winev->buttons, 1) == 1)
         {
           wbe_window_set_cursor(grid->wgt.ggt_win->pb_win.win_be,
                                 tctx_cursor_pencil(editor_ctx));
           grid->state = GRID_WRITE_MODE;
           return PBT_TRUE;
         }
-      else if ((WBE_GET_BIT(winev->buttons, 2) == 1)
-               && is_in_note_selection(XPOS2TICK(editor_ctx, xpos),
-                                       editor_ctx->channel,
-                                       YPOS2NOTE(editor_ctx, ypos),
-                                       &(editor_ctx->selected_notes))
-               == MSQ_TRUE)
+      else if (WBE_GET_BIT(winev->buttons, 2) == 1)
         {
-          grid->state = GRID_MOVE_NOTE_END_MODE;
-          editor_ctx->tmp_coo[0] = winev->xpos;
-          _draw_grid(&(ggt->pbarea), editor_ctx);
-          draw_notes_filter_selection(&(ggt->pbarea), editor_ctx);
-          draw_loop_veil(&(ggt->pbarea), editor_ctx);
-          _wbe_pbw_texture_load(&(grid->wgt.ggt_win->pb_win));
-          msq_draw_move_note_end(winev, grid);
-          wbe_window_set_cursor(grid->wgt.ggt_win->pb_win.win_be,
-                                tctx_cursor_hresize(editor_ctx));
-          return PBT_TRUE;
+          tick = XPOS2TICK(editor_ctx, xpos);
+          noteonoff = is_in_note_selection(tick,
+                                           editor_ctx->channel,
+                                           YPOS2NOTE(editor_ctx, ypos),
+                                           &(editor_ctx->selected_notes));
+          if (noteonoff != NULL)
+            {
+              editor_ctx->tmp_coo[0] = winev->xpos;
+              _draw_grid(&(ggt->pbarea), editor_ctx);
+              draw_notes_filter_selection(&(ggt->pbarea), editor_ctx);
+              draw_loop_veil(&(ggt->pbarea), editor_ctx);
+              _wbe_pbw_texture_load(&(grid->wgt.ggt_win->pb_win));
+              if (tick - noteonoff->evit_noteon.tick
+                  < noteonoff->evit_noteoff.tick - tick)
+                {
+                  grid->state = GRID_MOVE_NOTE_START_MODE;
+                  msq_draw_move_note_start(grid, winev);
+                }
+              else
+                {
+                  grid->state = GRID_MOVE_NOTE_END_MODE;
+                  msq_draw_move_note_end(grid, winev);
+                }
+              wbe_window_set_cursor(grid->wgt.ggt_win->pb_win.win_be,
+                                    tctx_cursor_hresize(editor_ctx));
+              return PBT_TRUE;
+            }
         }
       else if (WBE_GET_BIT(winev->buttons, 3) == 1)
         {
@@ -2829,8 +2901,7 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
           if (is_in_note_selection(XPOS2TICK(editor_ctx, xpos),
                                    editor_ctx->channel,
                                    YPOS2NOTE(editor_ctx, ypos),
-                                   &(editor_ctx->selected_notes))
-              == MSQ_TRUE)
+                                   &(editor_ctx->selected_notes)) != NULL)
             wbe_window_set_cursor(grid->wgt.ggt_win->pb_win.win_be,
                                   tctx_cursor_grab(editor_ctx));
           else
