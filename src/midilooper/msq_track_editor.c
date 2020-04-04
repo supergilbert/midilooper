@@ -2133,6 +2133,18 @@ void msq_draw_move_note(msq_grid_wgt_t *grid,
   wbe_gl_flush();
 }
 
+void _msq_add_list_note(track_editor_ctx_t *editor_ctx, list_t *note_list)
+{
+  list_iterator_t iter = {};
+  note_t *note_ptr;
+
+  for (iter_init(&iter, note_list); iter_node(&iter); iter_next(&iter))
+    {
+      note_ptr = iter_node_ptr(&iter);
+      add_note(editor_ctx, note_ptr);
+    }
+}
+
 void msq_write_move_note(msq_grid_wgt_t *grid,
                          wbe_window_input_t *winev,
                          msq_move_note_list_init_t new_note_list_init)
@@ -2140,21 +2152,12 @@ void msq_write_move_note(msq_grid_wgt_t *grid,
   track_editor_ctx_t *editor_ctx = grid->editor_ctx;
   int tick_offset = XPOS2TICK(editor_ctx,
                               winev->xpos - editor_ctx->tmp_coo[0]);
-  list_iterator_t iter = {};
   list_t new_note_list = {};
-  note_t *note_ptr;
 
-  if (new_note_list_init(&new_note_list, editor_ctx, tick_offset)
-      == MSQ_TRUE)
+  if (new_note_list_init(&new_note_list, editor_ctx, tick_offset) == MSQ_TRUE)
     {
       delete_selection(grid);
-      for (iter_init(&iter, &(new_note_list));
-           iter_node(&iter);
-           iter_next(&iter))
-        {
-          note_ptr = iter_node_ptr(&iter);
-          add_note(editor_ctx, note_ptr);
-        }
+      _msq_add_list_note(editor_ctx, &new_note_list);
       free_list_node(&new_note_list, free);
     }
 }
@@ -2216,7 +2219,6 @@ pbt_bool_t handle_move_note_mode(wbe_window_input_t *winev,
   midicev_t *noteev;
   note_t note;
   int xpos, ypos;
-  midicev_t mcev;
   note_t *tmp_note;
   list_t tmp_list = {};
   uint_t min_tick = (uint_t) -1;
@@ -2288,38 +2290,7 @@ pbt_bool_t handle_move_note_mode(wbe_window_input_t *winev,
           push_to_list_tail(&tmp_list, tmp_note);
         }
       delete_selection(grid);
-
-      for (iter_init(&iter, &tmp_list);
-           iter_node(&iter);
-           iter_next(&iter))
-        {
-          tmp_note = iter_node_ptr(&iter);
-          noteonoff = malloc(sizeof (noteonoff_t));
-          evit_init(&(noteonoff->evit_noteon),
-                    &(grid->editor_ctx->track_ctx->track->tickev_list));
-          evit_init(&(noteonoff->evit_noteoff),
-                    &(grid->editor_ctx->track_ctx->track->tickev_list));
-
-          mcev.chan = tmp_note->channel;
-          mcev.type = NOTEON;
-          mcev.event.note.num = tmp_note->num;
-          mcev.event.note.val = tmp_note->val;
-          evit_add_midicev(&(noteonoff->evit_noteon),
-                           tmp_note->tick,
-                           &mcev);
-
-          mcev.type = NOTEOFF;
-          mcev.event.note.val = 0;
-          evit_add_midicev(&(noteonoff->evit_noteoff),
-                           tmp_note->tick + tmp_note->len,
-                           &mcev);
-
-          if (tmp_note->tick < min_tick)
-            min_tick = tmp_note->tick;
-
-          push_to_list_tail(&(grid->editor_ctx->selected_notes),
-                            noteonoff);
-        }
+      _msq_add_list_note(grid->editor_ctx, &tmp_list);
       grid->editor_ctx->selected_notes_min_tick = min_tick;
       free_list_node(&tmp_list, free);
       msq_draw_vggts(grid->vggts);
@@ -2710,7 +2681,8 @@ pbt_bool_t grid_wgt_unset_focus_cb(pbt_ggt_t *ggt,
 void _msq_update_zoom(track_editor_ctx_t *editor_ctx,
                       msq_vggts_t *vggts)
 {
-  editor_ctx->qn_size = 10 + (editor_ctx->zoom_adj.pos * editor_ctx->zoom_adj.pos * 90 / 2500);
+  editor_ctx->qn_size =
+    10 + (editor_ctx->zoom_adj.pos * editor_ctx->zoom_adj.pos * 90 / 2500);
   msq_update_hadj_startnlen(editor_ctx);
   msq_draw_vggts(vggts);
 }
@@ -2728,6 +2700,43 @@ void vggts_value_unselect(msq_vggts_t *vggts)
   msq_value_wgt_t *value = value_wgt->priv;
 
   value_wgt_unselect(value);
+}
+
+void msq_quantify_note_selection(msq_grid_wgt_t *grid)
+{
+  track_editor_ctx_t *editor_ctx = grid->editor_ctx;
+  list_iterator_t iter = {};
+  noteonoff_t *noteonoff;
+  seqev_t *seqev;
+  midicev_t *noteev;
+  note_t *note_ptr;
+  int tmp_tick_end;
+  list_t note_list = {};
+
+  for (iter_init(&iter, &(editor_ctx->selected_notes));
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      noteonoff = iter_node_ptr(&iter);
+      seqev = evit_get_seqev(&(noteonoff->evit_noteon));
+      noteev = seqev->addr;
+      note_ptr = malloc(sizeof (note_t));
+      note_ptr->num =  noteev->event.note.num;
+      note_ptr->tick = noteonoff->evit_noteon.tick / editor_ctx->quantize
+        * editor_ctx->quantize;
+      note_ptr->channel = noteev->chan;
+      note_ptr->val = noteev->event.note.val;
+      tmp_tick_end = msq_quantify_tick_end(editor_ctx,
+                                           noteonoff->evit_noteoff.tick);
+      if (tmp_tick_end <= note_ptr->tick)
+        tmp_tick_end = note_ptr->tick + editor_ctx->quantize - 1;
+      note_ptr->len = tmp_tick_end - note_ptr->tick;
+      push_to_list(&note_list, note_ptr);
+    }
+  /* /!\ TODO: check note colision in note list before all _msq_add_list_note */
+  delete_selection(grid);
+  _msq_add_list_note(editor_ctx, &note_list);
+  msq_draw_vggts(grid->vggts);
 }
 
 pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
@@ -2766,6 +2775,12 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
            && (wbe_key_pressedA(winev->keys, 'X') == WBE_TRUE))
     {
       grid->state = GRID_CTRL_X_MODE;
+      return PBT_TRUE;
+    }
+  else if ((wbe_key_pressed(winev->keys, WBE_KEY_ALT) == WBE_TRUE)
+           && (wbe_key_pressedA(winev->keys, 'Q') == WBE_TRUE))
+    {
+      msq_quantify_note_selection(grid);
       return PBT_TRUE;
     }
   else if (_PBT_IS_IN_GGT(ggt, winev->xpos, winev->ypos) == PBT_TRUE)
@@ -4257,6 +4272,13 @@ void handle_hadj_zoom_change(void *track_editor_addr)
   _msq_update_zoom(&(track_editor->editor_ctx), &(track_editor->vggts));
 }
 
+void msq_quantify_note_selection_cb(void *track_editor_addr)
+{
+  track_editor_t *track_editor = track_editor_addr;
+
+  msq_quantify_note_selection(&(track_editor->grid_wgt));
+}
+
 #define TRACK_EDITOR_START_WIDTH  800
 #define TRACK_EDITOR_START_HEIGHT 600
 
@@ -4342,6 +4364,11 @@ void track_editor_init(track_editor_t *track_editor,
                     resolution_setting_dialog_res_cb,
                     track_editor);
   track_editor->resolution_combobox.current_idx = 4;
+  pbt_wgt_label_button_init(&(track_editor->quantify_button),
+                            " Q ",
+                            &(track_editor->editor_ctx.theme->global_theme->theme),
+                            msq_quantify_note_selection_cb,
+                            track_editor);
   msq_combobox_draw_pixbufs(&(track_editor->resolution_combobox));
   msq_combobox_init(&(track_editor->channel_combobox),
                     track_editor->dialog_iface,
@@ -4367,6 +4394,11 @@ void track_editor_init(track_editor_t *track_editor,
                         &(track_editor->channel_combobox));
   pbt_ggt_ctnr_add_empty(&(track_editor->hctnr_header),
                          msq_theme_window_bg(theme->global_theme));
+  pbt_ggt_add_child_wgt(&(track_editor->hctnr_header),
+                        &(track_editor->quantify_button));
+  pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header),
+                                    theme->global_theme->default_separator,
+                                    tctx_window_bg(&(track_editor->editor_ctx)));
   pbt_ggt_add_child_ggt(&(track_editor->hctnr_header),
                         &(track_editor->resolution_combobox));
   pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header),
@@ -4491,16 +4523,8 @@ void track_editor_init(track_editor_t *track_editor,
                         msq_theme_frame_bg(theme->global_theme));
   pbt_ggt_add_child_ggt(&(track_editor->value_vctnr_ggt),
                         &(track_editor->value_num_ctnr));
-  pbt_ggt_drawarea_init(&(track_editor->value_empty_ggt),
-                        track_editor->editor_ctx.theme->piano_width,
-                        track_editor->editor_ctx.theme->piano_width,
-                        0,
-                        0,
-                        msq_draw_empty,
-                        tctx_frame_bg(&(track_editor->editor_ctx)),
-                        NULL, NULL);
-  pbt_ggt_add_child_ggt(&(track_editor->value_vctnr_ggt),
-                        &(track_editor->value_empty_ggt));
+  pbt_ggt_ctnr_add_empty(&(track_editor->value_vctnr_ggt),
+                         tctx_frame_bg(&(track_editor->editor_ctx)));
 
   value_vbar_wgt_init(&(track_editor->value_vbar_wgt), track_editor);
   value_wgt_init(&(track_editor->value_wgt),

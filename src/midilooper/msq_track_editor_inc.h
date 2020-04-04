@@ -167,10 +167,10 @@ typedef struct
   pbt_wgt_scrollbar_t hscrollbar_zoom_wgt;
   pbt_wgt_t timeline_wgt;
   msq_transport_child_t transport;
+  pbt_wgt_button_t quantify_button;
   msq_combobox_t resolution_combobox;
   msq_combobox_t channel_combobox;
   msq_combobox_t value_type_combobox;
-  pbt_ggt_drawarea_t value_empty_ggt;
   pbt_wgt_t value_num_wgt;
   pbt_wgt_button_t value_num_dec;
   pbt_wgt_button_t value_num_inc;

@@ -516,6 +516,11 @@ pbt_bool_t msq_transport_iface_set_focus_cb(pbt_ggt_t *ggt,
   if ((key_pressed == MSQ_FALSE)
       && (wbe_key_pressed(winev->keys, WBE_KEY_SPACE) == 1))
     {
+      if (engine_is_running(transport_iface->engine_ctx) == MSQ_TRUE)
+        {
+          transport_iface->engine_ctx->rec = MSQ_FALSE;
+          msq_transport_update_button(transport_iface);
+        }
       engine_start(transport_iface->engine_ctx);
       key_pressed = MSQ_TRUE;
     }
