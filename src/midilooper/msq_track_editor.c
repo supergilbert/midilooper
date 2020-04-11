@@ -1085,11 +1085,175 @@ void trackctx_del_event(track_ctx_t *track_ctx,
   evit_del_event(ev_iterator);
 }
 
+void _history_evit_add_midicev(list_t *history,
+                               ev_iterator_t *evit,
+                               unsigned int tick,
+                               midicev_t *mcev)
+{
+  msq_history_elt_t *history_elt;
+
+  history_elt = malloc(sizeof (msq_history_elt_t));
+  history_elt->type = MSQ_ADD;
+  history_elt->tick[0] = tick;
+  memcpy(&(history_elt->ev[0]), mcev, sizeof (midicev_t));
+  push_to_list(history, history_elt);
+
+  evit_add_midicev(evit, tick, mcev);
+}
+
 typedef struct
 {
   ev_iterator_t evit_noteon;
   ev_iterator_t evit_noteoff;
 } noteonoff_t;
+
+void _history_add_note(track_editor_ctx_t *editor_ctx, note_t *note)
+{
+  noteonoff_t       *noteonoff;
+  midicev_t         mcev;
+  msq_history_elt_t *history_elt;
+
+  history_elt = malloc(sizeof (msq_history_elt_t));
+  history_elt->type = MSQ_ADD_NOTE;
+
+  noteonoff = malloc(sizeof (noteonoff_t));
+  evit_init(&(noteonoff->evit_noteon),
+            &(editor_ctx->track_ctx->track->tickev_list));
+  evit_init(&(noteonoff->evit_noteoff),
+            &(editor_ctx->track_ctx->track->tickev_list));
+
+  mcev.chan = note->channel;
+  mcev.event.note.num = note->num;
+  mcev.type = NOTEON;
+  mcev.event.note.val = note->val;
+  memcpy(&(history_elt->ev[0]), &mcev, sizeof (midicev_t));
+  history_elt->tick[0] = note->tick;
+  evit_add_midicev(&(noteonoff->evit_noteon), note->tick, &mcev);
+
+  mcev.type = NOTEOFF;
+  mcev.event.note.val = 0;
+  memcpy(&(history_elt->ev[1]), &mcev, sizeof (midicev_t));
+  history_elt->tick[1] = note->tick + note->len;
+  evit_add_midicev(&(noteonoff->evit_noteoff), note->tick + note->len, &mcev);
+
+  push_to_list_tail(&(editor_ctx->selected_notes), noteonoff);
+
+  push_to_list(&(editor_ctx->history), history_elt);
+}
+
+void _history_del_noteonoff(track_editor_ctx_t *editor_ctx,
+                            noteonoff_t *noteonoff,
+                            evit_del_func_t del_func)
+{
+  msq_history_elt_t *history_elt;
+  seqev_t *seqev_on = evit_get_seqev(&(noteonoff->evit_noteon));
+  seqev_t *seqev_off = evit_get_seqev(&(noteonoff->evit_noteoff));
+
+  history_elt = malloc(sizeof (msq_history_elt_t));
+  history_elt->type = MSQ_DEL_NOTE;
+  history_elt->tick[0] = noteonoff->evit_noteon.tick;
+  memcpy(&(history_elt->ev[0]), seqev_on->addr, sizeof (midicev_t));
+  history_elt->tick[1] = noteonoff->evit_noteoff.tick;
+  memcpy(&(history_elt->ev[1]), seqev_off->addr, sizeof (midicev_t));
+
+  push_to_list(&(editor_ctx->history), history_elt);
+
+  del_func(editor_ctx->track_ctx, &(noteonoff->evit_noteon));
+  del_func(editor_ctx->track_ctx, &(noteonoff->evit_noteoff));
+}
+
+#include "debug_tool/debug_tool.h"
+
+void _history_evit_del_midicev(track_editor_ctx_t *editor_ctx,
+                               ev_iterator_t *evit,
+                               evit_del_func_t del_func)
+{
+  msq_history_elt_t *history_elt;
+  seqev_t *seqev = evit_get_seqev(evit);
+
+  if (seqev->type != MIDICEV)
+    msq_assert(seqev->type == MIDICEV ? MSQ_TRUE : MSQ_FALSE,
+               "Wrong event (not a midicev)");
+
+  history_elt = malloc(sizeof (msq_history_elt_t));
+  history_elt->type = MSQ_DEL;
+  history_elt->tick[0] = evit->tick;
+  memcpy(&(history_elt->ev[0]), seqev->addr, sizeof (midicev_t));
+  push_to_list(&(editor_ctx->history), history_elt);
+
+  del_func(editor_ctx->track_ctx, evit);
+}
+
+void _history_add_mark(list_t *history)
+{
+  msq_history_elt_t *history_elt;
+
+  history_elt = malloc(sizeof (msq_history_elt_t));
+  history_elt->type = MSQ_MARK;
+  push_to_list(history, history_elt);
+}
+
+void _history_undo(track_editor_ctx_t *editor_ctx)
+{
+  list_iterator_t it = {};
+  msq_history_elt_t *history_elt;
+  ev_iterator_t evit = {};
+  ev_iterator_t evitoff = {};
+
+  evit_init(&evit, &(editor_ctx->track_ctx->track->tickev_list));
+
+  iter_init(&it, &(editor_ctx->history));
+  while (iter_node(&it) != NULL)
+    {
+      history_elt = iter_node_ptr(&it);
+      if (history_elt->type == MSQ_MARK)
+        {
+          iter_node_del(&it, free);
+          return;
+        }
+      else if (history_elt->type == MSQ_ADD)
+        {
+          if (evit_searchev(&evit,
+                            history_elt->tick[0],
+                            &(history_elt->ev[0])) == NULL)
+            {
+              pbt_logmsg("History event mismatch.");
+              do {
+                iter_node_del(&it, free);
+              } while (iter_node(&it) != NULL);
+              return;
+            }
+          evit_del_event(&evit);
+        }
+      else if (history_elt->type == MSQ_DEL)
+        evit_add_midicev(&evit, history_elt->tick[0], &(history_elt->ev[0]));
+      else if (history_elt->type == MSQ_ADD_NOTE)
+        {
+          evit_init(&evitoff, &(editor_ctx->track_ctx->track->tickev_list));
+          if (evit_searchev(&evit,
+                            history_elt->tick[0],
+                            &(history_elt->ev[0])) == NULL
+              || evit_searchev(&evitoff,
+                               history_elt->tick[1],
+                               &(history_elt->ev[1])) == NULL)
+            {
+              pbt_logmsg("History note mismatch.");
+              do {
+                iter_node_del(&it, free);
+              } while (iter_node(&it) != NULL);
+              return;
+            }
+          evit_del_event(&evit);
+          evit_del_event(&evitoff);
+        }
+      else if (history_elt->type == MSQ_DEL_NOTE)
+        {
+          evit_add_midicev(&evit, history_elt->tick[0], &(history_elt->ev[0]));
+          evit_add_midicev(&evit, history_elt->tick[1], &(history_elt->ev[1]));
+        }
+      iter_node_del(&it, free);
+    }
+}
 
 void delete_selection(msq_grid_wgt_t *grid)
 {
@@ -1111,8 +1275,7 @@ void delete_selection(msq_grid_wgt_t *grid)
        iter_next(&iter))
     {
       noteonoff = iter_node_ptr(&iter);
-      del_func(grid->editor_ctx->track_ctx, &(noteonoff->evit_noteon));
-      del_func(grid->editor_ctx->track_ctx, &(noteonoff->evit_noteoff));
+      _history_del_noteonoff(grid->editor_ctx, noteonoff, del_func);
     }
 
   free_list_node(&(grid->editor_ctx->selected_notes), free);
@@ -1789,34 +1952,6 @@ void handle_selection(track_editor_ctx_t *editor_ctx)
                     note_max);
 }
 
-void add_note(track_editor_ctx_t *editor_ctx, note_t *note)
-{
-  noteonoff_t *noteonoff;
-  midicev_t     mcev;
-
-  noteonoff = malloc(sizeof (noteonoff_t));
-  evit_init(&(noteonoff->evit_noteon),
-            &(editor_ctx->track_ctx->track->tickev_list));
-  evit_init(&(noteonoff->evit_noteoff),
-            &(editor_ctx->track_ctx->track->tickev_list));
-
-  mcev.chan = note->channel;
-  mcev.event.note.num = note->num;
-
-  mcev.type = NOTEON;
-  mcev.event.note.val = note->val;
-  evit_add_midicev(&(noteonoff->evit_noteon),
-                   note->tick, &mcev);
-
-  mcev.type = NOTEOFF;
-  mcev.event.note.val = 0;
-  evit_add_midicev(&(noteonoff->evit_noteoff),
-                   note->tick + note->len, &mcev);
-
-  push_to_list_tail(&(editor_ctx->selected_notes),
-                    noteonoff);
-}
-
 msq_bool_t note_collision(note_t *note,
                           track_editor_ctx_t *editor_ctx,
                           msq_bool_t filter_selection)
@@ -1971,7 +2106,8 @@ void handle_writting_note_mode(wbe_window_input_t *winev,
           if (note_collision(&note, editor_ctx, MSQ_FALSE) == MSQ_FALSE)
             {
                 free_list_node(&(editor_ctx->selected_notes), free);
-                add_note(editor_ctx, &note);
+                _history_add_mark(&(editor_ctx->history));
+                _history_add_note(editor_ctx, &note);
             }
         }
       msq_draw_vggts(grid_wgt->vggts);
@@ -2190,7 +2326,7 @@ void _msq_add_list_note(track_editor_ctx_t *editor_ctx, list_t *note_list)
   for (iter_init(&iter, note_list); iter_node(&iter); iter_next(&iter))
     {
       note_ptr = iter_node_ptr(&iter);
-      add_note(editor_ctx, note_ptr);
+      _history_add_note(editor_ctx, note_ptr);
     }
 }
 
@@ -2205,6 +2341,7 @@ void msq_write_move_note(msq_grid_wgt_t *grid,
 
   if (new_note_list_init(&new_note_list, editor_ctx, tick_offset) == MSQ_TRUE)
     {
+      _history_add_mark(&(editor_ctx->history));
       delete_selection(grid);
       _msq_add_list_note(editor_ctx, &new_note_list);
       free_list_node(&new_note_list, free);
@@ -2337,6 +2474,7 @@ pbt_bool_t handle_move_note_mode(wbe_window_input_t *winev,
                            - noteonoff->evit_noteon.tick);
           push_to_list_tail(&tmp_list, tmp_note);
         }
+      _history_add_mark(&(grid->editor_ctx->history));
       delete_selection(grid);
       _msq_add_list_note(grid->editor_ctx, &tmp_list);
       free_list_node(&tmp_list, free);
@@ -2510,18 +2648,21 @@ pbt_bool_t handle_grid_paste_mode(wbe_window_input_t *winev,
 
           mcev.type = NOTEON;
           mcev.event.note.val = note->val;
-          evit_add_midicev(&(noteonoff->evit_noteon),
-                           note->tick + tick_offset, &mcev);
+          _history_evit_add_midicev(&(grid->editor_ctx->history),
+                                    &(noteonoff->evit_noteon),
+                                    note->tick + tick_offset, &mcev);
 
           mcev.type = NOTEOFF;
           mcev.event.note.val = 0;
 
-          evit_add_midicev(&(noteonoff->evit_noteoff),
-                           note->tick + note->len + tick_offset, &mcev);
+          _history_evit_add_midicev(&(grid->editor_ctx->history),
+                                    &(noteonoff->evit_noteoff),
+                                    note->tick + note->len + tick_offset, &mcev);
 
           push_to_list_tail(&(grid->editor_ctx->selected_notes),
                             noteonoff);
         }
+      _history_add_mark(&(grid->editor_ctx->history));
       msq_draw_vggts(grid->vggts);
       pbt_wgt_win_put_buffer(&(grid->wgt));
     }
@@ -2586,8 +2727,19 @@ pbt_bool_t grid_wgt_unset_focus_cb(pbt_ggt_t *ggt,
       if (wbe_key_pressedA(winev->keys, 'X') == WBE_FALSE)
         {
           grid_copy_selection(grid);
+          _history_add_mark(&(editor_ctx->history));
           delete_selection(grid);
           grid->state = GRID_NO_MODE;
+          ret_bool = PBT_TRUE;
+        }
+      break;
+    case GRID_CTRL_Z_MODE:
+      if (wbe_key_pressedA(winev->keys, 'Z') == WBE_FALSE)
+        {
+          delete_selection(grid);
+          _history_undo(grid->editor_ctx);
+          grid->state = GRID_NO_MODE;
+          msq_draw_vggts(grid->vggts);
           ret_bool = PBT_TRUE;
         }
       break;
@@ -2780,6 +2932,7 @@ void msq_quantify_note_selection(msq_grid_wgt_t *grid)
       free_list_node(&note_list, free);
       return;
     }
+  _history_add_mark(&(editor_ctx->history));
   delete_selection(grid);
   _msq_add_list_note(editor_ctx, &note_list);
   msq_draw_vggts(grid->vggts);
@@ -2798,7 +2951,10 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
   if (editor_ctx->selected_notes.len != 0
       && ((wbe_key_pressed(winev->keys, WBE_KEY_SUPPR) == WBE_TRUE)
           || (wbe_key_pressed(winev->keys, WBE_KEY_BSPACE) == WBE_TRUE)))
-    delete_selection(grid);
+    {
+      _history_add_mark(&(editor_ctx->history));
+      delete_selection(grid);
+    }
   else if ((wbe_key_pressed(winev->keys, WBE_KEY_CONTROL) == WBE_TRUE)
            && (wbe_key_pressedA(winev->keys, 'A') == WBE_TRUE))
     {
@@ -2827,6 +2983,12 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
            && (wbe_key_pressedA(winev->keys, 'Q') == WBE_TRUE))
     {
       msq_quantify_note_selection(grid);
+      return PBT_TRUE;
+    }
+  else if ((wbe_key_pressed(winev->keys, WBE_KEY_CONTROL) == WBE_TRUE)
+           && (wbe_key_pressedA(winev->keys, 'Z') == WBE_TRUE))
+    {
+      grid->state = GRID_CTRL_Z_MODE;
       return PBT_TRUE;
     }
   else if (_PBT_IS_IN_GGT(ggt, winev->xpos, winev->ypos) == PBT_TRUE)
@@ -2992,6 +3154,17 @@ void grid_wgt_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
                              grid_wgt);
 }
 
+void grid_wgt_destroy(pbt_ggt_t *ggt)
+{
+  pbt_wgt_t *wgt = ggt->priv;
+  msq_grid_wgt_t *grid_wgt = wgt->priv;
+
+  free_list_node(&(grid_wgt->editor_ctx->selected_notes), free);
+  free_list_node(&(grid_wgt->editor_ctx->history), free);
+
+  pbt_wgt_evnode_destroy(ggt);
+}
+
 void grid_wgt_init(msq_grid_wgt_t *grid,
                    track_editor_ctx_t *editor_ctx,
                    msq_hggts_t *hggts,
@@ -3009,7 +3182,7 @@ void grid_wgt_init(msq_grid_wgt_t *grid,
   grid->wgt.ggt.get_max_height = pbt_ggt_return_zero;
   grid->wgt.ggt.update_area_cb = pbt_ggt_memcpy_area;
   grid->wgt.ggt.draw_cb = draw_grid_cb;
-  grid->wgt.ggt.destroy_cb = pbt_wgt_evnode_destroy;
+  grid->wgt.ggt.destroy_cb = grid_wgt_destroy;
 
   grid->wgt.init_ev_cb = grid_wgt_init_ev;
 }
@@ -3530,7 +3703,10 @@ void value_wgt_write_tmp_bar(msq_value_wgt_t *value_wgt)
           new_midicev.chan = editor_ctx->channel;
           new_midicev.event.pitchbend.Lval = node->velocity & 0x7F;
           new_midicev.event.pitchbend.Hval = (node->velocity >> 7) & 0x7F;
-          evit_add_midicev(&evit, node->tick, &new_midicev);
+          _history_evit_add_midicev(&(editor_ctx->history),
+                                    &evit,
+                                    node->tick,
+                                    &new_midicev);
           node = node->next;
         }
       break;
@@ -3544,7 +3720,10 @@ void value_wgt_write_tmp_bar(msq_value_wgt_t *value_wgt)
           new_midicev.chan = editor_ctx->channel;
           new_midicev.event.ctrl.num = ctrl_num;
           new_midicev.event.ctrl.val = node->velocity * MAX_7b_VAL / MAX_14b_VAL;
-          evit_add_midicev(&evit, node->tick, &new_midicev);
+          _history_evit_add_midicev(&(editor_ctx->history),
+                                    &evit,
+                                    node->tick,
+                                    &new_midicev);
           node = node->next;
         }
     }
@@ -3729,9 +3908,11 @@ void value_wgt_delete_selection(msq_value_wgt_t *value)
                              editor_ctx->channel);
       while (mcev != NULL && evit.tick < tick_min)
         mcev = evit_next_pitch(&evit, editor_ctx->channel);
+      _history_add_mark(&(editor_ctx->history));
       while (mcev != NULL && evit.tick < tick_max)
         {
-          del_func(editor_ctx->track_ctx, &evit);
+          _history_evit_del_midicev(editor_ctx, &evit, del_func);
+          /* del_func(editor_ctx->track_ctx, &evit); */
           mcev = _evit_get_midicev(&evit);
           if (mcev
               && (mcev->chan != editor_ctx->channel
@@ -3748,9 +3929,11 @@ void value_wgt_delete_selection(msq_value_wgt_t *value)
                                 ctrl_num);
       while (mcev != NULL && evit.tick < tick_min)
         mcev = evit_next_ctrl_num(&evit, editor_ctx->channel, ctrl_num);
+      _history_add_mark(&(editor_ctx->history));
       while (mcev != NULL && evit.tick < tick_max)
         {
-          del_func(editor_ctx->track_ctx, &evit);
+          _history_evit_del_midicev(editor_ctx, &evit, del_func);
+          /* del_func(editor_ctx->track_ctx, &evit); */
           mcev = _evit_get_midicev(&evit);
           if (mcev
               && (mcev->chan != editor_ctx->channel

@@ -21,6 +21,22 @@ EXTERN_C_BEGIN
 
 #include <pbt_gadget_window_inc.h>
 
+typedef enum
+  {
+   MSQ_DEL,
+   MSQ_DEL_NOTE,
+   MSQ_ADD,
+   MSQ_ADD_NOTE,
+   MSQ_MARK
+  } msq_history_type_t;
+
+typedef struct
+{
+  msq_history_type_t type;
+  unsigned int tick[2];
+  midicev_t ev[2];
+} msq_history_elt_t;
+
 typedef struct
 {
   track_editor_theme_t *theme;
@@ -40,6 +56,7 @@ typedef struct
   list_t selected_notes;
   uint_t selected_notes_min_tick;
   int tmp_coo[4];
+  list_t history;
 } track_editor_ctx_t;
 
 typedef struct msq_tmp_tick_bar_st
@@ -108,6 +125,7 @@ typedef enum
    GRID_CTRL_C_MODE,
    GRID_CTRL_V_MODE,
    GRID_CTRL_X_MODE,
+   GRID_CTRL_Z_MODE,
    GRID_WRITE_MODE,
    GRID_WRITTING_MODE,
    GRID_SELECT_NOTE_MODE,
@@ -202,5 +220,7 @@ typedef struct
   unsigned int tick;
   unsigned int len;
 } note_t;
+
+typedef void (*evit_del_func_t)(track_ctx_t *, ev_iterator_t *);
 
 EXTERN_C_END

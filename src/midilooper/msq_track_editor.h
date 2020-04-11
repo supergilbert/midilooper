@@ -40,18 +40,19 @@ void msq_draw_vggts(msq_vggts_t *vggts);
 
 uint_t msq_get_track_loop_tick(track_ctx_t *track_ctx, uint_t tick);
 
-void add_note(track_editor_ctx_t *editor_ctx, note_t *note);
-
 msq_bool_t note_collision(note_t *note,
                           track_editor_ctx_t *editor_ctx,
                           msq_bool_t filter_selection);
 
-/* void pbt_evh_button_label_add(pbt_evh_t *evh, */
-/*                               pbt_button_label_t *button, */
-/*                               const char *label, */
-/*                               msq_gui_theme_t *theme, */
-/*                               pbt_clickh_cb_t cb, */
-/*                               void *cb_arg); */
-/* void pbt_evh_button_label_clear(pbt_button_label_t *button); */
+void _history_evit_add_midicev(list_t *history,
+                               ev_iterator_t *evit,
+                               unsigned int tick,
+                               midicev_t *mcev);
+
+void _history_add_note(track_editor_ctx_t *editor_ctx,
+                       note_t *note);
+
+
+void _history_add_mark(list_t *history);
 
 EXTERN_C_END

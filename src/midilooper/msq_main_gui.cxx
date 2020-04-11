@@ -1533,14 +1533,17 @@ void midilooper_main_window::handle_midi_rec(void)
                 if (note_collision(&note,
                                    &(track_editor->editor_ctx),
                                    MSQ_FALSE) == MSQ_FALSE)
-                  add_note(&(track_editor->editor_ctx), &note);
+                  _history_add_note(&(track_editor->editor_ctx), &note);
                 noteon_list.erase(it);
                 midicev_added = true;
                 break;
               }
           break;
         default:
-          evit_add_midicev(&evit, mcev_tick.tick, &(mcev_tick.mcev));
+          _history_evit_add_midicev(&(track_editor->editor_ctx.history),
+                                    &evit,
+                                    mcev_tick.tick,
+                                    &(mcev_tick.mcev));
         }
     }
 
