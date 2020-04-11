@@ -2003,6 +2003,33 @@ void handle_writting_note_mode(wbe_window_input_t *winev,
     }
 }
 
+msq_bool_t msq_check_note_list(list_t *note_list)
+{
+  list_iterator_t it1, it2;
+  note_t *note1, *note2;
+
+  for (iter_init(&it1, note_list);
+       iter_node(&it1);
+       iter_next(&it1))
+    {
+      note1 = iter_node_ptr(&it1);
+      for (iter_copy(&it1, &it2),
+             iter_next(&it2);
+           iter_node(&it2);
+           iter_next(&it2))
+        {
+          note2 = iter_node_ptr(&it2);
+          if (note1->tick >= note2->tick
+              && note1->tick <= note2->tick + note2->len)
+            return MSQ_FALSE;
+          if (note1->tick + note2->len >= note2->tick
+              && note1->tick + note2->len <= note2->tick + note2->len)
+            return MSQ_FALSE;
+        }
+    }
+  return MSQ_TRUE;
+}
+
 msq_bool_t msq_move_note_start_list_init(list_t *new_note_list,
                                          track_editor_ctx_t *editor_ctx,
                                          int tick_offset)
@@ -2043,6 +2070,11 @@ msq_bool_t msq_move_note_start_list_init(list_t *new_note_list,
       note_ptr = malloc(sizeof (note_t));
       memcpy(note_ptr, &note, sizeof (note_t));
       push_to_list(new_note_list, note_ptr);
+    }
+  if (msq_check_note_list(new_note_list) == MSQ_FALSE)
+    {
+      free_list_node(new_note_list, free);
+      return MSQ_FALSE;
     }
   return MSQ_TRUE;
 }
@@ -2090,6 +2122,11 @@ msq_bool_t msq_move_note_end_list_init(list_t *new_note_list,
       note_ptr = malloc(sizeof (note_t));
       memcpy(note_ptr, &note, sizeof (note_t));
       push_to_list(new_note_list, note_ptr);
+    }
+  if (msq_check_note_list(new_note_list) == MSQ_FALSE)
+    {
+      free_list_node(new_note_list, free);
+      return MSQ_FALSE;
     }
   return MSQ_TRUE;
 }
@@ -2738,7 +2775,11 @@ void msq_quantify_note_selection(msq_grid_wgt_t *grid)
       note_ptr->len = tmp_tick_end - note_ptr->tick;
       push_to_list(&note_list, note_ptr);
     }
-  /* /!\ TODO: check note colision in note list before all _msq_add_list_note */
+  if (msq_check_note_list(&note_list) == MSQ_FALSE)
+    {
+      free_list_node(&note_list, free);
+      return;
+    }
   delete_selection(grid);
   _msq_add_list_note(editor_ctx, &note_list);
   msq_draw_vggts(grid->vggts);
