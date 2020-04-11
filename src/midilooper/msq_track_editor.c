@@ -1684,13 +1684,30 @@ noteonoff_t *gen_noteonoff(ev_iterator_t *evit_noteon,
   return noteonoff;
 }
 
-uint_t _select_noteonoff(list_t *selected,
-                         list_t *tickev_list,
-                         unsigned char channel,
-                         uint_t tick_min,
-                         uint_t tick_max,
-                         unsigned char note_min,
-                         unsigned char note_max)
+uint_t _get_selected_min_tick(list_t *selected)
+{
+  list_iterator_t it_selected = {};
+  noteonoff_t     *noteonoff;
+  uint_t          min_tick = (uint_t) -1; /* Set max value */
+
+  for (iter_init(&it_selected, selected);
+       iter_node(&it_selected);
+       iter_next(&it_selected))
+    {
+      noteonoff = iter_node_ptr(&it_selected);
+      if (noteonoff->evit_noteon.tick < min_tick)
+        min_tick = noteonoff->evit_noteon.tick;
+    }
+  return min_tick;
+}
+
+void _select_noteonoff(list_t *selected,
+                       list_t *tickev_list,
+                       unsigned char channel,
+                       uint_t tick_min,
+                       uint_t tick_max,
+                       unsigned char note_min,
+                       unsigned char note_max)
 {
   ev_iterator_t evit_noteon = {};
   ev_iterator_t evit_noteoff = {};
@@ -1699,7 +1716,6 @@ uint_t _select_noteonoff(list_t *selected,
   midicev_t     *midicev_noteoff = NULL;
   list_t        added_noteoff = {};
   noteonoff_t   *noteonoff;
-  uint_t        min_tick = (uint_t) -1;
 
   for (midicev_noteon = evit_init_noteon(&evit_noteon, tickev_list, channel);
        (midicev_noteon != NULL) && (evit_noteon.tick < tick_max);
@@ -1724,15 +1740,12 @@ uint_t _select_noteonoff(list_t *selected,
                 {
                   noteonoff = gen_noteonoff(&evit_noteon, &evit_noteoff);
                   push_to_list_tail(selected, noteonoff);
-                  if (evit_noteon.tick < min_tick)
-                    min_tick = evit_noteon.tick;
                   push_to_list_tail(&added_noteoff, midicev_noteoff);
                 }
             }
         }
     }
   free_list_node(&added_noteoff, NULL);
-  return min_tick;
 }
 
 void handle_selection(track_editor_ctx_t *editor_ctx)
@@ -1767,14 +1780,13 @@ void handle_selection(track_editor_ctx_t *editor_ctx)
   tick_max = XPOS2TICK(editor_ctx, xmax);
   note_min = YPOS2NOTE(editor_ctx, ymax);
   note_max = YPOS2NOTE(editor_ctx, ymin);
-  editor_ctx->selected_notes_min_tick =
-    _select_noteonoff(&(editor_ctx->selected_notes),
-                      &(editor_ctx->track_ctx->track->tickev_list),
-                      editor_ctx->channel,
-                      tick_min,
-                      tick_max,
-                      note_min,
-                      note_max);
+  _select_noteonoff(&(editor_ctx->selected_notes),
+                    &(editor_ctx->track_ctx->track->tickev_list),
+                    editor_ctx->channel,
+                    tick_min,
+                    tick_max,
+                    note_min,
+                    note_max);
 }
 
 void add_note(track_editor_ctx_t *editor_ctx, note_t *note)
@@ -2221,7 +2233,6 @@ pbt_bool_t handle_move_note_mode(wbe_window_input_t *winev,
   int xpos, ypos;
   note_t *tmp_note;
   list_t tmp_list = {};
-  uint_t min_tick = (uint_t) -1;
 
   xpos = GRIDXPOS(winev->xpos, grid);
   ypos = GRIDYPOS(winev->ypos, grid);
@@ -2291,7 +2302,6 @@ pbt_bool_t handle_move_note_mode(wbe_window_input_t *winev,
         }
       delete_selection(grid);
       _msq_add_list_note(grid->editor_ctx, &tmp_list);
-      grid->editor_ctx->selected_notes_min_tick = min_tick;
       free_list_node(&tmp_list, free);
       msq_draw_vggts(grid->vggts);
       return PBT_TRUE;
@@ -2408,7 +2418,6 @@ pbt_bool_t handle_grid_paste_mode(wbe_window_input_t *winev,
   pbt_bool_t ret_bool = PBT_FALSE;
   midicev_t mcev;
   noteonoff_t *noteonoff;
-  unsigned int min_tick;
 
   if (WBE_GET_BIT(winev->buttons, 0) == 1)
     {
@@ -2473,13 +2482,9 @@ pbt_bool_t handle_grid_paste_mode(wbe_window_input_t *winev,
           evit_add_midicev(&(noteonoff->evit_noteoff),
                            note->tick + note->len + tick_offset, &mcev);
 
-          if (note->tick + tick_offset < min_tick)
-            min_tick = note->tick + tick_offset;
-
           push_to_list_tail(&(grid->editor_ctx->selected_notes),
                             noteonoff);
         }
-      grid->editor_ctx->selected_notes_min_tick = min_tick;
       msq_draw_vggts(grid->vggts);
       pbt_wgt_win_put_buffer(&(grid->wgt));
     }
@@ -2804,6 +2809,8 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
               draw_loop_veil(&(ggt->pbarea), editor_ctx);
               _wbe_pbw_texture_load(&(grid->wgt.ggt_win->pb_win));
               grid->state = GRID_MOVE_NOTE_MODE;
+              editor_ctx->selected_notes_min_tick =
+                _get_selected_min_tick(&(editor_ctx->selected_notes));
               handle_move_note_mode(winev, grid);
             }
           else
@@ -2823,6 +2830,8 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
                       draw_loop_veil(&(ggt->pbarea), editor_ctx);
                       _wbe_pbw_texture_load(&(grid->wgt.ggt_win->pb_win));
                       grid->state = GRID_MOVE_NOTE_MODE;
+                      editor_ctx->selected_notes_min_tick =
+                        _get_selected_min_tick(&(editor_ctx->selected_notes));
                       handle_move_note_mode(winev, grid);
                     }
                   else
@@ -3518,14 +3527,13 @@ void value_wgt_select_note(pbt_wgt_t *grid_wgt,
     }
 
   free_list_node(&(grid->editor_ctx->selected_notes), free);
-  grid->editor_ctx->selected_notes_min_tick =
-    _select_noteonoff(&(grid->editor_ctx->selected_notes),
-                      &(grid->editor_ctx->track_ctx->track->tickev_list),
-                      grid->editor_ctx->channel,
-                      tick_min,
-                      tick_max,
-                      0,
-                      127);
+  _select_noteonoff(&(grid->editor_ctx->selected_notes),
+                    &(grid->editor_ctx->track_ctx->track->tickev_list),
+                    grid->editor_ctx->channel,
+                    tick_min,
+                    tick_max,
+                    0,
+                    127);
   pbt_ggt_draw(grid_wgt);
   pbt_wgt_win_put_buffer(grid_wgt);
 }
