@@ -196,6 +196,7 @@ typedef struct
   pbt_ggt_ctnr_t value_vctnr_ggt;
   pbt_wgt_t value_vbar_wgt;
   msq_value_wgt_t value_wgt;
+  pbt_ggt_drawarea_t value_empty_ggt;
   pbt_ggt_ctnr_t hctnr_up;
   pbt_ggt_ctnr_t hctnr_middle;
   pbt_ggt_ctnr_t hctnr_hscrollbar;

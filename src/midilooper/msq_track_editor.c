@@ -4774,8 +4774,18 @@ void track_editor_init(track_editor_t *track_editor,
                         msq_theme_frame_bg(theme->global_theme));
   pbt_ggt_add_child_ggt(&(track_editor->value_vctnr_ggt),
                         &(track_editor->value_num_ctnr));
-  pbt_ggt_ctnr_add_empty(&(track_editor->value_vctnr_ggt),
-                         tctx_frame_bg(&(track_editor->editor_ctx)));
+  pbt_ggt_drawarea_init(&(track_editor->value_empty_ggt),
+                        track_editor->editor_ctx.theme->piano_width,
+                        track_editor->editor_ctx.theme->piano_width,
+                        0,
+                        0,
+                        msq_draw_empty,
+                        tctx_frame_bg(&(track_editor->editor_ctx)),
+                        NULL, NULL);
+  pbt_ggt_add_child_ggt(&(track_editor->value_vctnr_ggt),
+                        &(track_editor->value_empty_ggt));
+  /* pbt_ggt_ctnr_add_empty(&(track_editor->value_vctnr_ggt), */
+  /*                        tctx_frame_bg(&(track_editor->editor_ctx))); */
 
   value_vbar_wgt_init(&(track_editor->value_vbar_wgt), track_editor);
   value_wgt_init(&(track_editor->value_wgt),
