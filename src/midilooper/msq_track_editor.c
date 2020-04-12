@@ -2174,11 +2174,10 @@ msq_bool_t msq_check_note_list(list_t *note_list)
            iter_next(&it2))
         {
           note2 = iter_node_ptr(&it2);
-          if (note1->tick >= note2->tick
-              && note1->tick <= note2->tick + note2->len)
-            return MSQ_FALSE;
-          if (note1->tick + note2->len >= note2->tick
-              && note1->tick + note2->len <= note2->tick + note2->len)
+          if ((note1->num == note2->num)
+              && (note1->channel == note2->channel)
+              && (!(note1->tick > note2->tick + note2->len
+                    || note1->tick + note1->len < note2->tick)))
             return MSQ_FALSE;
         }
     }
@@ -2203,8 +2202,13 @@ msq_bool_t msq_move_note_start_list_init(list_t *new_note_list,
       noteonoff = iter_node_ptr(&iter);
       seqev = evit_get_seqev(&(noteonoff->evit_noteon));
       noteev = seqev->addr;
-      tmp_tick_start = noteonoff->evit_noteon.tick + tick_offset;
-      tmp_tick_start = msq_quantify_tick(editor_ctx, tmp_tick_start);
+      if ((tick_offset + (int) noteonoff->evit_noteon.tick) < 0)
+        tmp_tick_start = 0;
+      else
+        {
+          tmp_tick_start = noteonoff->evit_noteon.tick + tick_offset;
+          tmp_tick_start = msq_quantify_tick(editor_ctx, tmp_tick_start);
+        }
       if ((int) noteonoff->evit_noteoff.tick <= tmp_tick_start)
         {
           tmp_tick_start = msq_quantify_tick(editor_ctx,
@@ -2305,6 +2309,7 @@ void msq_draw_move_note(msq_grid_wgt_t *grid,
   seqev_t *seqev;
   midicev_t *noteev;
 
+  pbt_ggt_win_make_context(grid->wgt.ggt_win);
   pbt_wgt_gl_refresh(&(grid->wgt));
   if (new_note_list_init(&new_note_list, editor_ctx, tick_offset) == MSQ_TRUE)
     {
