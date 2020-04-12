@@ -104,6 +104,18 @@ uint_t jbe_get_tick(engine_ctx_t *ctx)
   return be_hdl->tick;
 }
 
+void jbe_set_tick(engine_ctx_t *ctx, uint_t tick)
+{
+  jbe_hdl_t *be_hdl = (jbe_hdl_t *) ctx->hdl;
+  jack_position_t position;
+
+  jack_transport_query(be_hdl->client, &position);
+  jack_transport_locate(be_hdl->client,
+                        (tick * position.frame_rate * ctx->tempo
+                         / (ctx->ppq * 1000000)));
+  engine_set_tracks_need_sync(ctx);
+}
+
 void jbe_set_tempo(engine_ctx_t *ctx, uint_t ms)
 {
   ctx->tempo = ms;
@@ -422,6 +434,7 @@ msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid)
   ctx->create_output      = jbe_create_output;
   ctx->delete_output_node = jbe_delete_output_node;
   ctx->get_tick           = jbe_get_tick;
+  ctx->set_tick           = jbe_set_tick;
   ctx->set_tempo          = jbe_set_tempo;
 
   hdl = myalloc(sizeof (jbe_hdl_t));

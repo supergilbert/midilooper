@@ -141,6 +141,14 @@ uint_t nns_get_tick(engine_ctx_t *ctx)
   return hdl->looph.clocktick.number;
 }
 
+void nns_set_tick(engine_ctx_t *ctx, uint_t tick)
+{
+  nns_hdl_t *hdl = (nns_hdl_t *) ctx->hdl;
+
+  hdl->looph.clocktick.number = tick;
+  engine_set_tracks_need_sync(ctx);
+}
+
 void _nns_flush_evbuff(engine_ctx_t *ctx)
 {
   nns_hdl_t *hdl = (nns_hdl_t *) ctx->hdl;
@@ -323,6 +331,7 @@ msq_bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
   ctx->create_output      = nns_create_output;
   ctx->delete_output_node = nns_delete_output_node;
   ctx->get_tick           = nns_get_tick;
+  ctx->set_tick           = nns_set_tick;
   ctx->set_tempo          = nns_set_tempo;
 
   hdl = myalloc(sizeof (nns_hdl_t));

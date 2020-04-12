@@ -97,6 +97,20 @@ void play_tracks(engine_ctx_t *ctx)
     }
 }
 
+void engine_set_tracks_need_sync(engine_ctx_t *ctx)
+{
+  track_ctx_t     *track_ctx  = NULL;
+  list_iterator_t trackit;
+
+  for (iter_init(&trackit, &(ctx->track_list));
+       iter_node(&trackit) != NULL;
+       iter_next(&trackit))
+    {
+      track_ctx = iter_node_ptr(&trackit);
+      track_ctx->need_sync = MSQ_TRUE;
+    }
+}
+
 msq_bool_t engine_delete_trackctx(engine_ctx_t *ctx, track_ctx_t *trackctx)
 {
   list_iterator_t trackit;

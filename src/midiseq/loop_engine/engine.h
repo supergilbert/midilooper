@@ -122,15 +122,17 @@ typedef struct engine_ctx_s
   void             (*delete_output_node)(struct engine_ctx_s *engine,
                                          output_t *output);
   uint_t           (*get_tick)(struct engine_ctx_s *engine);
+  void             (*set_tick)(struct engine_ctx_s *engine, uint_t tick);
   void             (*set_tempo)(struct engine_ctx_s *engine, uint_t ms);
 } engine_ctx_t;
 
-#define engine_is_running(eng)    (eng)->is_running(eng)
-#define engine_destroy_hdl(eng)   (eng)->destroy_hdl(eng)
-#define engine_start(eng)         (eng)->start(eng)
-#define engine_stop(eng)          (eng)->stop(eng)
-#define engine_get_tick(eng)      (eng)->get_tick(eng)
-#define engine_set_tempo(eng, ms) (eng)->set_tempo(eng, ms)
+#define engine_is_running(eng)     (eng)->is_running(eng)
+#define engine_destroy_hdl(eng)    (eng)->destroy_hdl(eng)
+#define engine_start(eng)          (eng)->start(eng)
+#define engine_stop(eng)           (eng)->stop(eng)
+#define engine_get_tick(eng)       (eng)->get_tick(eng)
+#define engine_set_tick(eng, tick) (eng)->set_tick(eng, tick)
+#define engine_set_tempo(eng, ms)  (eng)->set_tempo(eng, ms)
 
 output_t   *engine_create_output(engine_ctx_t *ctx, const char *name);
 msq_bool_t engine_delete_output(engine_ctx_t *ctx, output_t *output);
@@ -194,6 +196,7 @@ size_t _fill_byte_array_w_track_bindings(byte_t *byte_array,
 void play_outputs_reqs(engine_ctx_t *ctx);
 void play_tracks_pending_notes(engine_ctx_t *ctx);
 void play_tracks(engine_ctx_t *ctx);
+void engine_set_tracks_need_sync(engine_ctx_t *ctx);
 
 void output_play_reqlist(output_t *output);
 void output_evlist(output_t *output,

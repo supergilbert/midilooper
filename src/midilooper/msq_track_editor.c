@@ -886,6 +886,7 @@ void timeline_wgt_update_area_cb(pbt_ggt_t *ggt, pbt_pbarea_t *pbarea)
 
 #define TIMELINE_MODE_START 0
 #define TIMELINE_MODE_END   1
+#define TIMELINE_MODE_POS   3
 
 void _timeline_wgt_set_loop_startnlen(int xpos,
                                       track_editor_ctx_t *editor_ctx,
@@ -939,26 +940,39 @@ pbt_bool_t timeline_wgt_unset_focus_cb(pbt_ggt_t *ggt,
   int xpos;
   unsigned int start, len;
 
-  if (WBE_GET_BIT(winev->buttons, 0) == 0)
+  if (editor_ctx->tmp_coo[0] == TIMELINE_MODE_POS)
     {
-      xpos = winev->xpos - _pbt_ggt_xpos(ggt) + editor_ctx->hadj.pos;
-      _timeline_wgt_set_loop_startnlen(xpos,
-                                       editor_ctx,
-                                       &(editor_ctx->track_ctx->loop_start),
-                                       &(editor_ctx->track_ctx->loop_len));
-      editor_ctx->track_ctx->need_sync = MSQ_TRUE;
-      msq_update_hadj_startnlen(editor_ctx);
-      msq_draw_vggts(&(track_editor->vggts));
-      wbe_window_set_cursor(wgt->ggt_win->pb_win.win_be,
-                            tctx_cursor_arrow(editor_ctx));
-      return PBT_TRUE;
+      if (WBE_GET_BIT(winev->buttons, 2) == 0)
+        {
+          xpos = winev->xpos - _pbt_ggt_xpos(ggt) + editor_ctx->hadj.pos;
+          engine_set_tick(editor_ctx->track_ctx->engine,
+                          XPOS2TICK(editor_ctx, xpos));
+          return PBT_TRUE;
+        }
     }
   else
     {
-      xpos = winev->xpos - _pbt_ggt_xpos(ggt) + editor_ctx->hadj.pos;
-      _timeline_wgt_set_loop_startnlen(xpos, editor_ctx, &start, &len);
-      draw_timeline_loop(&(ggt->pbarea), editor_ctx, start, len);
-      wbe_pbw_refresh(&(track_editor->ggt_win.pb_win));
+      if (WBE_GET_BIT(winev->buttons, 0) == 0)
+        {
+          xpos = winev->xpos - _pbt_ggt_xpos(ggt) + editor_ctx->hadj.pos;
+          _timeline_wgt_set_loop_startnlen(xpos,
+                                           editor_ctx,
+                                           &(editor_ctx->track_ctx->loop_start),
+                                           &(editor_ctx->track_ctx->loop_len));
+          editor_ctx->track_ctx->need_sync = MSQ_TRUE;
+          msq_update_hadj_startnlen(editor_ctx);
+          msq_draw_vggts(&(track_editor->vggts));
+          wbe_window_set_cursor(wgt->ggt_win->pb_win.win_be,
+                                tctx_cursor_arrow(editor_ctx));
+          return PBT_TRUE;
+        }
+      else
+        {
+          xpos = winev->xpos - _pbt_ggt_xpos(ggt) + editor_ctx->hadj.pos;
+          _timeline_wgt_set_loop_startnlen(xpos, editor_ctx, &start, &len);
+          draw_timeline_loop(&(ggt->pbarea), editor_ctx, start, len);
+          wbe_pbw_put_buffer(&(track_editor->ggt_win.pb_win));
+        }
     }
   return PBT_FALSE;
 }
@@ -1013,6 +1027,11 @@ pbt_bool_t timeline_wgt_set_focus_cb(pbt_ggt_t *ggt,
               editor_ctx->tmp_coo[0] = TIMELINE_MODE_END;
               return PBT_TRUE;
             }
+        }
+      if (WBE_GET_BIT(winev->buttons, 2) == 1)
+        {
+          editor_ctx->tmp_coo[0] = TIMELINE_MODE_POS;
+          return PBT_TRUE;
         }
       else
         {
@@ -1625,14 +1644,14 @@ void pixbuf_safe_destroy(pbt_pixbuf_t *pixbuf)
     pbt_pixbuf_destroy(pixbuf);
 }
 
-#define msq_get_progress_tick(_editor_ctx)                              \
+#define msq_get_progress_tick_pos(_editor_ctx)                              \
   (TICK2XPOS((_editor_ctx),                                             \
              msq_get_current_track_tick((_editor_ctx)->track_ctx))      \
    - (_editor_ctx)->hadj.pos)
 
 void draw_progress_line(track_editor_t *track_editor)
 {
-  int xpos = msq_get_progress_tick(&(track_editor->editor_ctx));
+  int xpos = msq_get_progress_tick_pos(&(track_editor->editor_ctx));
   pbt_wgt_t *wgt;
 
   if (xpos < 0
