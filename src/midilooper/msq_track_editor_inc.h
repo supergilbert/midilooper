@@ -139,7 +139,6 @@ typedef struct
 {
   track_editor_ctx_t *editor_ctx;
   msq_grid_state_t state;
-  unsigned int last_xpos;
   msq_hggts_t *hggts;
   msq_vggts_t *vggts;
   pbt_wgt_t wgt;

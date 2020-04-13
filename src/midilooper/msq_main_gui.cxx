@@ -1158,7 +1158,7 @@ void midilooper_main_window::handle_windows(void)
       if (engine_is_running(engine_ctx) == MSQ_TRUE)
         {
           if (wbe_window_mapped(win) == WBE_TRUE)
-            draw_progress_line(track_editor);
+            msq_track_draw_current_tick_pos(track_editor);
           if (track_waiting_binding == NULL)
             msq_track_node_draw_progress(&(track_line->track_node));
         }

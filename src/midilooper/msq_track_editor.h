@@ -34,7 +34,7 @@ void track_editor_init(track_editor_t *track_editor,
                        unsigned int note_height,
                        unsigned int quantize,
                        unsigned char note_scale);
-void draw_progress_line(track_editor_t *track_editor);
+void msq_track_draw_current_tick_pos(track_editor_t *track_editor);
 void clear_progress_line(track_editor_t *track_editor);
 void msq_draw_vggts(msq_vggts_t *vggts);
 
