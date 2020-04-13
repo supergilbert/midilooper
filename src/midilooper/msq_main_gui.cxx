@@ -46,6 +46,7 @@ typedef struct
   engine_ctx_t *engine_ctx;
   msq_gui_theme_t *theme;
   pbt_ggt_drawarea_t header;
+  unsigned int  elt_height;
   pbt_ggt_ctnr_t vlist;
   pbt_ggt_ctnr_t vctnr;
   pbt_ggt_ctnr_t hctnr_button;
@@ -55,6 +56,10 @@ typedef struct
   pbt_wgt_t wgt;
   msq_bool_t in_move_mode;
 } msq_list_t;
+
+#define msq_track_node_height(theme) ((theme)->font.max_height * 4)
+#define msq_output_node_height(theme) ((theme)->font.max_height * 2)
+
 
 class midilooper_main_window
 {
@@ -115,6 +120,88 @@ public:
   void run(void);
 };
 
+pbt_bool_t msq_list_unset_focus_cb(pbt_ggt_t *ggt,
+                                         wbe_window_input_t *winev,
+                                         void *track_list_addr)
+{
+  msq_list_t *track_list = (msq_list_t *) track_list_addr;
+  static unsigned int last_ypos = 0;
+  int ypos;
+  size_t idx;
+  unsigned int max,
+    height = track_list->elt_height + track_list->theme->default_separator;
+  pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
+
+  ypos =
+    winev->ypos - _pbt_ggt_ypos(ggt) - pbt_ggt_height(&(track_list->header));
+  if (ypos < 0)
+    ypos = 0;
+
+  idx = ypos / height;
+  ypos = idx * height;
+  max = track_list->engine_ctx->track_list.len * height;
+  if (ypos > (int) max)
+    {
+      ypos = max;
+      idx = max / height;
+    }
+
+  pbt_ggt_win_make_context(wgt->ggt_win);
+  if (last_ypos > 0)
+    last_ypos--;
+  pbt_wgt_gl_refresh_rect(wgt,
+                          0,                  last_ypos,
+                          pbt_ggt_width(wgt), 2);
+
+  if (WBE_GET_BIT(winev->buttons, 0) == 1)
+    {
+      wbe_gl_flush();
+      printf("TODO: call cb with idx:%zd\n", idx);
+      track_list->in_move_mode = MSQ_FALSE;
+      return PBT_TRUE;
+    }
+  else if (WBE_GET_BIT(winev->buttons, 1) == 1)
+    {
+      wbe_gl_flush();
+      return PBT_TRUE;
+    }
+
+  ypos +=
+    pbt_ggt_height(&(track_list->header))
+    + track_list->theme->default_separator;
+  pbt_wgt_gl_draw_line(wgt,
+                       0,                  ypos,
+                       pbt_ggt_width(wgt), ypos,
+                       track_list->theme->theme.wgt_normal_fg);
+  wbe_gl_flush();
+  last_ypos = ypos;
+  return PBT_FALSE;
+}
+
+
+pbt_bool_t msq_list_set_focus_cb(pbt_ggt_t *ggt,
+                                       wbe_window_input_t *winev,
+                                       void *track_list_addr)
+{
+  msq_list_t *track_list = (msq_list_t *) track_list_addr;
+
+  if (track_list->in_move_mode == MSQ_TRUE)
+    return PBT_TRUE;
+  return PBT_FALSE;
+}
+
+void msq_list_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
+{
+  pbt_evh_add_set_focus_cb(&(ggt_win->evh),
+                           &(wgt->ggt),
+                           msq_list_set_focus_cb,
+                           wgt->priv);
+  pbt_evh_add_unset_focus_cb(&(ggt_win->evh),
+                             &(wgt->ggt),
+                             msq_list_unset_focus_cb,
+                             wgt->priv);
+}
+
 void _msq_draw_list_title(pbt_pbarea_t *pbarea,
                           const char *title,
                           msq_gui_theme_t *theme)
@@ -167,7 +254,7 @@ unsigned int msq_output_node_get_height(pbt_ggt_t *ggt)
   pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
   msq_output_node_t *output_node = (msq_output_node_t *) wgt->priv;
 
-  return output_node->main_win->theme.theme.font.max_height * 2;
+  return msq_output_node_height(&(output_node->main_win->theme.theme));
 }
 
 pbt_bool_t msq_output_node_set_focus_cb(pbt_ggt_t *ggt,
@@ -313,10 +400,6 @@ void msq_list_destroy_cb(pbt_ggt_t *ggt)
   _pbt_ggt_destroy(vctnr_ggt);
 }
 
-void msq_output_list_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
-{
-}
-
 void msq_output_list_init(msq_list_t *msq_list,
                           midilooper_main_window *main_win)
 {
@@ -326,6 +409,7 @@ void msq_output_list_init(msq_list_t *msq_list,
   msq_list->engine_ctx = main_win->engine_ctx;
   msq_list->theme = &(main_win->theme);
   msq_list->main_win_addr = main_win;
+  msq_list->elt_height = msq_output_node_height(&(msq_list->theme->theme));
 
   pbt_font_get_string_width(&(msq_list->theme->theme.font),
                             "-" OUTPUTS_TITLE "-",
@@ -356,9 +440,10 @@ void msq_output_list_init(msq_list_t *msq_list,
   pbt_ggt_add_child_ggt(&(msq_list->vctnr), &(msq_list->hctnr_button));
 
   msq_list->wgt.priv = msq_list;
-  msq_list->wgt.init_ev_cb = msq_output_list_init_ev;
+  msq_list->wgt.init_ev_cb = msq_list_init_ev;
   ggt = &(msq_list->wgt.ggt);
   ggt->priv = &(msq_list->wgt);
+
 
   ggt->get_min_width = pbt_ggt_child_get_min_width;
   ggt->get_max_width = pbt_ggt_child_get_max_width;
@@ -464,7 +549,7 @@ unsigned int msq_track_node_get_height(pbt_ggt_t *ggt)
   pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
   msq_track_node_t *track_node = (msq_track_node_t *) wgt->priv;
 
-  return track_node->main_win->theme.theme.font.max_height * 4;
+  return msq_track_node_height(&(track_node->main_win->theme.theme));
 }
 
 pbt_bool_t msq_track_node_set_focus_cb(pbt_ggt_t *ggt,
@@ -767,10 +852,6 @@ msq_track_line_t *msq_track_list_get(msq_list_t *track_list,
   return NULL;
 }
 
-void msq_track_list_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
-{
-}
-
 void msq_track_list_init(msq_list_t *msq_list,
                          midilooper_main_window *main_win)
 {
@@ -780,6 +861,7 @@ void msq_track_list_init(msq_list_t *msq_list,
   msq_list->engine_ctx = main_win->engine_ctx;
   msq_list->theme = &(main_win->theme);
   msq_list->main_win_addr = main_win;
+  msq_list->elt_height = msq_track_node_height(&(msq_list->theme->theme));
 
   // pbt_font_get_string_width(&(msq_list->theme->theme.font),
   //                           "-" TRACKS_TITLE "-",
@@ -813,7 +895,7 @@ void msq_track_list_init(msq_list_t *msq_list,
   pbt_ggt_add_child_ggt(&(msq_list->vctnr), &(msq_list->hctnr_button));
 
   msq_list->wgt.priv = msq_list;
-  msq_list->wgt.init_ev_cb = msq_track_list_init_ev;
+  msq_list->wgt.init_ev_cb = msq_list_init_ev;
   ggt = &(msq_list->wgt.ggt);
   ggt->priv = &(msq_list->wgt);
 
@@ -898,8 +980,10 @@ void output_dialog_res_cb(size_t idx, void *mainwin_addr)
                             output_rename_dialog_res_cb,
                             mainwin_addr);
   else if (idx == 1)
-    mainwin->show_add_output();
+    mainwin->output_list.in_move_mode = MSQ_TRUE;
   else if (idx == 2)
+    mainwin->show_add_output();
+  else if (idx == 3)
     mainwin->remove_output(mainwin->dialog_output);
 }
 
@@ -955,8 +1039,8 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
       pbt_ggt_draw(&(mainwin->track_list.vctnr));
       mainwin->refresh();
       break;
-    case 5:                     // Add
-      printf("Move\n");
+    case 5:                     // Move
+      mainwin->track_list.in_move_mode = MSQ_TRUE;
       break;
     case 6:                     // Add
       mainwin->show_add_track();
@@ -1208,11 +1292,11 @@ void midilooper_main_window::show_filemenu_dialog(void)
 
 void midilooper_main_window::show_output_dialog(output_t *output)
 {
-  static const char *output_menu[] = {"Rename", "Add", "Remove"};
+  static const char *output_menu[] = {"Rename", "Move", "Add", "Remove"};
 
   msq_dialog_list(&(dialog_iface),
                   (char **) output_menu,
-                  3,
+                  4,
                   output_dialog_res_cb,
                   this);
   dialog_output = output;
