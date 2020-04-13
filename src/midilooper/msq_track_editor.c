@@ -2176,8 +2176,8 @@ msq_bool_t msq_check_note_list(list_t *note_list)
           note2 = iter_node_ptr(&it2);
           if ((note1->num == note2->num)
               && (note1->channel == note2->channel)
-              && (!(note1->tick > note2->tick + note2->len
-                    || note1->tick + note1->len < note2->tick)))
+              && (note1->tick <= note2->tick + note2->len)
+              && (note1->tick + note1->len >= note2->tick))
             return MSQ_FALSE;
         }
     }
