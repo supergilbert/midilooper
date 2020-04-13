@@ -70,7 +70,7 @@ void pbt_ggt_node_it_init_ggt_add_child(pbt_ggt_node_it_t *node_it,
                                         pbt_ggt_t *ggt,
                                         pbt_ggt_node_type_t node_type);
 
-void pbt_ggt_wrapper_init(pbt_ggt_t *ggt,
+void pbt_ggt_child_init(pbt_ggt_t *ggt,
                           void *addr,
                           pbt_ggt_t *child,
                           pbt_ggt_node_type_t type);
@@ -111,19 +111,19 @@ void pbt_ggt_wrapper_init(pbt_ggt_t *ggt,
 #define PBT_IS_IN_GGT(_ggt_struct, _xpos, _ypos)                        \
   PBT_IS_IN_IMG_AREA(&((_ggt_struct)->ggt.pbarea), _xpos, _ypos)
 
-  unsigned int pbt_ggt_wrapper_get_min_width(pbt_ggt_t *ggt);
+  unsigned int pbt_ggt_child_get_min_width(pbt_ggt_t *ggt);
 
 
-unsigned int pbt_ggt_wrapper_get_min_width(pbt_ggt_t *ggt);
+unsigned int pbt_ggt_child_get_min_width(pbt_ggt_t *ggt);
 
-unsigned int pbt_ggt_wrapper_get_max_width(pbt_ggt_t *ggt);
+unsigned int pbt_ggt_child_get_max_width(pbt_ggt_t *ggt);
 
-unsigned int pbt_ggt_wrapper_get_min_height(pbt_ggt_t *ggt);
+unsigned int pbt_ggt_child_get_min_height(pbt_ggt_t *ggt);
 
-unsigned int pbt_ggt_wrapper_get_max_height(pbt_ggt_t *ggt);
+unsigned int pbt_ggt_child_get_max_height(pbt_ggt_t *ggt);
 
-void pbt_ggt_wrapper_draw(pbt_ggt_t *ggt);
+void pbt_ggt_child_draw(pbt_ggt_t *ggt);
 
-void pbt_ggt_wrapper_update_area(pbt_ggt_t *ggt, pbt_pbarea_t *pbarea);
+void pbt_ggt_child_update_area(pbt_ggt_t *ggt, pbt_pbarea_t *pbarea);
 
-void pbt_ggt_wrapper_destroy(pbt_ggt_t *ggt);
+void pbt_ggt_child_destroy(pbt_ggt_t *ggt);

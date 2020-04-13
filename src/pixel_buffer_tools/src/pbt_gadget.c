@@ -797,43 +797,42 @@ void pbt_ggt_node_it_init_ggt_add_child(pbt_ggt_node_it_t *node_it,
   node_it->node = _pbt_ggt_add_child_ggt_type(parent_ggt, ggt, node_type);
 }
 
-
-unsigned int pbt_ggt_wrapper_get_min_width(pbt_ggt_t *ggt)
+unsigned int pbt_ggt_child_get_min_width(pbt_ggt_t *ggt)
 {
   pbt_ggt_t *child = ggt->childs->priv.ggt_addr;
 
   return _pbt_ggt_min_width(child);
 }
 
-unsigned int pbt_ggt_wrapper_get_max_width(pbt_ggt_t *ggt)
+unsigned int pbt_ggt_child_get_max_width(pbt_ggt_t *ggt)
 {
   pbt_ggt_t *child = ggt->childs->priv.ggt_addr;
 
   return _pbt_ggt_max_width(child);
 }
 
-unsigned int pbt_ggt_wrapper_get_min_height(pbt_ggt_t *ggt)
+unsigned int pbt_ggt_child_get_min_height(pbt_ggt_t *ggt)
 {
   pbt_ggt_t *child = ggt->childs->priv.ggt_addr;
 
   return _pbt_ggt_min_height(child);
 }
 
-unsigned int pbt_ggt_wrapper_get_max_height(pbt_ggt_t *ggt)
+unsigned int pbt_ggt_child_get_max_height(pbt_ggt_t *ggt)
 {
   pbt_ggt_t *child = ggt->childs->priv.ggt_addr;
 
   return _pbt_ggt_max_height(child);
 }
 
-void pbt_ggt_wrapper_draw(pbt_ggt_t *ggt)
+void pbt_ggt_child_draw(pbt_ggt_t *ggt)
 {
   pbt_ggt_t *child = ggt->childs->priv.ggt_addr;
 
   _pbt_ggt_draw(child);
 }
 
-void pbt_ggt_wrapper_update_area(pbt_ggt_t *ggt, pbt_pbarea_t *pbarea)
+void pbt_ggt_child_update_area(pbt_ggt_t *ggt, pbt_pbarea_t *pbarea)
 {
   pbt_ggt_t *child = ggt->childs->priv.ggt_addr;
 
@@ -841,7 +840,7 @@ void pbt_ggt_wrapper_update_area(pbt_ggt_t *ggt, pbt_pbarea_t *pbarea)
   _pbt_ggt_update_area(child, pbarea);
 }
 
-void pbt_ggt_wrapper_destroy(pbt_ggt_t *ggt)
+void pbt_ggt_child_destroy(pbt_ggt_t *ggt)
 {
   _pbt_ggt_nodes_destroy(ggt->childs);
   if (ggt->priv != NULL)
@@ -849,18 +848,18 @@ void pbt_ggt_wrapper_destroy(pbt_ggt_t *ggt)
   free(ggt);
 }
 
-void pbt_ggt_wrapper_init(pbt_ggt_t *ggt,
+void pbt_ggt_child_init(pbt_ggt_t *ggt,
                           void *addr,
                           pbt_ggt_t *child,
                           pbt_ggt_node_type_t type)
 {
-  ggt->get_min_width = pbt_ggt_wrapper_get_min_width;
-  ggt->get_max_width = pbt_ggt_wrapper_get_max_width;
-  ggt->get_min_height = pbt_ggt_wrapper_get_min_height;
-  ggt->get_max_height = pbt_ggt_wrapper_get_max_height;
-  ggt->draw_cb = pbt_ggt_wrapper_draw;
-  ggt->update_area_cb = pbt_ggt_wrapper_update_area;
+  ggt->get_min_width = pbt_ggt_child_get_min_width;
+  ggt->get_max_width = pbt_ggt_child_get_max_width;
+  ggt->get_min_height = pbt_ggt_child_get_min_height;
+  ggt->get_max_height = pbt_ggt_child_get_max_height;
+  ggt->draw_cb = pbt_ggt_child_draw;
+  ggt->update_area_cb = pbt_ggt_child_update_area;
   ggt->priv = addr;
-  ggt->destroy_cb = pbt_ggt_wrapper_destroy;
+  ggt->destroy_cb = pbt_ggt_child_destroy;
   _pbt_ggt_add_child_ggt_type(ggt, child, type);
 }

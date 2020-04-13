@@ -447,7 +447,6 @@ pbt_bool_t msq_transport_tempo_set_focus_cb(pbt_ggt_t *ggt,
 
 void msq_transport_tempo_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(ggt_win->evh),
                            &(wgt->ggt),
                            msq_transport_tempo_set_focus_cb,
@@ -532,7 +531,6 @@ pbt_bool_t msq_transport_iface_set_focus_cb(pbt_ggt_t *ggt,
 
 void msq_transport_iface_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(ggt_win->evh),
                            &(wgt->ggt),
                            msq_transport_iface_set_focus_cb,
@@ -612,12 +610,12 @@ void msq_transport_init(msq_transport_iface_t *transport_iface,
   transport_iface->wgt.ggt.priv = &(transport_iface->wgt);
   transport_iface->wgt.priv = transport_iface;
 
-  transport_iface->wgt.ggt.get_min_width =  pbt_ggt_wrapper_get_min_width;
-  transport_iface->wgt.ggt.get_max_width =  pbt_ggt_wrapper_get_max_width;
-  transport_iface->wgt.ggt.get_min_height = pbt_ggt_wrapper_get_min_height;
-  transport_iface->wgt.ggt.get_max_height = pbt_ggt_wrapper_get_max_height;
-  transport_iface->wgt.ggt.update_area_cb = pbt_ggt_wrapper_update_area;
-  transport_iface->wgt.ggt.draw_cb = pbt_ggt_wrapper_draw;
+  transport_iface->wgt.ggt.get_min_width =  pbt_ggt_child_get_min_width;
+  transport_iface->wgt.ggt.get_max_width =  pbt_ggt_child_get_max_width;
+  transport_iface->wgt.ggt.get_min_height = pbt_ggt_child_get_min_height;
+  transport_iface->wgt.ggt.get_max_height = pbt_ggt_child_get_max_height;
+  transport_iface->wgt.ggt.update_area_cb = pbt_ggt_child_update_area;
+  transport_iface->wgt.ggt.draw_cb = pbt_ggt_child_draw;
   transport_iface->wgt.ggt.destroy_cb = msq_transport_destroy;
 
   transport_iface->wgt.init_ev_cb = msq_transport_iface_init_ev;
@@ -627,7 +625,6 @@ void msq_transport_child_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
   msq_transport_child_t *transport_child = wgt->priv;
 
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(ggt_win->evh),
                            &(wgt->ggt),
                            msq_transport_iface_set_focus_cb,
@@ -743,12 +740,12 @@ void msq_transport_child_init(msq_transport_child_t *transport_child,
   transport_child->wgt.ggt.priv = &(transport_child->wgt);
   transport_child->wgt.priv = transport_child;
 
-  transport_child->wgt.ggt.get_min_width =  pbt_ggt_wrapper_get_min_width;
-  transport_child->wgt.ggt.get_max_width =  pbt_ggt_wrapper_get_max_width;
-  transport_child->wgt.ggt.get_min_height = pbt_ggt_wrapper_get_min_height;
-  transport_child->wgt.ggt.get_max_height = pbt_ggt_wrapper_get_max_height;
-  transport_child->wgt.ggt.update_area_cb = pbt_ggt_wrapper_update_area;
-  transport_child->wgt.ggt.draw_cb = pbt_ggt_wrapper_draw;
+  transport_child->wgt.ggt.get_min_width =  pbt_ggt_child_get_min_width;
+  transport_child->wgt.ggt.get_max_width =  pbt_ggt_child_get_max_width;
+  transport_child->wgt.ggt.get_min_height = pbt_ggt_child_get_min_height;
+  transport_child->wgt.ggt.get_max_height = pbt_ggt_child_get_max_height;
+  transport_child->wgt.ggt.update_area_cb = pbt_ggt_child_update_area;
+  transport_child->wgt.ggt.draw_cb = pbt_ggt_child_draw;
   transport_child->wgt.ggt.destroy_cb = msq_transport_child_destroy;
 
   transport_child->wgt.init_ev_cb = msq_transport_child_init_ev;

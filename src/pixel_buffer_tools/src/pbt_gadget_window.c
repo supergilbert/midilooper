@@ -84,6 +84,7 @@ void pbt_ggt_win_init_child_ev(pbt_ggt_win_t *ggt_win, pbt_ggt_node_t *child)
           if (child->type == WIDGET)
             {
               wgt = ggt->priv;
+              wgt->ggt_win = ggt_win;
               _pbt_wgt_init_ev(wgt, ggt_win);
             }
           pbt_ggt_win_init_child_ev(ggt_win, ggt->childs);
@@ -198,6 +199,7 @@ pbt_bool_t _pbt_wgt_win_init(pbt_ggt_win_t *ggt_win,
                           height,
                           resizeable) == PBT_FALSE)
     return PBT_FALSE;
+  root_wgt->ggt_win = ggt_win;
   _pbt_wgt_init_ev(root_wgt, ggt_win);
   pbt_ggt_win_init_child_ev(ggt_win, ggt_win->ggt->childs);
   return PBT_TRUE;

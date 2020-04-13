@@ -698,7 +698,6 @@ pbt_bool_t piano_wgt_set_focus_cb(pbt_ggt_t *ggt,
 
 void piano_wgt_init_ev_cb(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(ggt_win->evh),
                            &(wgt->ggt),
                            piano_wgt_set_focus_cb,
@@ -1104,7 +1103,6 @@ void timeline_wgt_init_ev_cb(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
   track_editor_t *track_editor = wgt->priv;
 
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(wgt->ggt_win->evh),
                            &(wgt->ggt),
                            timeline_wgt_set_focus_cb,
@@ -3181,7 +3179,6 @@ void grid_wgt_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
   msq_grid_wgt_t *grid_wgt = wgt->priv;
 
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(wgt->ggt_win->evh),
                            &(wgt->ggt),
                            grid_wgt_set_focus_cb,
@@ -4052,7 +4049,6 @@ pbt_bool_t value_wgt_set_focus_cb(pbt_ggt_t *ggt,
 
 void value_wgt_init_ev_cb(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(wgt->ggt_win->evh),
                            &(wgt->ggt),
                            value_wgt_set_focus_cb,
@@ -4197,7 +4193,6 @@ void value_bar_wgt_init_ev_cb(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
   track_editor_t *track_editor = wgt->priv;
 
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_enter_cb(&(wgt->ggt_win->evh),
                        &(wgt->ggt),
                        set_cursor_vdouble_arrow_cb,
@@ -4504,12 +4499,12 @@ void msq_combobox_init(msq_combobox_t *combobox,
                       msq_combo_button_cb,
                       combobox);
 
-  combobox->ggt.get_min_width = pbt_ggt_wrapper_get_min_width;
-  combobox->ggt.get_max_width = pbt_ggt_wrapper_get_max_width;
-  combobox->ggt.get_min_height = pbt_ggt_wrapper_get_min_height;
-  combobox->ggt.get_max_height = pbt_ggt_wrapper_get_max_height;
-  combobox->ggt.draw_cb = pbt_ggt_wrapper_draw;
-  combobox->ggt.update_area_cb = pbt_ggt_wrapper_update_area;
+  combobox->ggt.get_min_width = pbt_ggt_child_get_min_width;
+  combobox->ggt.get_max_width = pbt_ggt_child_get_max_width;
+  combobox->ggt.get_min_height = pbt_ggt_child_get_min_height;
+  combobox->ggt.get_max_height = pbt_ggt_child_get_max_height;
+  combobox->ggt.draw_cb = pbt_ggt_child_draw;
+  combobox->ggt.update_area_cb = pbt_ggt_child_update_area;
   combobox->ggt.priv = combobox;
   combobox->ggt.destroy_cb = msq_combobox_destroy_cb;
   combobox->button_node.type = WIDGET;

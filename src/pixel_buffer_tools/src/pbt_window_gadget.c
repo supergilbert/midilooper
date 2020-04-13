@@ -448,8 +448,6 @@ void pbt_wgt_vsplitted_area_init_ev(pbt_wgt_t *wgt,
 {
   pbt_wgt_splitted_area_t *splitted_area = wgt->priv;
 
-  wgt->ggt_win = ggt_win;
-
   pbt_evh_add_set_focus_cb(&(wgt->ggt_win->evh),
                            &(splitted_area->separator.ggt),
                            pbt_wgt_vsplitted_area_input_in,
@@ -766,8 +764,6 @@ void pbt_wgt_button_leave_cb(void *wgt_addr)
 void pbt_wgt_button_init_ev(pbt_wgt_t *wgt,
                             pbt_ggt_win_t *ggt_win)
 {
-  wgt->ggt_win = ggt_win;
-
   pbt_evh_add_set_focus_cb(&(wgt->ggt_win->evh),
                            &(wgt->ggt),
                            pbt_wgt_button_pressed,
@@ -1084,7 +1080,6 @@ pbt_bool_t pbt_wgt_hscrollbar_unset_focus_cb(pbt_ggt_t *ggt,
 
 void pbt_wgt_hscrollbar_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(ggt_win->evh),
                            &(wgt->ggt),
                            pbt_wgt_hscrollbar_set_focus_cb,
@@ -1178,7 +1173,6 @@ pbt_bool_t pbt_wgt_vscrollbar_unset_focus_cb(pbt_ggt_t *ggt,
 
 void pbt_wgt_vscrollbar_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(ggt_win->evh),
                            &(wgt->ggt),
                            pbt_wgt_vscrollbar_set_focus_cb,

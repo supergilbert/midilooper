@@ -52,7 +52,8 @@ typedef struct
   pbt_wgt_button_t add_button;
   void *main_win_addr;
   pbt_ggt_node_t vctnr_node;
-  pbt_ggt_t ggt;
+  pbt_wgt_t wgt;
+  msq_bool_t in_move_mode;
 } msq_list_t;
 
 class midilooper_main_window
@@ -197,7 +198,6 @@ pbt_bool_t msq_output_node_unset_focus_cb(pbt_ggt_t *ggt,
 
 void msq_output_node_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(ggt_win->evh),
                            &(wgt->ggt),
                            msq_output_node_set_focus_cb,
@@ -255,7 +255,7 @@ pbt_ggt_node_t *msq_output_node_add(msq_list_t *output_list,
                                     output_list->theme->theme.window_bg);
   pbt_ggt_add_child_wgt(&(output_line->vctnr), &(output_line->output_node));
 
-  pbt_ggt_wrapper_init(ggt_wrapper,
+  pbt_ggt_child_init(ggt_wrapper,
                        output_line,
                        &(output_line->vctnr.ggt),
                        GADGET);
@@ -313,10 +313,15 @@ void msq_list_destroy_cb(pbt_ggt_t *ggt)
   _pbt_ggt_destroy(vctnr_ggt);
 }
 
+void msq_output_list_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
+{
+}
+
 void msq_output_list_init(msq_list_t *msq_list,
                           midilooper_main_window *main_win)
 {
   unsigned int width;
+  pbt_ggt_t *ggt;
 
   msq_list->engine_ctx = main_win->engine_ctx;
   msq_list->theme = &(main_win->theme);
@@ -350,18 +355,22 @@ void msq_output_list_init(msq_list_t *msq_list,
                                     msq_list->theme->theme.window_bg);
   pbt_ggt_add_child_ggt(&(msq_list->vctnr), &(msq_list->hctnr_button));
 
-  msq_list->ggt.get_min_width = pbt_ggt_wrapper_get_min_width;
-  msq_list->ggt.get_max_width = pbt_ggt_wrapper_get_max_width;
-  msq_list->ggt.get_min_height = pbt_ggt_wrapper_get_min_height;
-  msq_list->ggt.get_max_height = pbt_ggt_wrapper_get_max_height;
-  msq_list->ggt.draw_cb = pbt_ggt_wrapper_draw;
-  msq_list->ggt.update_area_cb = pbt_ggt_wrapper_update_area;
-  msq_list->ggt.priv = msq_list;
-  msq_list->ggt.destroy_cb = msq_list_destroy_cb;
+  msq_list->wgt.priv = msq_list;
+  msq_list->wgt.init_ev_cb = msq_output_list_init_ev;
+  ggt = &(msq_list->wgt.ggt);
+  ggt->priv = &(msq_list->wgt);
+
+  ggt->get_min_width = pbt_ggt_child_get_min_width;
+  ggt->get_max_width = pbt_ggt_child_get_max_width;
+  ggt->get_min_height = pbt_ggt_child_get_min_height;
+  ggt->get_max_height = pbt_ggt_child_get_max_height;
+  ggt->draw_cb = pbt_ggt_child_draw;
+  ggt->update_area_cb = pbt_ggt_child_update_area;
+  ggt->destroy_cb = msq_list_destroy_cb;
   msq_list->vctnr_node.type = GADGET;
   msq_list->vctnr_node.priv.ggt_addr = &(msq_list->vctnr.ggt);
   msq_list->vctnr_node.next = NULL;
-  msq_list->ggt.childs = &(msq_list->vctnr_node);
+  ggt->childs = &(msq_list->vctnr_node);
 }
 
 #define TRACKS_TITLE " TRACKS "
@@ -501,7 +510,6 @@ pbt_bool_t msq_track_node_unset_focus_cb(pbt_ggt_t *ggt,
 
 void msq_track_node_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
-  wgt->ggt_win = ggt_win;
   pbt_evh_add_set_focus_cb(&(ggt_win->evh),
                            &(wgt->ggt),
                            msq_track_node_set_focus_cb,
@@ -681,7 +689,7 @@ msq_track_line_t *msq_track_node_add(msq_list_t *track_list,
                                     track_list->theme->theme.window_bg);
   pbt_ggt_add_child_ggt(&(track_line->vctnr), &(track_line->hctnr));
 
-  pbt_ggt_wrapper_init(ggt_wrapper,
+  pbt_ggt_child_init(ggt_wrapper,
                        track_line,
                        &(track_line->vctnr.ggt),
                        GADGET);
@@ -759,10 +767,15 @@ msq_track_line_t *msq_track_list_get(msq_list_t *track_list,
   return NULL;
 }
 
+void msq_track_list_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
+{
+}
+
 void msq_track_list_init(msq_list_t *msq_list,
                          midilooper_main_window *main_win)
 {
   unsigned int width;
+  pbt_ggt_t *ggt;
 
   msq_list->engine_ctx = main_win->engine_ctx;
   msq_list->theme = &(main_win->theme);
@@ -799,18 +812,22 @@ void msq_track_list_init(msq_list_t *msq_list,
                                     msq_list->theme->theme.window_bg);
   pbt_ggt_add_child_ggt(&(msq_list->vctnr), &(msq_list->hctnr_button));
 
-  msq_list->ggt.get_min_width = pbt_ggt_wrapper_get_min_width;
-  msq_list->ggt.get_max_width = pbt_ggt_wrapper_get_max_width;
-  msq_list->ggt.get_min_height = pbt_ggt_wrapper_get_min_height;
-  msq_list->ggt.get_max_height = pbt_ggt_wrapper_get_max_height;
-  msq_list->ggt.draw_cb = pbt_ggt_wrapper_draw;
-  msq_list->ggt.update_area_cb = pbt_ggt_wrapper_update_area;
-  msq_list->ggt.priv = msq_list;
-  msq_list->ggt.destroy_cb = msq_list_destroy_cb;
+  msq_list->wgt.priv = msq_list;
+  msq_list->wgt.init_ev_cb = msq_track_list_init_ev;
+  ggt = &(msq_list->wgt.ggt);
+  ggt->priv = &(msq_list->wgt);
+
+  ggt->get_min_width = pbt_ggt_child_get_min_width;
+  ggt->get_max_width = pbt_ggt_child_get_max_width;
+  ggt->get_min_height = pbt_ggt_child_get_min_height;
+  ggt->get_max_height = pbt_ggt_child_get_max_height;
+  ggt->draw_cb = pbt_ggt_child_draw;
+  ggt->update_area_cb = pbt_ggt_child_update_area;
+  ggt->destroy_cb = msq_list_destroy_cb;
   msq_list->vctnr_node.type = GADGET;
   msq_list->vctnr_node.priv.ggt_addr = &(msq_list->vctnr.ggt);
   msq_list->vctnr_node.next = NULL;
-  msq_list->ggt.childs = &(msq_list->vctnr_node);
+  ggt->childs = &(msq_list->vctnr_node);
 }
 
 void add_track_result_cb(char *str, void *mainwin_addr)
@@ -939,9 +956,12 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
       mainwin->refresh();
       break;
     case 5:                     // Add
+      printf("Move\n");
+      break;
+    case 6:                     // Add
       mainwin->show_add_track();
       break;
-    case 6:                     // Remove
+    case 7:                     // Remove
       mainwin->remove_track(mainwin->dialog_track);
       break;
     default:
@@ -1041,11 +1061,11 @@ void midilooper_main_window::_init_main_window(char *filename)
   pbt_ggt_ctnr_add_static_separator(&root_child_vctnr,
                                     theme.default_margin,
                                     theme.theme.window_bg);
-  pbt_ggt_add_child_ggt(&root_child_vctnr, &output_list);
+  pbt_ggt_add_child_wgt(&root_child_vctnr, &output_list);
   pbt_ggt_ctnr_add_static_separator(&root_child_vctnr,
                                     theme.default_separator,
                                     theme.theme.window_bg);
-  pbt_ggt_add_child_ggt(&root_child_vctnr, &(track_list));
+  pbt_ggt_add_child_wgt(&root_child_vctnr, &track_list);
 
   msq_margin_ggt_init_g(&margin,
                         &root_child_vctnr.ggt,
@@ -1245,12 +1265,13 @@ void midilooper_main_window::show_track_dialog(track_editor_t *track_editor)
                                      "Add key binding",
                                      "Add note binding",
                                      "Del all bindings",
+                                     "Move",
                                      "Add",
                                      "Remove"};
 
   msq_dialog_list(&(dialog_iface),
                   (char **) track_menu,
-                  7,
+                  8,
                   track_dialog_res_cb,
                   this);
   dialog_track = track_editor;
