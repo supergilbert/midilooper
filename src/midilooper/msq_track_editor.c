@@ -933,7 +933,6 @@ void msq_track_draw_tick_pos(track_editor_t *track_editor, uint_t tick)
 {
   track_editor_ctx_t *editor_ctx = &(track_editor->editor_ctx);
   int xpos = TICK2XPOS(editor_ctx, tick) - editor_ctx->hadj.pos;
-  static unsigned int last_xpos = 0;
   pbt_wgt_t *wgt;
 
   if (xpos < 0
@@ -946,18 +945,18 @@ void msq_track_draw_tick_pos(track_editor_t *track_editor, uint_t tick)
 
   wgt = &(track_editor->grid_wgt.wgt);
 
-  wbe_pbw_make_context(&(wgt->ggt_win->pb_win));
-  if (last_xpos != 0)
-    last_xpos--;
+  pbt_ggt_win_make_context(wgt->ggt_win);
+  if (track_editor->last_xpos != 0)
+    track_editor->last_xpos--;
   pbt_wgt_gl_refresh_rect(wgt,
-                          last_xpos, 0,
-                          1, pbt_ggt_height(wgt));
+                          track_editor->last_xpos, 0,
+                          2, pbt_ggt_height(wgt));
   pbt_wgt_gl_draw_line(wgt,
                        xpos, 0,
                        xpos, pbt_ggt_height(&(track_editor->grid_wgt.wgt)),
                        tctx_wgt_normal_fg(&(track_editor->editor_ctx)));
-  last_xpos = xpos;
   wbe_gl_flush();
+  track_editor->last_xpos = xpos;
 }
 
 pbt_bool_t timeline_wgt_unset_focus_cb(pbt_ggt_t *ggt,

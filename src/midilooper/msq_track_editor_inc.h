@@ -207,6 +207,7 @@ typedef struct
   unsigned int value_min_height;
   msq_hggts_t hggts;
   msq_vggts_t vggts;
+  unsigned int last_xpos;
 } track_editor_t;
 
 #define track_editor_font(track_editor)                 \
