@@ -196,8 +196,10 @@ void pbt_evh_handle_notify(pbt_evh_t *evh, int xpos, int ypos)
         if (_PBT_IS_IN_GGT(node->ggt, xpos, ypos) == PBT_TRUE)
           {
             if (node->enter_cb != NULL)
-              node->enter_cb(node->enter_arg);
-            evh->entered_wgt = node;
+              {
+                node->enter_cb(node->enter_arg);
+                evh->entered_wgt = node;
+              }
           }
     }
 }
