@@ -1203,8 +1203,13 @@ void output_dialog_res_cb(size_t idx, void *mainwin_addr)
                             mainwin_addr);
   else if (idx == 1)
     {
-      mainwin->output_list.in_move_mode = MSQ_TRUE;
-      mainwin->output_list.move_cb_priv = mainwin->dialog_output;
+      if (engine_is_running(mainwin->engine_ctx) == MSQ_TRUE)
+        pbt_logmsg("Can not move output while runnning");
+      else
+        {
+          mainwin->output_list.in_move_mode = MSQ_TRUE;
+          mainwin->output_list.move_cb_priv = mainwin->dialog_output;
+        }
     }
   else if (idx == 2)
     mainwin->show_add_output();
@@ -1265,8 +1270,13 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
       mainwin->refresh();
       break;
     case 5:                     // Move
-      mainwin->track_list.in_move_mode = MSQ_TRUE;
-      mainwin->track_list.move_cb_priv = mainwin->dialog_track;
+      if (engine_is_running(mainwin->engine_ctx) == MSQ_TRUE)
+        pbt_logmsg("Can not move track while runnning");
+      else
+        {
+          mainwin->track_list.in_move_mode = MSQ_TRUE;
+          mainwin->track_list.move_cb_priv = mainwin->dialog_track;
+        }
       break;
     case 6:                     // Add
       mainwin->show_add_track();
