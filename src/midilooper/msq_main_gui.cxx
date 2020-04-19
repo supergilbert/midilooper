@@ -483,6 +483,7 @@ void msq_wgt_list_destroy_cb(pbt_ggt_t *ggt)
   pbt_ggt_t *vctnr_ggt = (pbt_ggt_t *) ggt->childs->priv.ggt_addr;
 
   _pbt_ggt_destroy(vctnr_ggt);
+  pbt_wgt_evnode_destroy(ggt);
 }
 
 void _list_pop_node(list_t *list, node_t *node_arg)

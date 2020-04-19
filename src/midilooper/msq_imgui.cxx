@@ -512,6 +512,7 @@ void msq_imgui_dialog::init_font(void)
 
 msq_imgui_dialog::~msq_imgui_dialog(void)
 {
+  free_popup_list();
   ImGui_ImplGlfw_Shutdown();
   delete dir_array;
   ImGui::DestroyContext();
