@@ -23,6 +23,7 @@ extern "C"
 #include <wbe_glfw.h>
 #include <pbt_gadget_window.h>
 #include <pbt_event_handler.h>
+#include <pbt_tools.h>
 
 #include "msq_gui.h"
 #include "msq_track_editor.h"
@@ -41,7 +42,7 @@ using namespace std;
 
 #include "msq_imgui.hxx"
 
-typedef struct
+typedef struct msq_wgt_list_s
 {
   engine_ctx_t *engine_ctx;
   msq_gui_theme_t *theme;
@@ -55,11 +56,12 @@ typedef struct
   pbt_ggt_node_t vctnr_node;
   pbt_wgt_t wgt;
   msq_bool_t in_move_mode;
-} msq_list_t;
+  void (*move_cb)(struct msq_wgt_list_s *msq_wgt_list, size_t idx);
+  void *move_cb_priv;
+} msq_wgt_list_t;
 
 #define msq_track_node_height(theme) ((theme)->font.max_height * 4)
 #define msq_output_node_height(theme) ((theme)->font.max_height * 2)
-
 
 class midilooper_main_window
 {
@@ -86,8 +88,8 @@ public:
   msq_dialog_iface_t dialog_iface = {};
   output_t *dialog_output;
   track_editor_t *dialog_track;
-  msq_list_t output_list = {};
-  msq_list_t track_list = {};
+  msq_wgt_list_t output_list = {};
+  msq_wgt_list_t track_list = {};
   msq_imgui_dialog *imgui_dialog = NULL;
 
   void _init_main_window(char *filename);
@@ -120,26 +122,109 @@ public:
   void run(void);
 };
 
-pbt_bool_t msq_list_unset_focus_cb(pbt_ggt_t *ggt,
-                                         wbe_window_input_t *winev,
-                                         void *track_list_addr)
+// First node not checked
+pbt_bool_t _pbt_ggt_child_move(pbt_ggt_t *ggt, pbt_ggt_node_t *node, size_t idx)
 {
-  msq_list_t *track_list = (msq_list_t *) track_list_addr;
+  pbt_ggt_node_t *node_root, *node_dest;
+  size_t tmp_idx;
+
+  for (node_root = ggt->childs;
+       node_root != NULL;
+       node_root = node_root->next)
+    if (node_root->next == node) // TODO: Improve algo to check first node
+      break;
+
+  if (node_root == NULL)
+    return PBT_FALSE;
+
+  if (idx == 0)
+    {
+      node_root->next = node->next;
+      node->next = ggt->childs;
+      ggt->childs = node;
+      return PBT_TRUE;
+    }
+
+  for (tmp_idx = 1,
+         node_dest = ggt->childs;
+       node_dest != NULL;
+       tmp_idx++,
+         node_dest = node_dest->next)
+    {
+      if (tmp_idx == idx)
+        {
+          if (node_dest->next != node && node_dest->next != node)
+            {
+              node_root->next = node->next;
+              node->next = node_dest->next;
+              node_dest->next = node;
+            }
+          return PBT_TRUE;
+        }
+    }
+
+  return PBT_FALSE;
+}
+
+pbt_bool_t _msq_wgt_list_move(msq_wgt_list_t *msq_wgt_list,
+                              pbt_ggt_node_t *node,
+                              size_t idx)
+{
+  pbt_pbarea_t pbarea;
+
+  if (_pbt_ggt_child_move(&(msq_wgt_list->vlist.ggt), node, idx + 1) == PBT_FALSE)
+    return PBT_FALSE;
+
+  memcpy(&pbarea, &(msq_wgt_list->wgt.ggt.pbarea), sizeof (pbt_pbarea_t));
+  pbt_ggt_update_area(&(msq_wgt_list->wgt), &pbarea);
+
+  pbt_wgt_draw(msq_wgt_list);
+  pbt_wgt_win_put_buffer(&(msq_wgt_list->wgt));
+
+  return PBT_TRUE;
+}
+
+pbt_bool_t msq_wgt_list_unset_focus_cb(pbt_ggt_t *ggt,
+                                   wbe_window_input_t *winev,
+                                   void *msq_wgt_list_addr)
+{
+  pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
+  msq_wgt_list_t *msq_wgt_list = (msq_wgt_list_t *) msq_wgt_list_addr;
   static unsigned int last_ypos = 0;
   int ypos;
   size_t idx;
-  unsigned int max,
-    height = track_list->elt_height + track_list->theme->default_separator;
-  pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
+  unsigned int max, height;
+  pbt_ggt_node_t *node_head, *child_node;
+
+  if (msq_wgt_list->vlist.ggt.childs == NULL) // Useless always have header
+    pbt_abort("Header not found msq list is empty");
+
+  node_head = msq_wgt_list->vlist.ggt.childs->next; // Go after header
+  if (node_head == NULL || msq_wgt_list->move_cb == NULL)
+    {
+      msq_wgt_list->in_move_mode = MSQ_FALSE;
+      return PBT_TRUE;
+    }
+
+  height = msq_wgt_list->elt_height + msq_wgt_list->theme->default_separator;
+
+  for (max = 0,
+         child_node = node_head;
+       child_node != NULL;
+       child_node = child_node->next)
+    max += height;
 
   ypos =
-    winev->ypos - _pbt_ggt_ypos(ggt) - pbt_ggt_height(&(track_list->header));
+    winev->ypos
+    - _pbt_ggt_ypos(ggt)
+    - pbt_ggt_height(&(msq_wgt_list->header))
+    + (height / 2);
   if (ypos < 0)
     ypos = 0;
 
   idx = ypos / height;
   ypos = idx * height;
-  max = track_list->engine_ctx->track_list.len * height;
+
   if (ypos > (int) max)
     {
       ypos = max;
@@ -150,14 +235,14 @@ pbt_bool_t msq_list_unset_focus_cb(pbt_ggt_t *ggt,
   if (last_ypos > 0)
     last_ypos--;
   pbt_wgt_gl_refresh_rect(wgt,
-                          0,                  last_ypos,
+                          0, last_ypos,
                           pbt_ggt_width(wgt), 2);
 
   if (WBE_GET_BIT(winev->buttons, 0) == 1)
     {
       wbe_gl_flush();
-      printf("TODO: call cb with idx:%zd\n", idx);
-      track_list->in_move_mode = MSQ_FALSE;
+      msq_wgt_list->move_cb(msq_wgt_list, idx);
+      msq_wgt_list->in_move_mode = MSQ_FALSE;
       return PBT_TRUE;
     }
   else if (WBE_GET_BIT(winev->buttons, 1) == 1)
@@ -167,38 +252,38 @@ pbt_bool_t msq_list_unset_focus_cb(pbt_ggt_t *ggt,
     }
 
   ypos +=
-    pbt_ggt_height(&(track_list->header))
-    + track_list->theme->default_separator;
+    pbt_ggt_height(&(msq_wgt_list->header))
+    + msq_wgt_list->theme->default_separator;
   pbt_wgt_gl_draw_line(wgt,
                        0,                  ypos,
                        pbt_ggt_width(wgt), ypos,
-                       track_list->theme->theme.wgt_normal_fg);
+                       msq_wgt_list->theme->theme.wgt_normal_fg);
   wbe_gl_flush();
   last_ypos = ypos;
   return PBT_FALSE;
 }
 
 
-pbt_bool_t msq_list_set_focus_cb(pbt_ggt_t *ggt,
-                                       wbe_window_input_t *winev,
-                                       void *track_list_addr)
+pbt_bool_t msq_wgt_list_set_focus_cb(pbt_ggt_t *ggt,
+                                 wbe_window_input_t *winev,
+                                 void *msq_wgt_list_addr)
 {
-  msq_list_t *track_list = (msq_list_t *) track_list_addr;
+  msq_wgt_list_t *msq_wgt_list = (msq_wgt_list_t *) msq_wgt_list_addr;
 
-  if (track_list->in_move_mode == MSQ_TRUE)
+  if (msq_wgt_list->in_move_mode == MSQ_TRUE)
     return PBT_TRUE;
   return PBT_FALSE;
 }
 
-void msq_list_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
+void msq_wgt_list_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
 {
   pbt_evh_add_set_focus_cb(&(ggt_win->evh),
                            &(wgt->ggt),
-                           msq_list_set_focus_cb,
+                           msq_wgt_list_set_focus_cb,
                            wgt->priv);
   pbt_evh_add_unset_focus_cb(&(ggt_win->evh),
                              &(wgt->ggt),
-                             msq_list_unset_focus_cb,
+                             msq_wgt_list_unset_focus_cb,
                              wgt->priv);
 }
 
@@ -323,7 +408,7 @@ typedef struct
   pbt_ggt_node_it_t node_it;
 } msq_output_line_t;
 
-pbt_ggt_node_t *msq_output_node_add(msq_list_t *output_list,
+pbt_ggt_node_t *msq_output_node_add(msq_wgt_list_t *output_list,
                                     output_t *output)
 {
   msq_output_line_t *output_line =
@@ -356,7 +441,7 @@ pbt_ggt_node_t *msq_output_node_add(msq_list_t *output_list,
 
 void msq_draw_output_header_cb(pbt_pbarea_t *pbarea, void *output_list_addr)
 {
-  msq_list_t *output_list = (msq_list_t *) output_list_addr;
+  msq_wgt_list_t *output_list = (msq_wgt_list_t *) output_list_addr;
 
   pbt_pbarea_fill(pbarea, output_list->theme->theme.window_bg);
   _msq_draw_list_title(pbarea,
@@ -372,7 +457,7 @@ void add_output_dialog_cb(void *main_win_addr)
   main_win->show_add_output();
 }
 
-void msq_output_list_del_node(msq_list_t *output_list,
+void msq_output_list_del_node(msq_wgt_list_t *output_list,
                               output_t *output)
 {
   pbt_ggt_node_t *ggt_node;
@@ -393,56 +478,167 @@ void msq_output_list_del_node(msq_list_t *output_list,
     }
 }
 
-void msq_list_destroy_cb(pbt_ggt_t *ggt)
+void msq_wgt_list_destroy_cb(pbt_ggt_t *ggt)
 {
   pbt_ggt_t *vctnr_ggt = (pbt_ggt_t *) ggt->childs->priv.ggt_addr;
 
   _pbt_ggt_destroy(vctnr_ggt);
 }
 
-void msq_output_list_init(msq_list_t *msq_list,
+void _list_pop_node(list_t *list, node_t *node_arg)
+{
+  node_t *node;
+
+  list->len--;
+  if (node_arg->prev == NULL)
+    {
+      node = node_arg->next;
+      node->prev = NULL;
+      list->head = node;
+    }
+  else if (node_arg->next == NULL)
+    {
+      node = node_arg->prev;
+      node->next = NULL;
+      list->tail = node;
+    }
+  else
+    {
+      node = node_arg->prev;
+      node->next = node_arg->next;
+      node = node_arg->next;
+      node->prev = node_arg->prev;
+    }
+}
+
+pbt_bool_t _list_move_node_addr(list_t *list, void *addr, size_t idx)
+{
+  list_iterator_t iter = {};
+  node_t *node, *prev, *next;
+
+  iter_init(&iter, list);
+  iter_move_to_addr(&iter, addr);
+  node = iter_node(&iter);
+
+  if (node == NULL)
+    return PBT_FALSE;
+
+  if (idx == 0)
+    {
+      if (node == list->head)
+        return PBT_TRUE;
+
+      _list_pop_node(list, node);
+
+      node->prev = NULL;
+      list->head->prev = node;
+      node->next = list->head;
+      list->head = node;
+      list->len++;
+    }
+  else if (idx >= list->len)
+    {
+      if (node == list->tail)
+        return PBT_TRUE;
+
+      _list_pop_node(list, node);
+
+      node->next = NULL;
+      node->prev = list->tail;
+      list->tail->next = node;
+      list->tail = node;
+      list->len++;
+    }
+  else
+    {
+      for (iter_head(&iter); iter_node(&iter); iter_next(&iter), idx--)
+        if (idx < 1)
+          break;
+      if (iter_node(&iter) == node)
+        return PBT_TRUE;
+
+      _list_pop_node(list, node);
+
+      next = iter_node(&iter);
+      prev = next->prev;
+      node->prev = prev;
+      node->next = next;
+
+      prev->next = node;
+      next->prev = node;
+
+      list->len++;
+    }
+  return PBT_TRUE;
+}
+
+void msq_output_list_move_cb(msq_wgt_list_t *msq_wgt_list,
+                             size_t idx)
+{
+  output_t *output = (output_t *) msq_wgt_list->move_cb_priv;
+  pbt_ggt_node_t *node_tmp;
+  pbt_ggt_t *ggt;
+  msq_output_line_t *output_line;
+
+  for (node_tmp = msq_wgt_list->vlist.ggt.childs->next;
+       node_tmp != NULL;
+       node_tmp = node_tmp->next)
+    {
+      ggt = (pbt_ggt_t *) node_tmp->priv.ggt_addr;
+      output_line = (msq_output_line_t *) ggt->priv;
+      if (output_line->output_node.output == output)
+        break;
+    }
+
+  if (node_tmp != NULL
+      && _msq_wgt_list_move(msq_wgt_list, node_tmp, idx) == PBT_TRUE)
+    _list_move_node_addr(&(msq_wgt_list->engine_ctx->output_list), output, idx);
+}
+
+void msq_output_list_init(msq_wgt_list_t *msq_wgt_list,
                           midilooper_main_window *main_win)
 {
   unsigned int width;
   pbt_ggt_t *ggt;
 
-  msq_list->engine_ctx = main_win->engine_ctx;
-  msq_list->theme = &(main_win->theme);
-  msq_list->main_win_addr = main_win;
-  msq_list->elt_height = msq_output_node_height(&(msq_list->theme->theme));
+  msq_wgt_list->engine_ctx = main_win->engine_ctx;
+  msq_wgt_list->theme = &(main_win->theme);
+  msq_wgt_list->main_win_addr = main_win;
+  msq_wgt_list->elt_height = msq_output_node_height(&(msq_wgt_list->theme->theme));
+  msq_wgt_list->move_cb = msq_output_list_move_cb;
 
-  pbt_font_get_string_width(&(msq_list->theme->theme.font),
+  pbt_font_get_string_width(&(msq_wgt_list->theme->theme.font),
                             "-" OUTPUTS_TITLE "-",
                             &width);
-  pbt_ggt_drawarea_init(&(msq_list->header),
+  pbt_ggt_drawarea_init(&(msq_wgt_list->header),
                         width, 0,
-                        msq_list->theme->theme.font.max_height,
-                        msq_list->theme->theme.font.max_height,
+                        msq_wgt_list->theme->theme.font.max_height,
+                        msq_wgt_list->theme->theme.font.max_height,
                         msq_draw_output_header_cb,
-                        msq_list,
+                        msq_wgt_list,
                         NULL, NULL);
 
-  pbt_ggt_vctnr_init(&(msq_list->vlist));
-  pbt_ggt_add_child_ggt(&(msq_list->vlist), &(msq_list->header));
-  msq_button_plus_init(&(msq_list->add_button),
-                       msq_list->theme,
+  pbt_ggt_vctnr_init(&(msq_wgt_list->vlist));
+  pbt_ggt_add_child_ggt(&(msq_wgt_list->vlist), &(msq_wgt_list->header));
+  msq_button_plus_init(&(msq_wgt_list->add_button),
+                       msq_wgt_list->theme,
                        add_output_dialog_cb,
                        main_win);
-  pbt_ggt_hctnr_init(&(msq_list->hctnr_button));
-  pbt_ggt_add_child_wgt(&(msq_list->hctnr_button), &(msq_list->add_button));
-  pbt_ggt_ctnr_add_empty(&(msq_list->hctnr_button),
-                         msq_list->theme->theme.window_bg);
-  pbt_ggt_vctnr_init(&(msq_list->vctnr));
-  pbt_ggt_add_child_ggt(&(msq_list->vctnr), &(msq_list->vlist));
-  pbt_ggt_ctnr_add_static_separator(&(msq_list->vctnr),
-                                    msq_list->theme->default_separator,
-                                    msq_list->theme->theme.window_bg);
-  pbt_ggt_add_child_ggt(&(msq_list->vctnr), &(msq_list->hctnr_button));
+  pbt_ggt_hctnr_init(&(msq_wgt_list->hctnr_button));
+  pbt_ggt_add_child_wgt(&(msq_wgt_list->hctnr_button), &(msq_wgt_list->add_button));
+  pbt_ggt_ctnr_add_empty(&(msq_wgt_list->hctnr_button),
+                         msq_wgt_list->theme->theme.window_bg);
+  pbt_ggt_vctnr_init(&(msq_wgt_list->vctnr));
+  pbt_ggt_add_child_ggt(&(msq_wgt_list->vctnr), &(msq_wgt_list->vlist));
+  pbt_ggt_ctnr_add_static_separator(&(msq_wgt_list->vctnr),
+                                    msq_wgt_list->theme->default_separator,
+                                    msq_wgt_list->theme->theme.window_bg);
+  pbt_ggt_add_child_ggt(&(msq_wgt_list->vctnr), &(msq_wgt_list->hctnr_button));
 
-  msq_list->wgt.priv = msq_list;
-  msq_list->wgt.init_ev_cb = msq_list_init_ev;
-  ggt = &(msq_list->wgt.ggt);
-  ggt->priv = &(msq_list->wgt);
+  msq_wgt_list->wgt.priv = msq_wgt_list;
+  msq_wgt_list->wgt.init_ev_cb = msq_wgt_list_init_ev;
+  ggt = &(msq_wgt_list->wgt.ggt);
+  ggt->priv = &(msq_wgt_list->wgt);
 
 
   ggt->get_min_width = pbt_ggt_child_get_min_width;
@@ -451,11 +647,11 @@ void msq_output_list_init(msq_list_t *msq_list,
   ggt->get_max_height = pbt_ggt_child_get_max_height;
   ggt->draw_cb = pbt_ggt_child_draw;
   ggt->update_area_cb = pbt_ggt_child_update_area;
-  ggt->destroy_cb = msq_list_destroy_cb;
-  msq_list->vctnr_node.type = GADGET;
-  msq_list->vctnr_node.priv.ggt_addr = &(msq_list->vctnr.ggt);
-  msq_list->vctnr_node.next = NULL;
-  ggt->childs = &(msq_list->vctnr_node);
+  ggt->destroy_cb = msq_wgt_list_destroy_cb;
+  msq_wgt_list->vctnr_node.type = GADGET;
+  msq_wgt_list->vctnr_node.priv.ggt_addr = &(msq_wgt_list->vctnr.ggt);
+  msq_wgt_list->vctnr_node.next = NULL;
+  ggt->childs = &(msq_wgt_list->vctnr_node);
 }
 
 #define TRACKS_TITLE " TRACKS "
@@ -723,7 +919,7 @@ void _msq_mute_button_draw_cb(pbt_ggt_t *ggt)
   pbt_wgt_button_draw_cb(ggt);
 }
 
-msq_track_line_t *msq_track_node_add(msq_list_t *track_list,
+msq_track_line_t *msq_track_node_add(msq_wgt_list_t *track_list,
                                      track_ctx_t *track_ctx,
                                      track_editor_theme_t *track_editor_theme,
                                      msq_dialog_iface_t *dialog_iface,
@@ -775,9 +971,9 @@ msq_track_line_t *msq_track_node_add(msq_list_t *track_list,
   pbt_ggt_add_child_ggt(&(track_line->vctnr), &(track_line->hctnr));
 
   pbt_ggt_child_init(ggt_wrapper,
-                       track_line,
-                       &(track_line->vctnr.ggt),
-                       GADGET);
+                     track_line,
+                     &(track_line->vctnr.ggt),
+                     GADGET);
 
   pbt_ggt_node_it_init_ggt_add_child(&(track_line->node_it),
                                      &(track_list->vlist.ggt),
@@ -788,7 +984,7 @@ msq_track_line_t *msq_track_node_add(msq_list_t *track_list,
 
 void msq_draw_track_header_cb(pbt_pbarea_t *pbarea, void *track_list_addr)
 {
-  msq_list_t *track_list = (msq_list_t *) track_list_addr;
+  msq_wgt_list_t *track_list = (msq_wgt_list_t *) track_list_addr;
 
   pbt_pbarea_fill(pbarea, track_list->theme->theme.window_bg);
   _msq_draw_list_title(pbarea,
@@ -804,7 +1000,7 @@ void add_track_dialog_cb(void *main_win_addr)
   main_win->show_add_track();
 }
 
-void msq_track_list_del_node(msq_list_t *track_list,
+void msq_track_list_del_node(msq_wgt_list_t *track_list,
                              track_editor_t *track_editor)
 {
   pbt_ggt_node_t *ggt_node;
@@ -828,7 +1024,7 @@ void msq_track_list_del_node(msq_list_t *track_list,
     }
 }
 
-msq_track_line_t *msq_track_list_get(msq_list_t *track_list,
+msq_track_line_t *msq_track_list_get(msq_wgt_list_t *track_list,
                                      void *track_ctx_addr)
 {
   pbt_ggt_node_t *ggt_node;
@@ -852,52 +1048,78 @@ msq_track_line_t *msq_track_list_get(msq_list_t *track_list,
   return NULL;
 }
 
-void msq_track_list_init(msq_list_t *msq_list,
+void msq_track_list_move_cb(msq_wgt_list_t *msq_wgt_list,
+                            size_t idx)
+{
+  track_editor_t *track_editor = (track_editor_t *) msq_wgt_list->move_cb_priv;
+  pbt_ggt_node_t *node_tmp;
+  pbt_ggt_t *ggt;
+  msq_track_line_t *track_line;
+
+  for (node_tmp = msq_wgt_list->vlist.ggt.childs->next;
+       node_tmp != NULL;
+       node_tmp = node_tmp->next)
+    {
+      ggt = (pbt_ggt_t *) node_tmp->priv.ggt_addr;
+      track_line = (msq_track_line_t *) ggt->priv;
+      if (&(track_line->track_editor) == track_editor)
+        break;
+    }
+
+  if (node_tmp != NULL
+      && _msq_wgt_list_move(msq_wgt_list, node_tmp, idx) == PBT_TRUE)
+    _list_move_node_addr(&(msq_wgt_list->engine_ctx->track_list),
+                         track_editor->editor_ctx.track_ctx,
+                         idx);
+}
+
+void msq_track_list_init(msq_wgt_list_t *msq_wgt_list,
                          midilooper_main_window *main_win)
 {
   unsigned int width;
   pbt_ggt_t *ggt;
 
-  msq_list->engine_ctx = main_win->engine_ctx;
-  msq_list->theme = &(main_win->theme);
-  msq_list->main_win_addr = main_win;
-  msq_list->elt_height = msq_track_node_height(&(msq_list->theme->theme));
+  msq_wgt_list->engine_ctx = main_win->engine_ctx;
+  msq_wgt_list->theme = &(main_win->theme);
+  msq_wgt_list->main_win_addr = main_win;
+  msq_wgt_list->elt_height = msq_track_node_height(&(msq_wgt_list->theme->theme));
+  msq_wgt_list->move_cb = msq_track_list_move_cb;
 
-  // pbt_font_get_string_width(&(msq_list->theme->theme.font),
+  // pbt_font_get_string_width(&(msq_wgt_list->theme->theme.font),
   //                           "-" TRACKS_TITLE "-",
   //                           &width);
-  width = msq_list->theme->theme.font.max_height * 21
-    + msq_list->theme->default_separator;
-  pbt_ggt_drawarea_init(&(msq_list->header),
+  width = msq_wgt_list->theme->theme.font.max_height * 21
+    + msq_wgt_list->theme->default_separator;
+  pbt_ggt_drawarea_init(&(msq_wgt_list->header),
                         width, 0,
-                        msq_list->theme->theme.font.max_height,
-                        msq_list->theme->theme.font.max_height,
+                        msq_wgt_list->theme->theme.font.max_height,
+                        msq_wgt_list->theme->theme.font.max_height,
                         msq_draw_track_header_cb,
-                        msq_list,
+                        msq_wgt_list,
                         NULL, NULL);
 
-  pbt_ggt_vctnr_init(&(msq_list->vlist));
-  pbt_ggt_add_child_ggt(&(msq_list->vlist), &(msq_list->header));
+  pbt_ggt_vctnr_init(&(msq_wgt_list->vlist));
+  pbt_ggt_add_child_ggt(&(msq_wgt_list->vlist), &(msq_wgt_list->header));
 
-  msq_button_plus_init(&(msq_list->add_button),
-                       msq_list->theme,
+  msq_button_plus_init(&(msq_wgt_list->add_button),
+                       msq_wgt_list->theme,
                        add_track_dialog_cb,
                        main_win);
-  pbt_ggt_hctnr_init(&(msq_list->hctnr_button));
-  pbt_ggt_add_child_wgt(&(msq_list->hctnr_button), &(msq_list->add_button));
-  pbt_ggt_ctnr_add_empty(&(msq_list->hctnr_button),
-                         msq_list->theme->theme.window_bg);
-  pbt_ggt_vctnr_init(&(msq_list->vctnr));
-  pbt_ggt_add_child_ggt(&(msq_list->vctnr), &(msq_list->vlist));
-  pbt_ggt_ctnr_add_static_separator(&(msq_list->vctnr),
-                                    msq_list->theme->default_separator,
-                                    msq_list->theme->theme.window_bg);
-  pbt_ggt_add_child_ggt(&(msq_list->vctnr), &(msq_list->hctnr_button));
+  pbt_ggt_hctnr_init(&(msq_wgt_list->hctnr_button));
+  pbt_ggt_add_child_wgt(&(msq_wgt_list->hctnr_button), &(msq_wgt_list->add_button));
+  pbt_ggt_ctnr_add_empty(&(msq_wgt_list->hctnr_button),
+                         msq_wgt_list->theme->theme.window_bg);
+  pbt_ggt_vctnr_init(&(msq_wgt_list->vctnr));
+  pbt_ggt_add_child_ggt(&(msq_wgt_list->vctnr), &(msq_wgt_list->vlist));
+  pbt_ggt_ctnr_add_static_separator(&(msq_wgt_list->vctnr),
+                                    msq_wgt_list->theme->default_separator,
+                                    msq_wgt_list->theme->theme.window_bg);
+  pbt_ggt_add_child_ggt(&(msq_wgt_list->vctnr), &(msq_wgt_list->hctnr_button));
 
-  msq_list->wgt.priv = msq_list;
-  msq_list->wgt.init_ev_cb = msq_list_init_ev;
-  ggt = &(msq_list->wgt.ggt);
-  ggt->priv = &(msq_list->wgt);
+  msq_wgt_list->wgt.priv = msq_wgt_list;
+  msq_wgt_list->wgt.init_ev_cb = msq_wgt_list_init_ev;
+  ggt = &(msq_wgt_list->wgt.ggt);
+  ggt->priv = &(msq_wgt_list->wgt);
 
   ggt->get_min_width = pbt_ggt_child_get_min_width;
   ggt->get_max_width = pbt_ggt_child_get_max_width;
@@ -905,11 +1127,11 @@ void msq_track_list_init(msq_list_t *msq_list,
   ggt->get_max_height = pbt_ggt_child_get_max_height;
   ggt->draw_cb = pbt_ggt_child_draw;
   ggt->update_area_cb = pbt_ggt_child_update_area;
-  ggt->destroy_cb = msq_list_destroy_cb;
-  msq_list->vctnr_node.type = GADGET;
-  msq_list->vctnr_node.priv.ggt_addr = &(msq_list->vctnr.ggt);
-  msq_list->vctnr_node.next = NULL;
-  ggt->childs = &(msq_list->vctnr_node);
+  ggt->destroy_cb = msq_wgt_list_destroy_cb;
+  msq_wgt_list->vctnr_node.type = GADGET;
+  msq_wgt_list->vctnr_node.priv.ggt_addr = &(msq_wgt_list->vctnr.ggt);
+  msq_wgt_list->vctnr_node.next = NULL;
+  ggt->childs = &(msq_wgt_list->vctnr_node);
 }
 
 void add_track_result_cb(char *str, void *mainwin_addr)
@@ -980,7 +1202,10 @@ void output_dialog_res_cb(size_t idx, void *mainwin_addr)
                             output_rename_dialog_res_cb,
                             mainwin_addr);
   else if (idx == 1)
-    mainwin->output_list.in_move_mode = MSQ_TRUE;
+    {
+      mainwin->output_list.in_move_mode = MSQ_TRUE;
+      mainwin->output_list.move_cb_priv = mainwin->dialog_output;
+    }
   else if (idx == 2)
     mainwin->show_add_output();
   else if (idx == 3)
@@ -1041,6 +1266,7 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
       break;
     case 5:                     // Move
       mainwin->track_list.in_move_mode = MSQ_TRUE;
+      mainwin->track_list.move_cb_priv = mainwin->dialog_track;
       break;
     case 6:                     // Add
       mainwin->show_add_track();

@@ -28,7 +28,7 @@ void _pbt_output(FILE *stream, const char *format, ...);
 #define pbt_logmsg(format, ...) _pbt_output(stdout, format "\n", ##__VA_ARGS__)
 #define pbt_logerr(format, ...) _pbt_output(stderr, format "\n", ##__VA_ARGS__)
 
-void _pbt_abort(char *format, ...);
+void _pbt_abort(const char *format, ...);
 
 #define PBT_TRACE_FORMAT ">>> In %s at %s:%d\n"
 
