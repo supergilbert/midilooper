@@ -2463,57 +2463,58 @@ pbt_bool_t handle_move_note_mode(wbe_window_input_t *winev,
   if (WBE_GET_BIT(winev->buttons, 0) == 1)
     {
       if (check_move_note(grid->editor_ctx,
-                          tick_offset, note_offset) == MSQ_FALSE)
-        return PBT_FALSE;
-      wbe_pbw_make_context(&(grid->wgt.ggt_win->pb_win));
-      /* TODO refresh last pos */
-      pbt_wgt_gl_refresh(&(grid->wgt));
-      for (iter_init(&iter, &(grid->editor_ctx->selected_notes));
-           iter_node(&iter);
-           iter_next(&iter))
+                          tick_offset, note_offset) == MSQ_TRUE)
         {
-          noteonoff = iter_node_ptr(&iter);
-          seqev = evit_get_seqev(&(noteonoff->evit_noteon));
-          noteev = seqev->addr;
-          note.tick = noteonoff->evit_noteon.tick + tick_offset;
-          note.channel = noteev->chan;
-          note.num = noteev->event.note.num + note_offset;
-          note.val = noteev->event.note.val;
-          note.len = (noteonoff->evit_noteoff.tick
-                      - noteonoff->evit_noteon.tick);
-          draw_tmp_note(&(grid->wgt),
-                        grid->editor_ctx,
-                        &note);
+          wbe_pbw_make_context(&(grid->wgt.ggt_win->pb_win));
+          /* TODO refresh last pos */
+          pbt_wgt_gl_refresh(&(grid->wgt));
+          for (iter_init(&iter, &(grid->editor_ctx->selected_notes));
+               iter_node(&iter);
+               iter_next(&iter))
+            {
+              noteonoff = iter_node_ptr(&iter);
+              seqev = evit_get_seqev(&(noteonoff->evit_noteon));
+              noteev = seqev->addr;
+              note.tick = noteonoff->evit_noteon.tick + tick_offset;
+              note.channel = noteev->chan;
+              note.num = noteev->event.note.num + note_offset;
+              note.val = noteev->event.note.val;
+              note.len = (noteonoff->evit_noteoff.tick
+                          - noteonoff->evit_noteon.tick);
+              draw_tmp_note(&(grid->wgt),
+                            grid->editor_ctx,
+                            &note);
+            }
+          wbe_gl_flush();
         }
-      wbe_gl_flush();
     }
   else
     {
       if (check_move_note(grid->editor_ctx,
-                          tick_offset, note_offset) == MSQ_FALSE)
-        return PBT_FALSE;
-
-      for (iter_init(&iter, &(grid->editor_ctx->selected_notes));
-           iter_node(&iter);
-           iter_next(&iter))
+                          tick_offset, note_offset) == MSQ_TRUE)
         {
-          noteonoff = iter_node_ptr(&iter);
-          seqev = evit_get_seqev(&(noteonoff->evit_noteon));
-          noteev = seqev->addr;
-          tmp_note = malloc(sizeof (note_t));
-          tmp_note->tick = noteonoff->evit_noteon.tick + tick_offset;
-          tmp_note->channel = noteev->chan;
-          tmp_note->num = noteev->event.note.num + note_offset;
-          tmp_note->val = noteev->event.note.val;
-          tmp_note->len = (noteonoff->evit_noteoff.tick
-                           - noteonoff->evit_noteon.tick);
-          push_to_list_tail(&tmp_list, tmp_note);
+          for (iter_init(&iter, &(grid->editor_ctx->selected_notes));
+               iter_node(&iter);
+               iter_next(&iter))
+            {
+              noteonoff = iter_node_ptr(&iter);
+              seqev = evit_get_seqev(&(noteonoff->evit_noteon));
+              noteev = seqev->addr;
+              tmp_note = malloc(sizeof (note_t));
+              tmp_note->tick = noteonoff->evit_noteon.tick + tick_offset;
+              tmp_note->channel = noteev->chan;
+              tmp_note->num = noteev->event.note.num + note_offset;
+              tmp_note->val = noteev->event.note.val;
+              tmp_note->len = (noteonoff->evit_noteoff.tick
+                               - noteonoff->evit_noteon.tick);
+              push_to_list_tail(&tmp_list, tmp_note);
+            }
+          _history_add_mark(&(grid->editor_ctx->history));
+          delete_selection(grid);
+          _msq_add_list_note(grid->editor_ctx, &tmp_list);
+          free_list_node(&tmp_list, free);
+          msq_draw_vggts(grid->vggts);
         }
-      _history_add_mark(&(grid->editor_ctx->history));
-      delete_selection(grid);
-      _msq_add_list_note(grid->editor_ctx, &tmp_list);
-      free_list_node(&tmp_list, free);
-      msq_draw_vggts(grid->vggts);
       return PBT_TRUE;
     }
   return PBT_FALSE;
@@ -2951,8 +2952,8 @@ void msq_quantify_note_selection(msq_grid_wgt_t *grid)
       noteev = seqev->addr;
       note_ptr = malloc(sizeof (note_t));
       note_ptr->num =  noteev->event.note.num;
-      note_ptr->tick = noteonoff->evit_noteon.tick / editor_ctx->quantize
-        * editor_ctx->quantize;
+      note_ptr->tick = msq_quantify_tick(editor_ctx,
+                                         noteonoff->evit_noteon.tick);
       note_ptr->channel = noteev->chan;
       note_ptr->val = noteev->event.note.val;
       tmp_tick_end = msq_quantify_tick_end(editor_ctx,
@@ -3063,6 +3064,10 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
                   handle_selection(editor_ctx);
                   if (editor_ctx->selected_notes.len != 0)
                     {
+                      editor_ctx->tmp_coo[0] = xpos;
+                      editor_ctx->tmp_coo[1] = ypos;
+                      wbe_window_set_cursor(grid->wgt.ggt_win->pb_win.win_be,
+                                            tctx_cursor_grabbing(editor_ctx));
                       _draw_grid(&(ggt->pbarea), editor_ctx);
                       draw_notes_filter_selection(&(ggt->pbarea), editor_ctx);
                       draw_loop_veil(&(ggt->pbarea), editor_ctx);

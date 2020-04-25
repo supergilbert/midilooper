@@ -92,9 +92,9 @@ public:
   msq_wgt_list_t track_list = {};
   msq_imgui_dialog *imgui_dialog = NULL;
 
-  void _init_main_window(char *filename);
-  midilooper_main_window(void);
-  midilooper_main_window(char *filename);
+  void _init_main_window(char *name, int type, char *jack_session_id, char *filename);
+  midilooper_main_window(char *name, int type, char *jack_session_id, char *filename);
+  midilooper_main_window(char *name, int type, char *jack_session_id);
   ~midilooper_main_window(void);
   void handle_dialog(void);
   void handle_windows(void);
@@ -117,6 +117,7 @@ public:
   void redraw(void);
   void refresh(void);
   void handle_midi_rec(void);
+  void handle_save_rq(void);
   void handle_msq_update(void);
   void handle_key_bindings(wbe_window_input_t *winev);
   void run(void);
@@ -185,8 +186,8 @@ pbt_bool_t _msq_wgt_list_move(msq_wgt_list_t *msq_wgt_list,
 }
 
 pbt_bool_t msq_wgt_list_unset_focus_cb(pbt_ggt_t *ggt,
-                                   wbe_window_input_t *winev,
-                                   void *msq_wgt_list_addr)
+                                       wbe_window_input_t *winev,
+                                       void *msq_wgt_list_addr)
 {
   pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
   msq_wgt_list_t *msq_wgt_list = (msq_wgt_list_t *) msq_wgt_list_addr;
@@ -265,8 +266,8 @@ pbt_bool_t msq_wgt_list_unset_focus_cb(pbt_ggt_t *ggt,
 
 
 pbt_bool_t msq_wgt_list_set_focus_cb(pbt_ggt_t *ggt,
-                                 wbe_window_input_t *winev,
-                                 void *msq_wgt_list_addr)
+                                     wbe_window_input_t *winev,
+                                     void *msq_wgt_list_addr)
 {
   msq_wgt_list_t *msq_wgt_list = (msq_wgt_list_t *) msq_wgt_list_addr;
 
@@ -360,8 +361,8 @@ pbt_bool_t msq_output_node_set_focus_cb(pbt_ggt_t *ggt,
 }
 
 pbt_bool_t msq_output_node_unset_focus_cb(pbt_ggt_t *ggt,
-                                        wbe_window_input_t *winev,
-                                        void *output_node_addr)
+                                          wbe_window_input_t *winev,
+                                          void *output_node_addr)
 {
   if (WBE_GET_BIT(winev->buttons, 1) == 0)
     return PBT_TRUE;
@@ -428,9 +429,9 @@ pbt_ggt_node_t *msq_output_node_add(msq_wgt_list_t *output_list,
   pbt_ggt_add_child_wgt(&(output_line->vctnr), &(output_line->output_node));
 
   pbt_ggt_child_init(ggt_wrapper,
-                       output_line,
-                       &(output_line->vctnr.ggt),
-                       GADGET);
+                     output_line,
+                     &(output_line->vctnr.ggt),
+                     GADGET);
 
   pbt_ggt_node_it_init_ggt_add_child(&(output_line->node_it),
                                      &(output_list->vlist.ggt),
@@ -1311,7 +1312,10 @@ void main_window_input_cb(wbe_window_input_t *winev, void *main_window_addr)
 }
 
 
-void midilooper_main_window::_init_main_window(char *filename)
+void midilooper_main_window::_init_main_window(char *name,
+                                               int type,
+                                               char *jack_session_id,
+                                               char *filename)
 {
   list_iterator_t it;
   output_t *output = NULL;
@@ -1331,7 +1335,7 @@ void midilooper_main_window::_init_main_window(char *filename)
         }
       midifile = read_midifile_fd(midifile_fd);
       engine_ctx = (engine_ctx_t *) malloc(sizeof (engine_ctx_t)); // TODO remove malloc
-      init_engine(engine_ctx, (char *) "midilooper", 0, NULL);
+      init_engine(engine_ctx, name, type, jack_session_id);
       engine_read_midifile(engine_ctx, midifile);
       free_midifile(midifile);
       close(midifile_fd);
@@ -1339,7 +1343,7 @@ void midilooper_main_window::_init_main_window(char *filename)
   else
     {
       engine_ctx = (engine_ctx_t *) malloc(sizeof (engine_ctx_t)); // TODO bis remove malloc
-      init_engine(engine_ctx, (char *) "midilooper", 0, NULL);
+      init_engine(engine_ctx, name, type, jack_session_id);
     }
 
   gui_default_theme_init(&theme);
@@ -1414,10 +1418,10 @@ void midilooper_main_window::_init_main_window(char *filename)
     {
       track_ctx = (track_ctx_t *) iter_node_ptr(&it);
       track_line = msq_track_node_add(&track_list,
-                                    track_ctx,
-                                    &track_editor_theme,
-                                    &dialog_iface,
-                                    &transport_iface);
+                                      track_ctx,
+                                      &track_editor_theme,
+                                      &dialog_iface,
+                                      &transport_iface);
       pbt_ggt_win_set_min_size(&ggt_win);
       pbt_ggt_win_init_child_ev(&ggt_win, track_line->node_it.node);
     }
@@ -1433,14 +1437,19 @@ void midilooper_main_window::_init_main_window(char *filename)
                           this);
 }
 
-midilooper_main_window::midilooper_main_window(char *filename)
+midilooper_main_window::midilooper_main_window(char *name,
+                                               int type,
+                                               char *jack_session_id,
+                                               char *filename)
 {
-  _init_main_window(filename);
+  _init_main_window(name, type, jack_session_id, filename);
 }
 
-midilooper_main_window::midilooper_main_window(void)
+midilooper_main_window::midilooper_main_window(char *name,
+                                               int type,
+                                               char *jack_session_id)
 {
-  _init_main_window(NULL);
+  _init_main_window(name, type, jack_session_id, NULL);
 }
 
 midilooper_main_window::~midilooper_main_window(void)
@@ -1893,6 +1902,26 @@ void midilooper_main_window::handle_midi_rec(void)
     msq_draw_vggts(&(track_editor->vggts));
 }
 
+void midilooper_main_window::handle_save_rq(void)
+{
+  switch (engine_ctx->saverq)
+    {
+    case SAVE_TPL_RQ:
+      engine_save_project(engine_ctx, engine_ctx->savepath, MSQ_TRUE);
+      break;
+    case SAVE_RQ:
+      engine_save_project(engine_ctx, engine_ctx->savepath, MSQ_FALSE);
+      break;
+    case SAVE_N_QUIT_RQ:
+      engine_save_project(engine_ctx, engine_ctx->savepath, MSQ_FALSE);
+      should_close = true;
+      break;
+    default:
+      ;
+    }
+  engine_ctx->saverq = NOSAVE_RQ;
+}
+
 void midilooper_main_window::handle_msq_update(void)
 {
   handle_midi_rec();
@@ -1944,6 +1973,7 @@ void midilooper_main_window::run(void)
       wbe_window_handle_events();
 
       handle_windows();
+      handle_save_rq();
     }
 }
 
@@ -1984,21 +2014,74 @@ void load_configuration(void)
   config_destroy(&config);
 }
 
+#include <getopt.h>
+
 int main(int ac, char **av)
 {
   midilooper_main_window *main_window;
+  static struct option long_options[] =
+    {{"alsa",            no_argument,       NULL,  'a'},
+     {"jack",            no_argument,       NULL,  'j'},
+     {"jack-session-id", required_argument, NULL,  's'},
+     {"name",            required_argument, NULL,  'n'},
+     {"file",            required_argument, NULL,  'f'},
+     {NULL,              0,                 NULL,  0}};
+  int opt_ret;
+  int opt_idx = 0;
+  bool alsa = false, jack = false;
+  const string default_name = "Midilooper";
+  char *jack_session_id = NULL,
+    *name = (char *) default_name.c_str(),
+    *file = NULL;
+  int type = 0;
 
-  if (ac > 2)
-    return 1;
+  while ((opt_ret = getopt_long(ac, av, "ajs:n:f:", long_options, &opt_idx)))
+    {
+      if (opt_ret == -1)
+        break;
+
+      switch (opt_ret)
+        {
+        case 'a':
+          if (jack)
+            pbt_abort("can not set alsa and jack at the same time.");
+          alsa = true;
+          // type = 0;
+          break;
+        case 'j':
+          if (alsa)
+            pbt_abort("can not set jack and alsa at the same time.");
+          jack = true;
+          type = 1;
+          break;
+        case 's':
+          jack_session_id = optarg;
+          break;
+        case 'n':
+          name = optarg;
+          break;
+        case 'f':
+          file = optarg;
+          break;
+        default:
+          pbt_logmsg("?? getopt returned character code 0%o ??", opt_ret);
+        }
+    }
+
+  if (optind < ac)
+    {
+      if (file)
+        pbt_abort("File already provided");
+      if (ac - optind > 1)
+        pbt_abort("Only one file must be privoded");
+      file = av[optind];
+    }
 
   load_configuration();
 
   wbe_pbw_backend_init();
 
-  if (ac == 2)
-    main_window = new midilooper_main_window(av[1]);
-  else
-    main_window = new midilooper_main_window();
+  main_window = new midilooper_main_window(name, type, jack_session_id, file);
 
   main_window->run();
 
