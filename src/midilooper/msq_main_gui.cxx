@@ -1586,7 +1586,7 @@ void midilooper_main_window::show_track_dialog(track_editor_t *track_editor)
 
   msq_dialog_list(&(dialog_iface),
                   (char **) track_menu,
-                  8,
+                  9,
                   track_dialog_res_cb,
                   this);
   dialog_track = track_editor;
