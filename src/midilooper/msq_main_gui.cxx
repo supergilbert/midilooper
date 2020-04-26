@@ -103,10 +103,10 @@ public:
   void show_output_dialog(output_t *output);
   void show_set_output(track_editor_t *track_editor);
   void show_track_dialog(track_editor_t *track_editor);
-  void rename_track(track_editor_t *track_editor, char *new_name);
   output_t *get_output(size_t idx);
   void add_output(char *new_name);
   void add_track(char *new_name);
+  void copy_trackctx(track_ctx_t *track_ctx);
   void remove_output(output_t *output);
   void remove_track(track_editor_t *track_editor);
   void save_file_as(const char *str);
@@ -428,10 +428,10 @@ pbt_ggt_node_t *msq_output_node_add(msq_wgt_list_t *output_list,
                                     output_list->theme->theme.window_bg);
   pbt_ggt_add_child_wgt(&(output_line->vctnr), &(output_line->output_node));
 
-  pbt_ggt_child_init(ggt_wrapper,
-                     output_line,
-                     &(output_line->vctnr.ggt),
-                     GADGET);
+  _pbt_ggt_child_init(ggt_wrapper,
+                      output_line,
+                      &(output_line->vctnr.ggt),
+                      GADGET);
 
   pbt_ggt_node_it_init_ggt_add_child(&(output_line->node_it),
                                      &(output_list->vlist.ggt),
@@ -601,7 +601,6 @@ void msq_output_list_init(msq_wgt_list_t *msq_wgt_list,
                           midilooper_main_window *main_win)
 {
   unsigned int width;
-  pbt_ggt_t *ggt;
 
   msq_wgt_list->engine_ctx = main_win->engine_ctx;
   msq_wgt_list->theme = &(main_win->theme);
@@ -637,23 +636,14 @@ void msq_output_list_init(msq_wgt_list_t *msq_wgt_list,
                                     msq_wgt_list->theme->theme.window_bg);
   pbt_ggt_add_child_ggt(&(msq_wgt_list->vctnr), &(msq_wgt_list->hctnr_button));
 
+  _pbt_ggt_setup_ggt_child_wrapper(&(msq_wgt_list->wgt.ggt),
+                                   &(msq_wgt_list->vctnr_node),
+                                   GADGET,
+                                   &(msq_wgt_list->vctnr.ggt));
   msq_wgt_list->wgt.priv = msq_wgt_list;
   msq_wgt_list->wgt.init_ev_cb = msq_wgt_list_init_ev;
-  ggt = &(msq_wgt_list->wgt.ggt);
-  ggt->priv = &(msq_wgt_list->wgt);
-
-
-  ggt->get_min_width = pbt_ggt_child_get_min_width;
-  ggt->get_max_width = pbt_ggt_child_get_max_width;
-  ggt->get_min_height = pbt_ggt_child_get_min_height;
-  ggt->get_max_height = pbt_ggt_child_get_max_height;
-  ggt->draw_cb = pbt_ggt_child_draw;
-  ggt->update_area_cb = pbt_ggt_child_update_area;
-  ggt->destroy_cb = msq_wgt_list_destroy_cb;
-  msq_wgt_list->vctnr_node.type = GADGET;
-  msq_wgt_list->vctnr_node.priv.ggt_addr = &(msq_wgt_list->vctnr.ggt);
-  msq_wgt_list->vctnr_node.next = NULL;
-  ggt->childs = &(msq_wgt_list->vctnr_node);
+  msq_wgt_list->wgt.ggt.priv = &(msq_wgt_list->wgt);
+  msq_wgt_list->wgt.ggt.destroy_cb = msq_wgt_list_destroy_cb;
 }
 
 #define TRACKS_TITLE " TRACKS "
@@ -972,10 +962,10 @@ msq_track_line_t *msq_track_node_add(msq_wgt_list_t *track_list,
                                     track_list->theme->theme.window_bg);
   pbt_ggt_add_child_ggt(&(track_line->vctnr), &(track_line->hctnr));
 
-  pbt_ggt_child_init(ggt_wrapper,
-                     track_line,
-                     &(track_line->vctnr.ggt),
-                     GADGET);
+  _pbt_ggt_child_init(ggt_wrapper,
+                      track_line,
+                      &(track_line->vctnr.ggt),
+                      GADGET);
 
   pbt_ggt_node_it_init_ggt_add_child(&(track_line->node_it),
                                      &(track_list->vlist.ggt),
@@ -1079,7 +1069,6 @@ void msq_track_list_init(msq_wgt_list_t *msq_wgt_list,
                          midilooper_main_window *main_win)
 {
   unsigned int width;
-  pbt_ggt_t *ggt;
 
   msq_wgt_list->engine_ctx = main_win->engine_ctx;
   msq_wgt_list->theme = &(main_win->theme);
@@ -1118,22 +1107,14 @@ void msq_track_list_init(msq_wgt_list_t *msq_wgt_list,
                                     msq_wgt_list->theme->theme.window_bg);
   pbt_ggt_add_child_ggt(&(msq_wgt_list->vctnr), &(msq_wgt_list->hctnr_button));
 
+  _pbt_ggt_setup_ggt_child_wrapper(&(msq_wgt_list->wgt.ggt),
+                                   &(msq_wgt_list->vctnr_node),
+                                   GADGET,
+                                   &(msq_wgt_list->vctnr.ggt));
   msq_wgt_list->wgt.priv = msq_wgt_list;
   msq_wgt_list->wgt.init_ev_cb = msq_wgt_list_init_ev;
-  ggt = &(msq_wgt_list->wgt.ggt);
-  ggt->priv = &(msq_wgt_list->wgt);
-
-  ggt->get_min_width = pbt_ggt_child_get_min_width;
-  ggt->get_max_width = pbt_ggt_child_get_max_width;
-  ggt->get_min_height = pbt_ggt_child_get_min_height;
-  ggt->get_max_height = pbt_ggt_child_get_max_height;
-  ggt->draw_cb = pbt_ggt_child_draw;
-  ggt->update_area_cb = pbt_ggt_child_update_area;
-  ggt->destroy_cb = msq_wgt_list_destroy_cb;
-  msq_wgt_list->vctnr_node.type = GADGET;
-  msq_wgt_list->vctnr_node.priv.ggt_addr = &(msq_wgt_list->vctnr.ggt);
-  msq_wgt_list->vctnr_node.next = NULL;
-  ggt->childs = &(msq_wgt_list->vctnr_node);
+  msq_wgt_list->wgt.ggt.priv = &(msq_wgt_list->wgt);
+  msq_wgt_list->wgt.ggt.destroy_cb = msq_wgt_list_destroy_cb;
 }
 
 void add_track_result_cb(char *str, void *mainwin_addr)
@@ -1280,10 +1261,13 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
           mainwin->track_list.move_cb_priv = mainwin->dialog_track;
         }
       break;
-    case 6:                     // Add
+    case 6:                     // Copy
+      mainwin->copy_trackctx(mainwin->dialog_track->editor_ctx.track_ctx);
+      break;
+    case 7:                     // Add
       mainwin->show_add_track();
       break;
-    case 7:                     // Remove
+    case 8:                     // Remove
       mainwin->remove_track(mainwin->dialog_track);
       break;
     default:
@@ -1596,6 +1580,7 @@ void midilooper_main_window::show_track_dialog(track_editor_t *track_editor)
                                      "Add note binding",
                                      "Del all bindings",
                                      "Move",
+                                     "Copy",
                                      "Add",
                                      "Remove"};
 
@@ -1645,6 +1630,26 @@ void midilooper_main_window::add_output(char *new_name)
 
   pbt_ggt_win_set_min_size(&ggt_win);
   pbt_ggt_win_init_child_ev(&ggt_win, ggt_node);
+}
+
+void midilooper_main_window::copy_trackctx(track_ctx_t *track_ctx_src)
+{
+  track_ctx_t *track_ctx =
+    engine_copy_trackctx(engine_ctx, track_ctx_src);
+  msq_track_line_t *track_line = msq_track_node_add(&track_list,
+                                                    track_ctx,
+                                                    &track_editor_theme,
+                                                    &dialog_iface,
+                                                    &transport_iface);
+  string copy_name = track_ctx->track->name;
+
+  copy_name += "_copy";
+  trackctx_set_name(track_ctx, (char *) copy_name.c_str());
+
+  pbt_ggt_win_set_min_size(&ggt_win);
+  pbt_ggt_win_init_child_ev(&ggt_win, track_line->node_it.node);
+  wbe_window_map(track_line->track_editor.ggt_win.pb_win.win_be);
+  pbt_ggt_win_put_buffer(&(track_line->track_editor.ggt_win));
 }
 
 void midilooper_main_window::add_track(char *new_name)

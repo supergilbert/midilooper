@@ -848,10 +848,10 @@ void pbt_ggt_child_destroy(pbt_ggt_t *ggt)
   free(ggt);
 }
 
-void pbt_ggt_child_init(pbt_ggt_t *ggt,
-                          void *addr,
-                          pbt_ggt_t *child,
-                          pbt_ggt_node_type_t type)
+void _pbt_ggt_child_init(pbt_ggt_t *ggt,
+                         void *addr,
+                         pbt_ggt_t *child,
+                         pbt_ggt_node_type_t type)
 {
   ggt->get_min_width = pbt_ggt_child_get_min_width;
   ggt->get_max_width = pbt_ggt_child_get_max_width;
@@ -862,4 +862,21 @@ void pbt_ggt_child_init(pbt_ggt_t *ggt,
   ggt->priv = addr;
   ggt->destroy_cb = pbt_ggt_child_destroy;
   _pbt_ggt_add_child_ggt_type(ggt, child, type);
+}
+
+void _pbt_ggt_setup_ggt_child_wrapper(pbt_ggt_t *ggt,
+                                      pbt_ggt_node_t *node,
+                                      pbt_ggt_node_type_t type,
+                                      pbt_ggt_t *child_ggt)
+{
+  ggt->get_min_width = pbt_ggt_child_get_min_width;
+  ggt->get_max_width = pbt_ggt_child_get_max_width;
+  ggt->get_min_height = pbt_ggt_child_get_min_height;
+  ggt->get_max_height = pbt_ggt_child_get_max_height;
+  ggt->draw_cb = pbt_ggt_child_draw;
+  ggt->update_area_cb = pbt_ggt_child_update_area;
+  node->type = type;
+  node->priv.ggt_addr = child_ggt;
+  node->next = NULL;
+  ggt->childs = node;
 }

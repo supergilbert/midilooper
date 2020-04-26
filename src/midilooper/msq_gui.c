@@ -136,6 +136,29 @@ void msq_init_minus_button_img(pbt_pixbuf_t *img,
                         fg_color);
 }
 
+void msq_init_track_hp_img(pbt_pixbuf_t *pixbuf,
+                           unsigned int size,
+                           unsigned char *border_color,
+                           unsigned char *bg_color,
+                           unsigned char *fg_color)
+{
+  unsigned int tmp;
+
+  pbt_pixbuf_init(pixbuf, size, size);
+  pbt_pixbuf_fill(pixbuf, border_color);
+  tmp = pixbuf->width >> 3;
+  pbt_pixbuf_fillrect(pixbuf,
+                      tmp, tmp,
+                      pixbuf->width - (tmp << 1),
+                      pixbuf->width - (tmp << 1),
+                      bg_color);
+  pbt_pixbuf_draw_hp(pixbuf,
+                     (pixbuf->width >> 2) + 1,
+                     (pixbuf->width >> 2) + 1,
+                     pixbuf->width >> 1,
+                     fg_color);
+}
+
 void msq_init_track_mute_img(pbt_pixbuf_t *pixbuf,
                              unsigned int size,
                              unsigned char *border_color,
@@ -321,26 +344,26 @@ void gui_default_theme_init(msq_gui_theme_t *global_theme)
                             msq_theme_wgt_hovered_fg(global_theme),
                             msq_theme_wgt_hovered_bg(global_theme));
 
-  msq_init_track_mute_img(&(global_theme->track_mute_imgs[0]),
-                          global_theme->theme.font.max_height * 3,
-                          msq_theme_wgt_activated_fg(global_theme),
-                          msq_theme_wgt_activated_bg(global_theme),
-                          msq_theme_wgt_activated_fg(global_theme));
+  msq_init_track_hp_img(&(global_theme->track_mute_imgs[0]),
+                        global_theme->theme.font.max_height * 4,
+                        global_theme->play_color,
+                        msq_theme_wgt_activated_bg(global_theme),
+                        global_theme->play_color);
   msq_init_track_mute_img(&(global_theme->track_mute_imgs[1]),
-                          global_theme->theme.font.max_height * 3,
-                          global_theme->play_color,
+                          global_theme->theme.font.max_height * 4,
+                          msq_theme_wgt_activated_fg(global_theme),
                           msq_theme_wgt_activated_bg(global_theme),
-                          global_theme->play_color);
-  msq_init_track_mute_img(&(global_theme->track_mute_imgs[2]),
-                          global_theme->theme.font.max_height * 3,
+                          msq_theme_wgt_activated_fg(global_theme));
+  msq_init_track_hp_img(&(global_theme->track_mute_imgs[2]),
+                        global_theme->theme.font.max_height * 4,
+                        msq_theme_wgt_activated_fg(global_theme),
+                        msq_theme_wgt_activated_bg(global_theme),
+                        global_theme->play_color);
+  msq_init_track_mute_img(&(global_theme->track_mute_imgs[3]),
+                          global_theme->theme.font.max_height * 4,
                           global_theme->play_color,
                           msq_theme_wgt_activated_bg(global_theme),
                           msq_theme_wgt_activated_fg(global_theme));
-  msq_init_track_mute_img(&(global_theme->track_mute_imgs[3]),
-                          global_theme->theme.font.max_height * 3,
-                          msq_theme_wgt_activated_fg(global_theme),
-                          msq_theme_wgt_activated_bg(global_theme),
-                          global_theme->play_color);
 }
 
 void transport_gen_imgs_cb(pbt_pixbuf_t **imgs,
@@ -603,19 +626,13 @@ void msq_transport_init(msq_transport_iface_t *transport_iface,
                         &(transport_iface->tempo_inc));
   transport_iface->engine_ctx = engine_ctx;
 
-  transport_iface->child.type = GADGET;
-  transport_iface->child.priv.ggt_addr = &(transport_iface->root_ctnr.ggt);
-  transport_iface->child.next = NULL;
+  _pbt_ggt_setup_ggt_child_wrapper(&(transport_iface->wgt.ggt),
+                                   &(transport_iface->child),
+                                   GADGET,
+                                   &(transport_iface->root_ctnr.ggt));
   transport_iface->wgt.ggt.childs = &(transport_iface->child);
   transport_iface->wgt.ggt.priv = &(transport_iface->wgt);
   transport_iface->wgt.priv = transport_iface;
-
-  transport_iface->wgt.ggt.get_min_width =  pbt_ggt_child_get_min_width;
-  transport_iface->wgt.ggt.get_max_width =  pbt_ggt_child_get_max_width;
-  transport_iface->wgt.ggt.get_min_height = pbt_ggt_child_get_min_height;
-  transport_iface->wgt.ggt.get_max_height = pbt_ggt_child_get_max_height;
-  transport_iface->wgt.ggt.update_area_cb = pbt_ggt_child_update_area;
-  transport_iface->wgt.ggt.draw_cb = pbt_ggt_child_draw;
   transport_iface->wgt.ggt.destroy_cb = msq_transport_destroy;
 
   transport_iface->wgt.init_ev_cb = msq_transport_iface_init_ev;
@@ -733,19 +750,13 @@ void msq_transport_child_init(msq_transport_child_t *transport_child,
   pbt_ggt_add_child_wgt(&(transport_child->root_ctnr),
                         &(transport_child->rec));
 
-  transport_child->child.type = GADGET;
-  transport_child->child.priv.ggt_addr = &(transport_child->root_ctnr.ggt);
-  transport_child->child.next = NULL;
+  _pbt_ggt_setup_ggt_child_wrapper(&(transport_child->wgt.ggt),
+                                   &(transport_child->child),
+                                   GADGET,
+                                   &(transport_iface->root_ctnr.ggt));
   transport_child->wgt.ggt.childs = &(transport_child->child);
   transport_child->wgt.ggt.priv = &(transport_child->wgt);
   transport_child->wgt.priv = transport_child;
-
-  transport_child->wgt.ggt.get_min_width =  pbt_ggt_child_get_min_width;
-  transport_child->wgt.ggt.get_max_width =  pbt_ggt_child_get_max_width;
-  transport_child->wgt.ggt.get_min_height = pbt_ggt_child_get_min_height;
-  transport_child->wgt.ggt.get_max_height = pbt_ggt_child_get_max_height;
-  transport_child->wgt.ggt.update_area_cb = pbt_ggt_child_update_area;
-  transport_child->wgt.ggt.draw_cb = pbt_ggt_child_draw;
   transport_child->wgt.ggt.destroy_cb = msq_transport_child_destroy;
 
   transport_child->wgt.init_ev_cb = msq_transport_child_init_ev;

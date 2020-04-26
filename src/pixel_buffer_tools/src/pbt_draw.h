@@ -117,6 +117,19 @@ void pbt_pixbuf_draw_triangle_down(pbt_pixbuf_t *pixbuf,
                                  (_size),                       \
                                  (_color)))
 
+void pbt_pixbuf_draw_hp(pbt_pixbuf_t *pixbuf,
+                        unsigned int xpos,
+                        unsigned int ypos,
+                        int size,
+                        unsigned char *color);
+
+#define pbt_pbarea_draw_hp(_pbarea, _xpos, _ypos, _size, _color)        \
+  (pbt_pixbuf_draw_hp((_pbarea)->pixbuf,                                \
+                      (_pbarea)->xpos + (_xpos),                        \
+                      (_pbarea)->ypos + (_ypos),                        \
+                      (_size),                                          \
+                      (_color)))
+
 void pbt_pixbuf_draw_M(pbt_pixbuf_t *pixbuf,
                        unsigned int xpos,
                        unsigned int ypos,

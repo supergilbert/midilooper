@@ -158,6 +158,25 @@ void pbt_pixbuf_draw_minus(pbt_pixbuf_t *pixbuf,
                       color);
 }
 
+void pbt_pixbuf_draw_hp(pbt_pixbuf_t *pixbuf,
+                        unsigned int xpos,
+                        unsigned int ypos,
+                        int size,
+                        unsigned char *color)
+{
+  pbt_pixbuf_fillrect(pixbuf,
+                      xpos + (size / 8),
+                      ypos + (size / 4) + ((size % 8) == 0 ? 0 : 1),
+                      size / 2,
+                      size / 2,
+                      color);
+  pbt_pixbuf_draw_triangle_left(pixbuf,
+                                xpos + (3 * size / 8),
+                                ypos,
+                                size,
+                                color);
+}
+
 void pbt_pixbuf_draw_M(pbt_pixbuf_t *pixbuf,
                        unsigned int xpos,
                        unsigned int ypos,

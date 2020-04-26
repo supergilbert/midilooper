@@ -4441,7 +4441,6 @@ void msq_combobox_destroy_cb(pbt_ggt_t *ggt)
   pbt_pixbuf_destroy(&(combobox->pb_hovered));
 }
 
-
 void msq_combobox_init(msq_combobox_t *combobox,
                        msq_dialog_iface_t *dialog_iface,
                        msq_gui_theme_t *gui_theme,
@@ -4503,19 +4502,12 @@ void msq_combobox_init(msq_combobox_t *combobox,
                       msq_combo_button_cb,
                       combobox);
 
-  combobox->ggt.get_min_width = pbt_ggt_child_get_min_width;
-  combobox->ggt.get_max_width = pbt_ggt_child_get_max_width;
-  combobox->ggt.get_min_height = pbt_ggt_child_get_min_height;
-  combobox->ggt.get_max_height = pbt_ggt_child_get_max_height;
-  combobox->ggt.draw_cb = pbt_ggt_child_draw;
-  combobox->ggt.update_area_cb = pbt_ggt_child_update_area;
+  _pbt_ggt_setup_ggt_child_wrapper(&(combobox->ggt),
+                                   &(combobox->button_node),
+                                   WIDGET,
+                                   &(combobox->button.wgt.ggt));
   combobox->ggt.priv = combobox;
   combobox->ggt.destroy_cb = msq_combobox_destroy_cb;
-  combobox->button_node.type = WIDGET;
-  /* combobox->button_node.size = 0; */
-  combobox->button_node.priv.ggt_addr = &(combobox->button.wgt.ggt);
-  combobox->button_node.next = NULL;
-  combobox->ggt.childs = &(combobox->button_node);
 }
 
 void msq_draw_empty(pbt_pbarea_t *pbarea, void *bg_addr)
@@ -4646,6 +4638,7 @@ void track_editor_init(track_editor_t *track_editor,
                     CHANNEL_LIST_LEN,
                     channel_setting_dialog_res_cb,
                     track_editor);
+
   pbt_ggt_hctnr_init(&(track_editor->hctnr_header));
   pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header),
                                     track_editor->editor_ctx.theme->piano_width
