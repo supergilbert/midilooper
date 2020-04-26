@@ -225,21 +225,33 @@ pbt_ggt_node_t *_pbt_ggt_add_child_ggt_type(pbt_ggt_t *parent,
   return new_node;
 }
 
-void pbt_ggt_ctnr_add_separator(pbt_ggt_ctnr_t *ctnr,
-                                unsigned int min,
-                                unsigned int max,
-                                unsigned char *color)
+void _pbt_ggt_ctnr_add_separator(pbt_ggt_ctnr_t *ctnr,
+                                 unsigned int min,
+                                 unsigned int max,
+                                 unsigned int alt_min,
+                                 unsigned int alt_max,
+                                 unsigned char *color)
 {
- pbt_ggt_node_t *new_node;
+  pbt_ggt_node_t *new_node;
 
   new_node = malloc(sizeof (pbt_ggt_node_t));
   new_node->type = SEPARATOR;
   new_node->priv.separator.min = min;
   new_node->priv.separator.max = max;
+  new_node->priv.separator.alt_min = alt_min;
+  new_node->priv.separator.alt_max = alt_max;
   new_node->priv.separator.color = color;
   new_node->next = NULL;
 
   pbt_ggt_ctnr_add_node(&(ctnr->ggt), new_node);
+}
+
+void pbt_ggt_ctnr_add_separator(pbt_ggt_ctnr_t *ctnr,
+                                unsigned int min,
+                                unsigned int max,
+                                unsigned char *color)
+{
+  _pbt_ggt_ctnr_add_separator(ctnr, min, max, 0, 0, color);
 }
 
 void pbt_ggt_ctnr_draw(pbt_ggt_t *ggt_ctnr)
@@ -348,7 +360,7 @@ unsigned int pbt_ggt_hctnr_get_min_height(pbt_ggt_t *ctnr_ggt)
           tmp_height = _pbt_ggt_min_height(tmp_ggt);
           break;
         case SEPARATOR:
-          tmp_height = 0;
+          tmp_height = tmp->priv.separator.alt_min;
           break;
         default:
           pbt_abort("Unknown container node type (%d)", tmp->type);
@@ -379,7 +391,7 @@ unsigned int pbt_ggt_hctnr_get_max_height(pbt_ggt_t *ctnr_ggt)
           tmp_height = _pbt_ggt_max_height(tmp_ggt);
           break;
         case SEPARATOR:
-          tmp_height = 0;
+          tmp_height = tmp->priv.separator.alt_max;
           break;
         default:
           pbt_abort("Unknown container node type (%d)", tmp->type);
@@ -410,7 +422,7 @@ unsigned int pbt_ggt_vctnr_get_min_width(pbt_ggt_t *ctnr_ggt)
           tmp_width = _pbt_ggt_min_width(tmp_ggt);
           break;
         case SEPARATOR:
-          tmp_width = 0;
+          tmp_width = tmp->priv.separator.alt_min;
           break;
         default:
           pbt_abort("Unknown container node type (%d)", tmp->type);
@@ -440,7 +452,7 @@ unsigned int pbt_ggt_vctnr_get_max_width(pbt_ggt_t *ctnr_ggt)
           tmp_width = _pbt_ggt_max_width(tmp_ggt);
           break;
         case SEPARATOR:
-          tmp_width = 0;
+          tmp_width = tmp->priv.separator.alt_max;
           break;
         default:
           pbt_abort("Unknown container node type (%d)", tmp->type);

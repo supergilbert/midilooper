@@ -753,7 +753,7 @@ void msq_transport_child_init(msq_transport_child_t *transport_child,
   _pbt_ggt_setup_ggt_child_wrapper(&(transport_child->wgt.ggt),
                                    &(transport_child->child),
                                    GADGET,
-                                   &(transport_iface->root_ctnr.ggt));
+                                   &(transport_child->root_ctnr.ggt));
   transport_child->wgt.ggt.childs = &(transport_child->child);
   transport_child->wgt.ggt.priv = &(transport_child->wgt);
   transport_child->wgt.priv = transport_child;

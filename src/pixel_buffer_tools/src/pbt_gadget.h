@@ -50,6 +50,13 @@ void pbt_ggt_ctnr_add_separator(pbt_ggt_ctnr_t *ctnr_ggt,
                                 unsigned int max,
                                 unsigned char *color);
 
+void _pbt_ggt_ctnr_add_separator(pbt_ggt_ctnr_t *ctnr,
+                                 unsigned int min,
+                                 unsigned int max,
+                                 unsigned int alt_min,
+                                 unsigned int alt_max,
+                                 unsigned char *color);
+
 #define pbt_ggt_ctnr_add_static_separator(_ctnr, _size, _color)         \
   pbt_ggt_ctnr_add_separator((_ctnr), (_size), (_size), (_color))
 

@@ -4603,7 +4603,8 @@ void track_editor_init(track_editor_t *track_editor,
         }
     }
   if (vline_divisor != 1)
-    track_editor->editor_ctx.vline_stride = MSQGETPPQ(&(track_editor->editor_ctx)) / vline_divisor;
+    track_editor->editor_ctx.vline_stride =
+      MSQGETPPQ(&(track_editor->editor_ctx)) / vline_divisor;
 
   track_editor->hggts.piano   = &(track_editor->piano_wgt.wgt.ggt);
   track_editor->hggts.grid    = &(track_editor->grid_wgt.wgt.ggt);
@@ -4616,6 +4617,20 @@ void track_editor_init(track_editor_t *track_editor,
   track_editor->vggts.zoom     = &(track_editor->hscrollbar_zoom_wgt.wgt.ggt);
 
   msq_transport_child_init(&(track_editor->transport), transport_iface, track_ctx);
+  pbt_ggt_hctnr_init(&(track_editor->hctnr_transport));
+  pbt_ggt_add_child_wgt(&(track_editor->hctnr_transport),
+                        &(track_editor->transport));
+  pbt_ggt_ctnr_add_empty(&(track_editor->hctnr_transport),
+                         tctx_window_bg(&(track_editor->editor_ctx)));
+  pbt_ggt_vctnr_init(&(track_editor->vctnr_transport));
+  pbt_ggt_add_child_ggt(&(track_editor->vctnr_transport),
+                        &(track_editor->hctnr_transport));
+  _pbt_ggt_ctnr_add_separator(&(track_editor->vctnr_transport),
+                              0,
+                              0,
+                              track_editor->editor_ctx.theme->piano_width,
+                              track_editor->editor_ctx.theme->piano_width,
+                              tctx_window_bg(&(track_editor->editor_ctx)));
 
   msq_combobox_init(&(track_editor->resolution_combobox),
                     track_editor->dialog_iface,
@@ -4640,15 +4655,17 @@ void track_editor_init(track_editor_t *track_editor,
                     track_editor);
 
   pbt_ggt_hctnr_init(&(track_editor->hctnr_header));
-  pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header),
-                                    track_editor->editor_ctx.theme->piano_width
-                                    + theme->global_theme->default_separator,
-                                    tctx_window_bg(&(track_editor->editor_ctx)));
+  pbt_ggt_add_child_ggt(&(track_editor->hctnr_header),
+                        &(track_editor->vctnr_transport));
   /* pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header), */
-  /*                                   theme->global_theme->default_separator, */
+  /*                                   track_editor->editor_ctx.theme->piano_width */
+  /*                                   + theme->global_theme->default_separator, */
   /*                                   tctx_window_bg(&(track_editor->editor_ctx))); */
-  pbt_ggt_add_child_wgt(&(track_editor->hctnr_header),
-                        &(track_editor->transport));
+  /* /\* pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header), *\/ */
+  /* /\*                                   theme->global_theme->default_separator, *\/ */
+  /* /\*                                   tctx_window_bg(&(track_editor->editor_ctx))); *\/ */
+  /* pbt_ggt_add_child_wgt(&(track_editor->hctnr_header), */
+  /*                       &(track_editor->transport)); */
   pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header),
                                     theme->global_theme->default_separator,
                                     tctx_window_bg(&(track_editor->editor_ctx)));

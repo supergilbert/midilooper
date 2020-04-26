@@ -183,6 +183,8 @@ typedef struct
   pbt_wgt_scrollbar_t vscrollbar_wgt;
   pbt_wgt_scrollbar_t hscrollbar_zoom_wgt;
   pbt_wgt_t timeline_wgt;
+  pbt_ggt_ctnr_t vctnr_transport;
+  pbt_ggt_ctnr_t hctnr_transport;
   msq_transport_child_t transport;
   pbt_wgt_button_t quantify_button;
   msq_combobox_t resolution_combobox;

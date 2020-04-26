@@ -28,7 +28,7 @@ typedef enum
 
 typedef struct
 {
-  unsigned int min, max;
+  unsigned int min, max, alt_min, alt_max;
   unsigned char *color;
 } pbt_ggt_ctnr_separator_t;
 
