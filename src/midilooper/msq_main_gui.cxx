@@ -1896,6 +1896,10 @@ void midilooper_main_window::handle_midi_rec(void)
               }
           break;
         default:
+          midicev_added = true;
+          mcev_tick.tick =
+            msq_get_track_loop_tick(track_editor->editor_ctx.track_ctx,
+                                    mcev_tick.tick);
           _history_evit_add_midicev(&(track_editor->editor_ctx.history),
                                     &evit,
                                     mcev_tick.tick,

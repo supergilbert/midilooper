@@ -76,13 +76,14 @@ typedef struct
    snd_seq_ev_set_chanpress((seqev), (channel), (value)),               \
    snd_seq_ev_set_direct(seqev))
 
+/* 0x2000 = 8192 (value is signed) */
 #define ASEQ_SETPITCHWHEELCHANGEEV(seqev, port, channel, Lval, Hval)    \
   (snd_seq_ev_clear(seqev),                                             \
    snd_seq_ev_set_source((seqev), (port)),                              \
    snd_seq_ev_set_subs(seqev),                                          \
    snd_seq_ev_set_pitchbend((seqev),                                    \
                             (channel),                                  \
-                            ((Hval) << 7) + (Lval)),                    \
+                            ((Hval) << 7) + (Lval) - 0x2000),           \
    snd_seq_ev_set_direct(seqev))
 
 snd_seq_t     *create_aseqh(char *name);

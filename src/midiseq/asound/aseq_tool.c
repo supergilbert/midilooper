@@ -107,8 +107,10 @@ void aseq_to_mcev(snd_seq_event_t *snd_ev, midicev_t *mcev)
     case SND_SEQ_EVENT_PITCHBEND:
       mcev->type = PITCHWHEELCHANGE;
       mcev->chan = snd_ev->data.control.channel;
-      mcev->event.pitchbend.Lval = snd_ev->data.control.param;
-      mcev->event.pitchbend.Hval = snd_ev->data.control.value;
+      /* 0x2000 = 8192 (value is signed) */
+      mcev->event.pitchbend.Lval = (snd_ev->data.control.value + 0x2000) & 0x7F;
+      mcev->event.pitchbend.Hval =
+        (snd_ev->data.control.value + 0x2000) >> 7 & 0x7F;
       break;
     default:
       ;
