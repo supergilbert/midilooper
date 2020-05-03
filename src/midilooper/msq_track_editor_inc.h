@@ -45,6 +45,7 @@ typedef struct
   pbt_adj_t vadj;
   unsigned char channel;
   unsigned char default_velocity;
+  unsigned char resolution_idx;
   short default_pitch;
   unsigned char default_ctrl_val;
   unsigned int qn_size;
@@ -152,16 +153,19 @@ typedef struct
 /*   pbt_ggt_drawarea_t label; */
 /* } msq_grid_zoom_t */
 
+typedef char *(*msq_combobox_get_default_str_t)(void *cbb_addr);
+typedef void (*msq_combobox_get_list_t)(void *cbb_addr,
+                                        char ***list,
+                                        size_t *list_len);
 typedef void (*msq_combobox_cb_t)(size_t combo_idx, void *arg);
 
 typedef struct
 {
   pbt_wgt_button_t button;
+  msq_combobox_get_default_str_t combobox_get_default_str;
+  msq_combobox_get_list_t combobox_get_list;
   msq_combobox_cb_t cb;
-  void *cb_arg;
-  size_t current_idx;
-  char **list;
-  size_t list_len;
+  void *cbb_addr;
   msq_dialog_iface_t *dialog_iface;
   pbt_pixbuf_t pb_released;
   pbt_pixbuf_t pb_pressed;
@@ -186,8 +190,10 @@ typedef struct
   pbt_ggt_ctnr_t vctnr_transport;
   pbt_ggt_ctnr_t hctnr_transport;
   msq_transport_child_t transport;
+  pbt_ggt_t *track_node_ggt;
   pbt_wgt_button_t quantify_button;
   msq_combobox_t resolution_combobox;
+  msq_combobox_t output_combobox;
   msq_combobox_t channel_combobox;
   msq_combobox_t value_type_combobox;
   pbt_wgt_t value_num_wgt;

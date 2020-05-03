@@ -776,9 +776,9 @@ void track_editor_default_theme_init(track_editor_theme_t *theme,
   theme->gradient_len = default_gradient_len;
 
   if (pbt_font_get_string_width(&(theme->global_theme->theme.font),
-                                "_000_#C_-0____",
+                                "_000_#C_-0_______",
                                 &(theme->piano_width)) == PBT_FALSE)
-    theme->piano_width = theme->global_theme->theme.font.max_width * 14;
+    theme->piano_width = theme->global_theme->theme.font.max_width * 17;
 
   theme->timeline_height = theme->global_theme->theme.font.max_height * 3;
 }

@@ -63,152 +63,152 @@ static const msq_bool_t tonale_regular_note[] = {MSQ_TRUE,
                                                  MSQ_FALSE,
                                                  MSQ_TRUE};
 
-static const char *value_type_list[] = {"Note Vel.",
-                                        "Pitch",
-                                        "Ctrl.   0",
-                                        "Ctrl.   1",
-                                        "Ctrl.   2",
-                                        "Ctrl.   3",
-                                        "Ctrl.   4",
-                                        "Ctrl.   5",
-                                        "Ctrl.   6",
-                                        "Ctrl.   7",
-                                        "Ctrl.   8",
-                                        "Ctrl.   9",
-                                        "Ctrl.  10",
-                                        "Ctrl.  11",
-                                        "Ctrl.  12",
-                                        "Ctrl.  13",
-                                        "Ctrl.  14",
-                                        "Ctrl.  15",
-                                        "Ctrl.  16",
-                                        "Ctrl.  17",
-                                        "Ctrl.  18",
-                                        "Ctrl.  19",
-                                        "Ctrl.  20",
-                                        "Ctrl.  21",
-                                        "Ctrl.  22",
-                                        "Ctrl.  23",
-                                        "Ctrl.  24",
-                                        "Ctrl.  25",
-                                        "Ctrl.  26",
-                                        "Ctrl.  27",
-                                        "Ctrl.  28",
-                                        "Ctrl.  29",
-                                        "Ctrl.  30",
-                                        "Ctrl.  31",
-                                        "Ctrl.  32",
-                                        "Ctrl.  33",
-                                        "Ctrl.  34",
-                                        "Ctrl.  35",
-                                        "Ctrl.  36",
-                                        "Ctrl.  37",
-                                        "Ctrl.  38",
-                                        "Ctrl.  39",
-                                        "Ctrl.  40",
-                                        "Ctrl.  41",
-                                        "Ctrl.  42",
-                                        "Ctrl.  43",
-                                        "Ctrl.  44",
-                                        "Ctrl.  45",
-                                        "Ctrl.  46",
-                                        "Ctrl.  47",
-                                        "Ctrl.  48",
-                                        "Ctrl.  49",
-                                        "Ctrl.  50",
-                                        "Ctrl.  51",
-                                        "Ctrl.  52",
-                                        "Ctrl.  53",
-                                        "Ctrl.  54",
-                                        "Ctrl.  55",
-                                        "Ctrl.  56",
-                                        "Ctrl.  57",
-                                        "Ctrl.  58",
-                                        "Ctrl.  59",
-                                        "Ctrl.  60",
-                                        "Ctrl.  61",
-                                        "Ctrl.  62",
-                                        "Ctrl.  63",
-                                        "Ctrl.  64",
-                                        "Ctrl.  65",
-                                        "Ctrl.  66",
-                                        "Ctrl.  67",
-                                        "Ctrl.  68",
-                                        "Ctrl.  69",
-                                        "Ctrl.  70",
-                                        "Ctrl.  71",
-                                        "Ctrl.  72",
-                                        "Ctrl.  73",
-                                        "Ctrl.  74",
-                                        "Ctrl.  75",
-                                        "Ctrl.  76",
-                                        "Ctrl.  77",
-                                        "Ctrl.  78",
-                                        "Ctrl.  79",
-                                        "Ctrl.  80",
-                                        "Ctrl.  81",
-                                        "Ctrl.  82",
-                                        "Ctrl.  83",
-                                        "Ctrl.  84",
-                                        "Ctrl.  85",
-                                        "Ctrl.  86",
-                                        "Ctrl.  87",
-                                        "Ctrl.  88",
-                                        "Ctrl.  89",
-                                        "Ctrl.  90",
-                                        "Ctrl.  91",
-                                        "Ctrl.  92",
-                                        "Ctrl.  93",
-                                        "Ctrl.  94",
-                                        "Ctrl.  95",
-                                        "Ctrl.  96",
-                                        "Ctrl.  97",
-                                        "Ctrl.  98",
-                                        "Ctrl.  99",
-                                        "Ctrl. 100",
-                                        "Ctrl. 101",
-                                        "Ctrl. 102",
-                                        "Ctrl. 103",
-                                        "Ctrl. 104",
-                                        "Ctrl. 105",
-                                        "Ctrl. 106",
-                                        "Ctrl. 107",
-                                        "Ctrl. 108",
-                                        "Ctrl. 109",
-                                        "Ctrl. 110",
-                                        "Ctrl. 111",
-                                        "Ctrl. 112",
-                                        "Ctrl. 113",
-                                        "Ctrl. 114",
-                                        "Ctrl. 115",
-                                        "Ctrl. 116",
-                                        "Ctrl. 117",
-                                        "Ctrl. 118",
-                                        "Ctrl. 119",
-                                        "Ctrl. 120",
-                                        "Ctrl. 121",
-                                        "Ctrl. 122",
-                                        "Ctrl. 123",
-                                        "Ctrl. 124",
-                                        "Ctrl. 125",
-                                        "Ctrl. 126",
-                                        "Ctrl. 127"};
+static const char *value_type_list[] = {"   Note Vel.",
+                                        "   Pitch",
+                                        "   Ctrl.   0",
+                                        "   Ctrl.   1",
+                                        "   Ctrl.   2",
+                                        "   Ctrl.   3",
+                                        "   Ctrl.   4",
+                                        "   Ctrl.   5",
+                                        "   Ctrl.   6",
+                                        "   Ctrl.   7",
+                                        "   Ctrl.   8",
+                                        "   Ctrl.   9",
+                                        "   Ctrl.  10",
+                                        "   Ctrl.  11",
+                                        "   Ctrl.  12",
+                                        "   Ctrl.  13",
+                                        "   Ctrl.  14",
+                                        "   Ctrl.  15",
+                                        "   Ctrl.  16",
+                                        "   Ctrl.  17",
+                                        "   Ctrl.  18",
+                                        "   Ctrl.  19",
+                                        "   Ctrl.  20",
+                                        "   Ctrl.  21",
+                                        "   Ctrl.  22",
+                                        "   Ctrl.  23",
+                                        "   Ctrl.  24",
+                                        "   Ctrl.  25",
+                                        "   Ctrl.  26",
+                                        "   Ctrl.  27",
+                                        "   Ctrl.  28",
+                                        "   Ctrl.  29",
+                                        "   Ctrl.  30",
+                                        "   Ctrl.  31",
+                                        "   Ctrl.  32",
+                                        "   Ctrl.  33",
+                                        "   Ctrl.  34",
+                                        "   Ctrl.  35",
+                                        "   Ctrl.  36",
+                                        "   Ctrl.  37",
+                                        "   Ctrl.  38",
+                                        "   Ctrl.  39",
+                                        "   Ctrl.  40",
+                                        "   Ctrl.  41",
+                                        "   Ctrl.  42",
+                                        "   Ctrl.  43",
+                                        "   Ctrl.  44",
+                                        "   Ctrl.  45",
+                                        "   Ctrl.  46",
+                                        "   Ctrl.  47",
+                                        "   Ctrl.  48",
+                                        "   Ctrl.  49",
+                                        "   Ctrl.  50",
+                                        "   Ctrl.  51",
+                                        "   Ctrl.  52",
+                                        "   Ctrl.  53",
+                                        "   Ctrl.  54",
+                                        "   Ctrl.  55",
+                                        "   Ctrl.  56",
+                                        "   Ctrl.  57",
+                                        "   Ctrl.  58",
+                                        "   Ctrl.  59",
+                                        "   Ctrl.  60",
+                                        "   Ctrl.  61",
+                                        "   Ctrl.  62",
+                                        "   Ctrl.  63",
+                                        "   Ctrl.  64",
+                                        "   Ctrl.  65",
+                                        "   Ctrl.  66",
+                                        "   Ctrl.  67",
+                                        "   Ctrl.  68",
+                                        "   Ctrl.  69",
+                                        "   Ctrl.  70",
+                                        "   Ctrl.  71",
+                                        "   Ctrl.  72",
+                                        "   Ctrl.  73",
+                                        "   Ctrl.  74",
+                                        "   Ctrl.  75",
+                                        "   Ctrl.  76",
+                                        "   Ctrl.  77",
+                                        "   Ctrl.  78",
+                                        "   Ctrl.  79",
+                                        "   Ctrl.  80",
+                                        "   Ctrl.  81",
+                                        "   Ctrl.  82",
+                                        "   Ctrl.  83",
+                                        "   Ctrl.  84",
+                                        "   Ctrl.  85",
+                                        "   Ctrl.  86",
+                                        "   Ctrl.  87",
+                                        "   Ctrl.  88",
+                                        "   Ctrl.  89",
+                                        "   Ctrl.  90",
+                                        "   Ctrl.  91",
+                                        "   Ctrl.  92",
+                                        "   Ctrl.  93",
+                                        "   Ctrl.  94",
+                                        "   Ctrl.  95",
+                                        "   Ctrl.  96",
+                                        "   Ctrl.  97",
+                                        "   Ctrl.  98",
+                                        "   Ctrl.  99",
+                                        "   Ctrl. 100",
+                                        "   Ctrl. 101",
+                                        "   Ctrl. 102",
+                                        "   Ctrl. 103",
+                                        "   Ctrl. 104",
+                                        "   Ctrl. 105",
+                                        "   Ctrl. 106",
+                                        "   Ctrl. 107",
+                                        "   Ctrl. 108",
+                                        "   Ctrl. 109",
+                                        "   Ctrl. 110",
+                                        "   Ctrl. 111",
+                                        "   Ctrl. 112",
+                                        "   Ctrl. 113",
+                                        "   Ctrl. 114",
+                                        "   Ctrl. 115",
+                                        "   Ctrl. 116",
+                                        "   Ctrl. 117",
+                                        "   Ctrl. 118",
+                                        "   Ctrl. 119",
+                                        "   Ctrl. 120",
+                                        "   Ctrl. 121",
+                                        "   Ctrl. 122",
+                                        "   Ctrl. 123",
+                                        "   Ctrl. 124",
+                                        "   Ctrl. 125",
+                                        "   Ctrl. 126",
+                                        "   Ctrl. 127"};
 
-static const char *channel_list[] = {"Channel  0",
-                                     "Channel  1",
-                                     "Channel  2",
-                                     "Channel  3",
-                                     "Channel  4",
-                                     "Channel  5",
-                                     "Channel  6",
-                                     "Channel  7",
-                                     "Channel  8",
-                                     "Channel  9",
-                                     "Channel 10",
-                                     "Channel 11",
-                                     "Channel 12",
-                                     "Channel 13",
-                                     "Channel 14"};
+static const char *channel_list[] = {"   Channel  0",
+                                     "   Channel  1",
+                                     "   Channel  2",
+                                     "   Channel  3",
+                                     "   Channel  4",
+                                     "   Channel  5",
+                                     "   Channel  6",
+                                     "   Channel  7",
+                                     "   Channel  8",
+                                     "   Channel  9",
+                                     "   Channel 10",
+                                     "   Channel 11",
+                                     "   Channel 12",
+                                     "   Channel 13",
+                                     "   Channel 14"};
 
 static const char *resolution_list[] = {"4xqn",
                                         "2xqn",
@@ -4300,11 +4300,28 @@ void value_num_inc_cb(void *track_editor_addr)
   pbt_ggt_draw(&(track_editor->value_vbar_wgt));
 }
 
+char *resolution_setting_get_default_str(void *track_editor_addr)
+{
+  track_editor_t *track_editor = track_editor_addr;
+
+  return (char *) resolution_list[track_editor->editor_ctx.resolution_idx];
+}
+
+void resolution_setting_get_list(void *track_editor_addr,
+                                 char ***list,
+                                 size_t *list_len)
+{
+  *list = (char **) resolution_list;
+  *list_len = RESOLUTION_LIST_LEN;
+}
+
 void resolution_setting_dialog_res_cb(size_t idx,
                                       void *track_editor_addr)
 {
   track_editor_t *track_editor = track_editor_addr;
   track_ctx_t *track_ctx = track_editor->editor_ctx.track_ctx;
+
+  track_editor->editor_ctx.resolution_idx = idx;
 
   switch (idx)
     {
@@ -4351,6 +4368,66 @@ void resolution_setting_dialog_res_cb(size_t idx,
   msq_draw_vggts(&(track_editor->vggts));
 }
 
+char *output_cbb_get_default_str(void *track_editor_addr)
+{
+  track_editor_t *track_editor = track_editor_addr;
+
+  if (track_editor->editor_ctx.track_ctx->output == NULL)
+    return "No output";
+  return (char *) output_get_name(track_editor->editor_ctx.track_ctx->output);
+}
+
+void output_cbb_get_list(void *track_editor_addr,
+                         char ***list,
+                         size_t *list_len)
+{
+  track_editor_t *track_editor = track_editor_addr;
+  static char **static_list = NULL;
+  static size_t len, idx;
+
+  if (static_list != NULL)
+    {
+      for (idx = 0; idx < len; idx++)
+        free(static_list[idx]);
+      free(static_list);
+    }
+
+  static_list = engine_gen_output_str_list(track_editor->editor_ctx.track_ctx->engine,
+                                           &len);
+  *list = static_list;
+  *list_len = len;
+}
+
+void output_cbb_dialog_res_cb(size_t idx,
+                              void *track_editor_addr)
+{
+  track_editor_t *track_editor = track_editor_addr;
+
+  if (idx == 0)
+    track_editor->editor_ctx.track_ctx->output = NULL;
+  else
+    track_editor->editor_ctx.track_ctx->output =
+      engine_get_output(track_editor->editor_ctx.track_ctx->engine,
+                        idx - 1);
+  _pbt_ggt_draw(track_editor->track_node_ggt);
+  pbt_wgt_win_put_buffer(&(track_editor->transport.parent->play.wgt));
+}
+
+char *channel_setting_get_default_str(void *track_editor_addr)
+{
+  track_editor_t *track_editor = track_editor_addr;
+
+  return (char *) channel_list[track_editor->editor_ctx.channel];
+}
+
+void channel_setting_get_list(void *track_editor_addr,
+                              char ***list,
+                              size_t *list_len)
+{
+  *list = (char **) channel_list;
+  *list_len = CHANNEL_LIST_LEN;
+}
+
 void channel_setting_dialog_res_cb(size_t idx,
                                    void *track_editor_addr)
 {
@@ -4358,6 +4435,21 @@ void channel_setting_dialog_res_cb(size_t idx,
 
   track_editor->editor_ctx.channel = idx;
   msq_draw_vggts(&(track_editor->vggts));
+}
+
+char *value_type_get_default_str(void *track_editor_addr)
+{
+  track_editor_t *track_editor = track_editor_addr;
+
+  return (char *) value_type_list[track_editor->value_wgt.type];
+}
+
+void value_type_get_list(void *track_editor_addr,
+                         char ***list,
+                         size_t *list_len)
+{
+  *list = (char **) value_type_list;
+  *list_len = VALUE_TYPE_LEN;
 }
 
 void value_type_dialog_res_cb(size_t idx,
@@ -4389,17 +4481,17 @@ void draw_combobox_button(pbt_pixbuf_t *pixbuf, char *label,
 void msq_combobox_draw_pixbufs(msq_combobox_t *combobox)
 {
   draw_combobox_button(&(combobox->pb_released),
-                       combobox->list[combobox->current_idx],
+                       combobox->combobox_get_default_str(combobox->cbb_addr),
                        &(combobox->gui_theme->theme.font),
                        combobox->gui_theme->theme.wgt_normal_fg,
                        combobox->gui_theme->theme.wgt_normal_bg);
   draw_combobox_button(&(combobox->pb_pressed),
-                       combobox->list[combobox->current_idx],
+                       combobox->combobox_get_default_str(combobox->cbb_addr),
                        &(combobox->gui_theme->theme.font),
                        combobox->gui_theme->theme.wgt_activated_fg,
                        combobox->gui_theme->theme.wgt_activated_bg);
   draw_combobox_button(&(combobox->pb_hovered),
-                       combobox->list[combobox->current_idx],
+                       combobox->combobox_get_default_str(combobox->cbb_addr),
                        &(combobox->gui_theme->theme.font),
                        combobox->gui_theme->theme.wgt_hovered_fg,
                        combobox->gui_theme->theme.wgt_hovered_bg);
@@ -4410,18 +4502,22 @@ void msq_combobox_dialog_res_cb(size_t idx,
 {
   msq_combobox_t *combobox = combobox_addr;
 
-  combobox->current_idx = idx;
+  combobox->cb(idx, combobox->cbb_addr);
   msq_combobox_draw_pixbufs(combobox);
-  combobox->cb(idx, combobox->cb_arg);
 }
 
 void msq_combo_button_cb(void *combobox_addr)
 {
   msq_combobox_t *combobox = combobox_addr;
+  char **list = NULL;
+  size_t list_len;
 
+  combobox->combobox_get_list(combobox->cbb_addr,
+                              &list,
+                              &list_len);
   msq_dialog_list(combobox->dialog_iface,
-                  combobox->list,
-                  combobox->list_len,
+                  list,
+                  list_len,
                   msq_combobox_dialog_res_cb,
                   combobox);
 }
@@ -4444,40 +4540,37 @@ void msq_combobox_destroy_cb(pbt_ggt_t *ggt)
 void msq_combobox_init(msq_combobox_t *combobox,
                        msq_dialog_iface_t *dialog_iface,
                        msq_gui_theme_t *gui_theme,
-                       char **list,
-                       size_t list_len,
+                       msq_combobox_get_default_str_t combobox_get_default_str,
+                       msq_combobox_get_list_t combobox_get_list,
                        msq_combobox_cb_t cb,
-                       void *cb_arg)
+                       void *cbb_addr)
 {
-  size_t idx, idx_of_max;
-  size_t max_len;
-  unsigned int str_width;
+  size_t idx;
+  unsigned int str_width, tmp_str_width;
   char max_str[MSQ_MAX_STRLEN];
+  char **list = NULL;
+  size_t list_len;
 
-  combobox->cb = cb;
-  combobox->cb_arg = cb_arg;
-  combobox->list = list;
-  combobox->list_len = list_len;
-  combobox->current_idx = 0;
   combobox->dialog_iface = dialog_iface;
-
   combobox->gui_theme = gui_theme;
+  combobox->combobox_get_default_str = combobox_get_default_str;
+  combobox->combobox_get_list = combobox_get_list;
+  combobox->cb = cb;
+  combobox->cbb_addr = cbb_addr;
 
-  for (idx = 0, max_len = 0;
-       idx < list_len;
-       idx++)
+  combobox->combobox_get_list(combobox->cbb_addr,
+                              &list,
+                              &list_len);
+
+  for (idx = 0, str_width = 0; idx < list_len; idx++)
     {
-      str_width = strlen(list[idx]);
-      if (str_width > max_len)
-        {
-          max_len = str_width;
-          idx_of_max = idx;
-        }
+      snprintf(max_str, MSQ_MAX_STRLEN, "%s___", list[idx]);
+      pbt_font_get_string_width(&(combobox->gui_theme->theme.font),
+                                max_str,
+                                &tmp_str_width);
+      if (tmp_str_width > str_width)
+        str_width = tmp_str_width;
     }
-  snprintf(max_str, MSQ_MAX_STRLEN, "%s___", list[idx_of_max]);
-  pbt_font_get_string_width(&(combobox->gui_theme->theme.font),
-                            max_str,
-                            &str_width);
   pbt_pixbuf_init(&(combobox->pb_released),
                   str_width,
                   combobox->gui_theme->theme.font.max_height);
@@ -4547,6 +4640,7 @@ void track_editor_init(track_editor_t *track_editor,
                        track_editor_theme_t *theme,
                        msq_dialog_iface_t *dialog_iface,
                        msq_transport_iface_t *transport_iface,
+                       pbt_ggt_t *track_node_ggt,
                        track_ctx_t *track_ctx,
                        unsigned int qn_size,
                        unsigned int note_height,
@@ -4571,6 +4665,7 @@ void track_editor_init(track_editor_t *track_editor,
   track_editor->editor_ctx.qn_size = qn_size;
   track_editor->editor_ctx.quantize = quantize;
   track_editor->editor_ctx.note_scale = note_scale;
+  track_editor->track_node_ggt = track_node_ggt;
 
   /* value type + line + value num + line */
   track_editor->value_min_height = track_editor->editor_ctx.note_height * 2 + 2;
@@ -4632,25 +4727,32 @@ void track_editor_init(track_editor_t *track_editor,
                               track_editor->editor_ctx.theme->piano_width,
                               tctx_window_bg(&(track_editor->editor_ctx)));
 
+  track_editor->editor_ctx.resolution_idx = 4;
   msq_combobox_init(&(track_editor->resolution_combobox),
                     track_editor->dialog_iface,
                     track_editor->editor_ctx.theme->global_theme,
-                    (char **) resolution_list,
-                    RESOLUTION_LIST_LEN,
+                    resolution_setting_get_default_str,
+                    resolution_setting_get_list,
                     resolution_setting_dialog_res_cb,
                     track_editor);
-  track_editor->resolution_combobox.current_idx = 4;
   pbt_wgt_label_button_init(&(track_editor->quantify_button),
                             " Q ",
                             &(track_editor->editor_ctx.theme->global_theme->theme),
                             msq_quantify_note_selection_cb,
                             track_editor);
-  msq_combobox_draw_pixbufs(&(track_editor->resolution_combobox));
+  /* msq_combobox_draw_pixbufs(&(track_editor->resolution_combobox)); */
+  msq_combobox_init(&(track_editor->output_combobox),
+                    track_editor->dialog_iface,
+                    track_editor->editor_ctx.theme->global_theme,
+                    output_cbb_get_default_str,
+                    output_cbb_get_list,
+                    output_cbb_dialog_res_cb,
+                    track_editor);
   msq_combobox_init(&(track_editor->channel_combobox),
                     track_editor->dialog_iface,
                     track_editor->editor_ctx.theme->global_theme,
-                    (char **) channel_list,
-                    CHANNEL_LIST_LEN,
+                    channel_setting_get_default_str,
+                    channel_setting_get_list,
                     channel_setting_dialog_res_cb,
                     track_editor);
 
@@ -4666,6 +4768,11 @@ void track_editor_init(track_editor_t *track_editor,
   /* /\*                                   tctx_window_bg(&(track_editor->editor_ctx))); *\/ */
   /* pbt_ggt_add_child_wgt(&(track_editor->hctnr_header), */
   /*                       &(track_editor->transport)); */
+  pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header),
+                                    theme->global_theme->default_separator,
+                                    tctx_window_bg(&(track_editor->editor_ctx)));
+  pbt_ggt_add_child_ggt(&(track_editor->hctnr_header),
+                        &(track_editor->output_combobox));
   pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header),
                                     theme->global_theme->default_separator,
                                     tctx_window_bg(&(track_editor->editor_ctx)));
@@ -4771,8 +4878,8 @@ void track_editor_init(track_editor_t *track_editor,
   msq_combobox_init(&(track_editor->value_type_combobox),
                     track_editor->dialog_iface,
                     track_editor->editor_ctx.theme->global_theme,
-                    (char **) value_type_list,
-                    VALUE_TYPE_LEN,
+                    value_type_get_default_str,
+                    value_type_get_list,
                     value_type_dialog_res_cb,
                     track_editor);
   value_num_wgt_init(&(track_editor->value_num_wgt), track_editor);

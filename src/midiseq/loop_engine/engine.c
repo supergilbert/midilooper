@@ -516,3 +516,51 @@ void trackctx_set_name(track_ctx_t *trackctx, const char *name)
   trackctx->track->name = new_name;
   free(old_name);
 }
+
+char **engine_gen_output_str_list(engine_ctx_t *engine_ctx,
+                                  size_t *str_list_len)
+{
+  list_iterator_t iter;
+  output_t        *output;
+  char            **ret_str, **ret_ptr;
+
+  *str_list_len = engine_ctx->output_list.len + 1;
+
+  ret_str = (char **) calloc(*str_list_len, sizeof (char *));
+  ret_ptr = ret_str;
+
+  *ret_ptr = strdup("No output");
+  ret_ptr++;
+
+  for (iter_init(&iter, &(engine_ctx->output_list));
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      output = (output_t *) iter_node_ptr(&iter);
+      *ret_ptr = strdup(output_get_name(output));
+      ret_ptr++;
+    }
+
+  return ret_str;
+}
+
+output_t *engine_get_output(engine_ctx_t *engine_ctx,
+                            size_t idx)
+{
+  list_iterator_t it;
+  output_t *output = NULL;
+  size_t current_idx;
+
+  for (current_idx = 0,
+         iter_init(&it, &(engine_ctx->output_list));
+       iter_node(&it);
+       iter_next(&it),
+         current_idx++)
+    {
+      output = (output_t *) iter_node_ptr(&it);
+      if (current_idx == idx)
+        return output;
+    }
+
+  return NULL;
+}

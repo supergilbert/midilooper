@@ -74,8 +74,6 @@ class midilooper_main_window
   bool wait_note_binding = false;
   msq_time_t wait_since;
 
-  char **gen_output_str_list(size_t *str_list_len);
-
 public:
   track_ctx_t *track_waiting_binding = NULL;
   string save_path;
@@ -103,7 +101,6 @@ public:
   void show_output_dialog(output_t *output);
   void show_set_output(track_editor_t *track_editor);
   void show_track_dialog(track_editor_t *track_editor);
-  output_t *get_output(size_t idx);
   void add_output(char *new_name);
   void add_track(char *new_name);
   void copy_trackctx(track_ctx_t *track_ctx);
@@ -928,6 +925,7 @@ msq_track_line_t *msq_track_node_add(msq_wgt_list_t *track_list,
                     track_editor_theme,
                     dialog_iface,
                     transport_iface,
+                    ggt_wrapper,
                     track_ctx,
                     100,
                     10,
@@ -1209,7 +1207,7 @@ void track_set_output_dialog_res_cb(size_t idx, void *mainwin_addr)
     mainwin->dialog_track->editor_ctx.track_ctx->output = NULL;
   else
     mainwin->dialog_track->editor_ctx.track_ctx->output =
-      mainwin->get_output(idx - 1);
+      engine_get_output(mainwin->engine_ctx, idx - 1);
   pbt_ggt_draw(&(mainwin->track_list.vctnr));
   mainwin->refresh();
 }
@@ -1532,36 +1530,11 @@ void midilooper_main_window::show_output_dialog(output_t *output)
   dialog_output = output;
 }
 
-char **midilooper_main_window::gen_output_str_list(size_t *str_list_len)
-{
-  list_iterator_t iter;
-  output_t        *output;
-  char            **ret_str, **ret_ptr;
-
-  *str_list_len = engine_ctx->output_list.len + 1;
-
-  ret_str = (char **) calloc(*str_list_len, sizeof (char *));
-  ret_ptr = ret_str;
-
-  *ret_ptr = strdup("No output");
-  ret_ptr++;
-
-  for (iter_init(&iter, &(engine_ctx->output_list));
-       iter_node(&iter);
-       iter_next(&iter))
-    {
-      output = (output_t *) iter_node_ptr(&iter);
-      *ret_ptr = strdup(output_get_name(output));
-      ret_ptr++;
-    }
-
-  return ret_str;
-}
-
 void midilooper_main_window::show_set_output(track_editor_t *track_editor)
 {
   size_t str_list_len;
-  char **set_output_menu = gen_output_str_list(&str_list_len);
+  char **set_output_menu = engine_gen_output_str_list(engine_ctx,
+                                                      &str_list_len);
 
   msq_dialog_list(&(dialog_iface),
                   set_output_menu,
@@ -1601,26 +1574,6 @@ void midilooper_main_window::redraw(void)
 {
   _pbt_ggt_draw(ggt_win.ggt);
   refresh();
-}
-
-output_t *midilooper_main_window::get_output(size_t idx)
-{
-  list_iterator_t it;
-  output_t *output = NULL;
-  size_t current_idx;
-
-  for (current_idx = 0,
-         iter_init(&it, &(engine_ctx->output_list));
-       iter_node(&it);
-       iter_next(&it),
-         current_idx++)
-    {
-      output = (output_t *) iter_node_ptr(&it);
-      if (current_idx == idx)
-        return output;
-    }
-
-  return NULL;
 }
 
 void midilooper_main_window::add_output(char *new_name)

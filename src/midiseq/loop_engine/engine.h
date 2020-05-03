@@ -233,4 +233,10 @@ void gen_midinote_bindings_str(char *mnb_str,
                                byte_t *notes,
                                size_t notes_sz);
 
+char **engine_gen_output_str_list(engine_ctx_t *engine_ctx,
+                                  size_t *str_list_len);
+
+output_t *engine_get_output(engine_ctx_t *engine_ctx,
+                            size_t idx);
+
 #endif
