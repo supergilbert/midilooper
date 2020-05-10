@@ -104,6 +104,18 @@ uint_t jbe_get_tick(engine_ctx_t *ctx)
   return be_hdl->tick;
 }
 
+uint64_t convert_tick_to_frame(uint64_t tick,
+                               uint64_t frame_rate,
+                               uint64_t ppq,
+                               uint64_t tempo)
+{
+  uint64_t numtmp, dentmp;
+
+  numtmp = tick * frame_rate * tempo;
+  dentmp = ppq * 1000000;
+  return numtmp / dentmp;
+}
+
 void jbe_set_tick(engine_ctx_t *ctx, uint_t tick)
 {
   jbe_hdl_t *be_hdl = (jbe_hdl_t *) ctx->hdl;
@@ -111,8 +123,10 @@ void jbe_set_tick(engine_ctx_t *ctx, uint_t tick)
 
   jack_transport_query(be_hdl->client, &position);
   jack_transport_locate(be_hdl->client,
-                        (tick * position.frame_rate * ctx->tempo
-                         / (ctx->ppq * 1000000)));
+                        convert_tick_to_frame(tick,
+                                              position.frame_rate,
+                                              ctx->ppq,
+                                              ctx->tempo));
   engine_set_tracks_need_sync(ctx);
 }
 

@@ -783,20 +783,25 @@ void track_editor_default_theme_init(track_editor_theme_t *theme,
   theme->timeline_height = theme->global_theme->theme.font.max_height * 3;
 }
 
+char **_msq_str_list_copy(char **src_list, size_t list_len)
+{
+  size_t idx;
+  char **dst_list = malloc(sizeof (char *) * list_len);
+
+  for (idx = 0; idx < list_len; idx++)
+    dst_list[idx] = strdup(src_list[idx]);
+  return dst_list;
+}
+
 void msq_dialog_str_list_init(msq_dialog_iface_t *dialog_iface,
                               char **str_list,
                               size_t str_list_len)
 {
-  size_t idx;
-
   dialog_iface->str_list_len = str_list_len;
-  dialog_iface->str_list = malloc(sizeof (char *) * str_list_len);
-
-  for (idx = 0; idx < str_list_len; idx++)
-    dialog_iface->str_list[idx] = strdup(str_list[idx]);
+  dialog_iface->str_list = _msq_str_list_copy(str_list, str_list_len);
 }
 
-void _msq_free_list(char **str_list, size_t str_list_len)
+void _msq_free_str_list(char **str_list, size_t str_list_len)
 {
   char **str_list_ptr = str_list,
     **str_list_end = &(str_list[str_list_len]);
@@ -811,7 +816,7 @@ void _msq_free_list(char **str_list, size_t str_list_len)
 
 void _msq_dialog_str_list_free(msq_dialog_iface_t *dialog_iface)
 {
-  _msq_free_list(dialog_iface->str_list, dialog_iface->str_list_len);
+  _msq_free_str_list(dialog_iface->str_list, dialog_iface->str_list_len);
   dialog_iface->str_list = NULL;
   dialog_iface->str_list_len = 0;
 }

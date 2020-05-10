@@ -227,10 +227,6 @@ static const char *resolution_list[] = {"4xqn",
 static list_t _msq_editor_clipboard = {};
 static unsigned char _msq_editor_clipboard_note_max;
 
-#define VALUE_TYPE_LEN 130
-
-#define CHANNEL_LIST_LEN 15
-
 #define RESOLUTION_LIST_LEN 13
 
 #define DIV_SIZE_MIN 20
@@ -254,7 +250,7 @@ static unsigned char _msq_editor_clipboard_note_max;
 #define NOTE2YPOS(_editor_ctx, note)                    \
   ((MAX_7b_VAL - (note)) * (_editor_ctx)->note_height)
 
-#define YPOS2NOTE(_editor_ctx, ypos)                                    \
+#define YPOS2NOTE(_editor_ctx, ypos)                    \
   (MAX_7b_VAL - ((ypos) / (_editor_ctx)->note_height))
 
 #define GRIDYMAX(_editor_ctx)                   \
@@ -263,7 +259,7 @@ static unsigned char _msq_editor_clipboard_note_max;
 #define GRIDXPOS(xpos, grid)                                            \
   ((xpos) + (grid)->editor_ctx->hadj.pos - pbt_ggt_xpos(&((grid)->wgt)))
 
-#define GRIDYPOS(ypos, grid)                                     \
+#define GRIDYPOS(ypos, grid)                                            \
   ((ypos) + (grid)->editor_ctx->vadj.pos - pbt_ggt_ypos(&((grid)->wgt)))
 
 #define tctx_window_fg(_editor_ctx)                             \
@@ -272,10 +268,10 @@ static unsigned char _msq_editor_clipboard_note_max;
 #define tctx_window_bg(_editor_ctx)                             \
   msq_theme_window_bg((_editor_ctx)->theme->global_theme)
 
-#define tctx_frame_fg(_editor_ctx)                                      \
+#define tctx_frame_fg(_editor_ctx)                              \
   msq_theme_frame_fg((_editor_ctx)->theme->global_theme)
 
-#define tctx_frame_bg(_editor_ctx)                                      \
+#define tctx_frame_bg(_editor_ctx)                              \
   msq_theme_frame_bg((_editor_ctx)->theme->global_theme)
 
 #define tctx_wgt_normal_fg(_editor_ctx)                         \
@@ -290,7 +286,7 @@ static unsigned char _msq_editor_clipboard_note_max;
 #define tctx_cursor_pencil(_editor_ctx)                         \
   msq_theme_cursor_pencil((_editor_ctx)->theme->global_theme)
 
-#define tctx_cursor_grab(_editor_ctx)                                   \
+#define tctx_cursor_grab(_editor_ctx)                           \
   msq_theme_cursor_grab((_editor_ctx)->theme->global_theme)
 
 #define tctx_cursor_grabbing(_editor_ctx)                       \
@@ -303,6 +299,75 @@ static unsigned char _msq_editor_clipboard_note_max;
   msq_theme_cursor_vresize((_editor_ctx)->theme->global_theme)
 
 #define SCROLL_INC 100
+
+void _msq_bytearray_set_bit(unsigned char *array,
+                            size_t bit_idx,
+                            wbe_bool_t bool)
+{
+  size_t octet_idx = bit_idx / 8;
+
+  bit_idx = bit_idx % 8;
+  WBE_SET_BIT(array[octet_idx], bit_idx, bool);
+}
+
+wbe_bool_t _msq_bytearray_get_bit(unsigned char *array,
+                                  size_t bit_idx)
+{
+  size_t octet_idx = bit_idx / 8;
+
+  bit_idx = bit_idx % 8;
+  return WBE_GET_BIT(array[octet_idx], bit_idx);
+}
+
+void msq_track_info_init(msq_track_info_t *track_info, track_t *track)
+{
+  ev_iterator_t evit;
+  midicev_t *mcev;
+  msq_channel_info_t *channel_info;
+  size_t idx;
+
+  for (idx = 0; idx < CHANNEL_LIST_LEN; idx++)
+    {
+      channel_info = &(track_info->channels_info[idx]);
+      memset(channel_info,
+             0,
+             sizeof (msq_channel_info_t));
+      channel_info->note_min = 255;
+    }
+  track_info->ev_len = 0;
+  track_info->min_tick = (unsigned int) -1; /* Max */
+  track_info->max_tick = 0;
+  for (mcev = evit_init_midiallchannel(&evit, &(track->tickev_list));
+       mcev != NULL;
+       mcev = evit_next_midiallchannel(&evit))
+    {
+      channel_info = &(track_info->channels_info[mcev->chan]);
+      if (mcev->type == NOTEOFF || mcev->type == NOTEON)
+        {
+          _msq_bytearray_set_bit(channel_info->usage,
+                                 0,
+                                 1);
+          if (mcev->event.note.num < channel_info->note_min)
+            channel_info->note_min = mcev->event.note.num;
+          if (mcev->event.note.num > channel_info->note_max)
+            channel_info->note_max = mcev->event.note.num;
+        }
+      else if (mcev->type == PITCHWHEELCHANGE)
+        _msq_bytearray_set_bit(channel_info->usage,
+                               1,
+                               1);
+      else if (mcev->type == CONTROLCHANGE)
+        _msq_bytearray_set_bit(channel_info->usage,
+                               2 + mcev->event.ctrl.num,
+                               1);
+      if (track_info->min_tick > evit.tick)
+        track_info->min_tick = evit.tick;
+      if (track_info->max_tick < evit.tick)
+        track_info->max_tick = evit.tick;
+      channel_info->ev_len += 1;
+      track_info->ev_len += 1;
+    }
+}
 
 void msq_adj_inc(pbt_adj_t *adj, unsigned int inc)
 {
@@ -883,6 +948,7 @@ void timeline_wgt_update_area_cb(pbt_ggt_t *ggt, pbt_pbarea_t *pbarea)
   msq_update_hadj_startnlen(editor_ctx);
 }
 
+/* TODO timeline mode need enum */
 #define TIMELINE_MODE_START 0
 #define TIMELINE_MODE_END   1
 #define TIMELINE_MODE_POS   3
@@ -935,6 +1001,7 @@ void msq_track_draw_tick_pos(track_editor_t *track_editor, uint_t tick)
   int xpos = TICK2XPOS(editor_ctx, tick) - editor_ctx->hadj.pos;
   pbt_wgt_t *wgt;
 
+  /* TODO timeline mode need enum */
   if (xpos < 0
       || xpos > pbt_ggt_width(&(track_editor->grid_wgt.wgt))
       || (track_editor->grid_wgt.state != GRID_NO_MODE
@@ -1064,6 +1131,8 @@ pbt_bool_t timeline_wgt_set_focus_cb(pbt_ggt_t *ggt,
         }
       if (WBE_GET_BIT(winev->buttons, 2) == 1)
         {
+          xpos = winev->xpos - _pbt_ggt_xpos(ggt) + editor_ctx->hadj.pos;
+          msq_track_draw_tick_pos(track_editor, XPOS2TICK(editor_ctx, xpos));
           editor_ctx->tmp_coo[0] = TIMELINE_MODE_POS;
           return PBT_TRUE;
         }
@@ -1677,11 +1746,6 @@ void pixbuf_safe_destroy(pbt_pixbuf_t *pixbuf)
     pbt_pixbuf_destroy(pixbuf);
 }
 
-#define msq_get_progress_tick_pos(_editor_ctx)                              \
-  (TICK2XPOS((_editor_ctx),                                             \
-             msq_get_current_track_tick((_editor_ctx)->track_ctx))      \
-   - (_editor_ctx)->hadj.pos)
-
 void msq_track_draw_current_tick_pos(track_editor_t *track_editor)
 {
   uint_t tick = msq_get_current_track_tick(track_editor->editor_ctx.track_ctx);
@@ -1809,9 +1873,9 @@ void draw_grid_cb(pbt_ggt_t *ggt)
 }
 
 noteonoff_t *is_in_note_selection(uint_t tick,
-                                byte_t channel,
-                                byte_t note,
-                                list_t *selected_notes)
+                                  byte_t channel,
+                                  byte_t note,
+                                  list_t *selected_notes)
 {
   list_iterator_t iter;
   seqev_t   *seqev;
@@ -2135,9 +2199,9 @@ void handle_writting_note_mode(wbe_window_input_t *winev,
           handle_writting_note_mode_gen_note(&note, editor_ctx);
           if (note_collision(&note, editor_ctx, MSQ_FALSE) == MSQ_FALSE)
             {
-                free_list_node(&(editor_ctx->selected_notes), free);
-                _history_add_mark(&(editor_ctx->history));
-                _history_add_note(editor_ctx, &note);
+              free_list_node(&(editor_ctx->selected_notes), free);
+              _history_add_mark(&(editor_ctx->history));
+              _history_add_note(editor_ctx, &note);
             }
         }
       msq_draw_vggts(grid_wgt->vggts);
@@ -2303,8 +2367,8 @@ msq_bool_t msq_move_note_end_list_init(list_t *new_note_list,
 
 
 typedef msq_bool_t (*msq_move_note_list_init_t)(list_t *new_note_list,
-                                                 track_editor_ctx_t *editor_ctx,
-                                                 int tick_offset);
+                                                track_editor_ctx_t *editor_ctx,
+                                                int tick_offset);
 
 void msq_draw_move_note(msq_grid_wgt_t *grid,
                         wbe_window_input_t *winev,
@@ -2327,10 +2391,10 @@ void msq_draw_move_note(msq_grid_wgt_t *grid,
       for (iter_init(&iter, &(new_note_list));
            iter_node(&iter);
            iter_next(&iter))
-      {
-        note_ptr = iter_node_ptr(&iter);
-        draw_tmp_note(&(grid->wgt), editor_ctx, note_ptr);
-      }
+        {
+          note_ptr = iter_node_ptr(&iter);
+          draw_tmp_note(&(grid->wgt), editor_ctx, note_ptr);
+        }
       free_list_node(&new_note_list, free);
     }
   else
@@ -4392,8 +4456,9 @@ void output_cbb_get_list(void *track_editor_addr,
       free(static_list);
     }
 
-  static_list = engine_gen_output_str_list(track_editor->editor_ctx.track_ctx->engine,
-                                           &len);
+  static_list =
+    engine_gen_output_str_list(track_editor->editor_ctx.track_ctx->engine,
+                               &len);
   *list = static_list;
   *list_len = len;
 }
@@ -4417,15 +4482,44 @@ char *channel_setting_get_default_str(void *track_editor_addr)
 {
   track_editor_t *track_editor = track_editor_addr;
 
-  return (char *) channel_list[track_editor->editor_ctx.channel];
+  return track_editor->editor_ctx.channel_list[track_editor->editor_ctx.channel];
+}
+
+msq_bool_t msq_channel_info_has_event(msq_channel_info_t *channel_info)
+{
+  size_t idx;
+
+  for (idx = 0;
+       idx < CHANNEL_USAGE_LEN;
+       idx++)
+    if (channel_info->usage[idx] != 0)
+      return MSQ_TRUE;
+  return MSQ_FALSE;
 }
 
 void channel_setting_get_list(void *track_editor_addr,
                               char ***list,
                               size_t *list_len)
 {
-  *list = (char **) channel_list;
+  track_editor_t *track_editor = track_editor_addr;
+  msq_channel_info_t *channel_info;
+  size_t channel_num;
+
+  msq_track_info_init(&(track_editor->editor_ctx.track_info),
+                      track_editor->editor_ctx.track_ctx->track);
+
+  *list = track_editor->editor_ctx.channel_list;
   *list_len = CHANNEL_LIST_LEN;
+
+  for (channel_num = 0;
+       channel_num < CHANNEL_LIST_LEN;
+       channel_num++)
+    {
+      channel_info =
+        &(track_editor->editor_ctx.track_info.channels_info[channel_num]);
+      (*list)[channel_num][1] =
+        msq_channel_info_has_event(channel_info) ==  MSQ_TRUE ? '*' : ' ';
+    }
 }
 
 void channel_setting_dialog_res_cb(size_t idx,
@@ -4441,15 +4535,29 @@ char *value_type_get_default_str(void *track_editor_addr)
 {
   track_editor_t *track_editor = track_editor_addr;
 
-  return (char *) value_type_list[track_editor->value_wgt.type];
+  return track_editor->editor_ctx.value_type_list[track_editor->value_wgt.type];
 }
 
 void value_type_get_list(void *track_editor_addr,
                          char ***list,
                          size_t *list_len)
 {
-  *list = (char **) value_type_list;
+  track_editor_t *track_editor = track_editor_addr;
+  size_t value_type_num;
+
+  msq_track_info_init(&(track_editor->editor_ctx.track_info),
+                      track_editor->editor_ctx.track_ctx->track);
+
+  *list = track_editor->editor_ctx.value_type_list;
   *list_len = VALUE_TYPE_LEN;
+
+  for (value_type_num = 0;
+       value_type_num < CHANNEL_LIST_LEN;
+       value_type_num++)
+    (*list)[value_type_num][1] =
+      _msq_bytearray_get_bit(track_editor->editor_ctx.track_info.channels_info[track_editor->editor_ctx.channel].usage,
+                             value_type_num) == WBE_TRUE
+      ? '*' : ' ';
 }
 
 void value_type_dialog_res_cb(size_t idx,
@@ -4636,6 +4744,13 @@ void msq_quantify_note_selection_cb(void *track_editor_addr)
 #define TRACK_EDITOR_START_WIDTH  800
 #define TRACK_EDITOR_START_HEIGHT 600
 
+void track_editor_destroy(track_editor_t *track_editor)
+{
+  pbt_ggt_win_destroy(&(track_editor->ggt_win));
+  _msq_free_str_list(track_editor->editor_ctx.value_type_list, VALUE_TYPE_LEN);
+  _msq_free_str_list(track_editor->editor_ctx.channel_list, CHANNEL_LIST_LEN);
+}
+
 void track_editor_init(track_editor_t *track_editor,
                        track_editor_theme_t *theme,
                        msq_dialog_iface_t *dialog_iface,
@@ -4649,6 +4764,11 @@ void track_editor_init(track_editor_t *track_editor,
 {
   unsigned int vline_divisor;
   unsigned int min_width, min_height, max_width, max_height;
+
+  track_editor->editor_ctx.value_type_list =
+    _msq_str_list_copy(value_type_list, VALUE_TYPE_LEN);
+  track_editor->editor_ctx.channel_list =
+    _msq_str_list_copy(channel_list, CHANNEL_LIST_LEN);
 
   track_editor->editor_ctx.theme = theme;
   track_editor->dialog_iface = dialog_iface;

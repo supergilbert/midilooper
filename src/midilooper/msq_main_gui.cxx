@@ -794,9 +794,10 @@ void msq_track_node_destroy(pbt_ggt_t *ggt)
 {
   pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
   msq_track_node_t *track_node = (msq_track_node_t *) wgt->priv;
+  track_editor_t *track_editor = track_node->track_editor;
 
   pbt_wgt_evnode_destroy(ggt);
-  pbt_ggt_win_destroy(&(track_node->track_editor->ggt_win));
+  track_editor_destroy(track_editor);
 }
 
 void msq_track_node_init(msq_track_node_t *track_node,
@@ -1541,7 +1542,7 @@ void midilooper_main_window::show_set_output(track_editor_t *track_editor)
                   str_list_len,
                   track_set_output_dialog_res_cb,
                   this);
-  _msq_free_list(set_output_menu, str_list_len);
+  _msq_free_str_list(set_output_menu, str_list_len);
   dialog_track = track_editor;
 }
 

@@ -35,7 +35,8 @@ void track_editor_default_theme_init(track_editor_theme_t *theme,
 
 #define msq_dialog_activate(_dialog_iface) (_dialog_iface)->activated = MSQ_TRUE
 
-void _msq_free_list(char **str_list, size_t str_list_len);
+char **_msq_str_list_copy(const char **src_list, size_t list_len);
+void _msq_free_str_list(char **str_list, size_t str_list_len);
 
 void msq_dialog_desactivate(msq_dialog_iface_t *dialog_iface);
 

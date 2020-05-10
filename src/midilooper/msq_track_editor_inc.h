@@ -37,9 +37,33 @@ typedef struct
   midicev_t ev[2];
 } msq_history_elt_t;
 
+#define VALUE_TYPE_LEN 130
+
+#define CHANNEL_LIST_LEN 15
+
+/* 17 = (130 value type) in octet */
+#define CHANNEL_USAGE_LEN 17
+
 typedef struct
 {
+  unsigned char note_min, note_max;
+  unsigned char usage[CHANNEL_USAGE_LEN];
+  size_t ev_len;
+} msq_channel_info_t;
+
+typedef struct
+{
+  msq_channel_info_t channels_info[CHANNEL_LIST_LEN];
+  unsigned int min_tick, max_tick;
+  size_t ev_len;
+} msq_track_info_t;
+
+typedef struct
+{
+  char **value_type_list;
+  char **channel_list;
   track_editor_theme_t *theme;
+  msq_track_info_t track_info;
   pbt_adj_t zoom_adj;
   pbt_adj_t hadj;
   pbt_adj_t vadj;

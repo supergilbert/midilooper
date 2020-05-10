@@ -201,7 +201,8 @@ midicev_t *evit_init_ctrl_num(ev_iterator_t *ev_iterator,
 {
   midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
 
-  if (midicev && midicev->type != CONTROLCHANGE)
+  if (midicev && (midicev->type != CONTROLCHANGE
+                  || midicev->event.ctrl.num != ctrl_num))
     midicev = evit_next_ctrl_num(ev_iterator, channel, ctrl_num);
   return midicev;
 }

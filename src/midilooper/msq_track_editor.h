@@ -23,8 +23,7 @@ EXTERN_C_BEGIN
 
 #include <pbt_gadget_window.h>
 
-#define track_editor_destroy(track_editor)              \
-  pbt_ggt_win_destroy(&((track_editor)->ggt_win))
+void track_editor_destroy(track_editor_t *track_editor);
 void track_editor_init(track_editor_t *track_editor,
                        track_editor_theme_t *theme,
                        msq_dialog_iface_t *dialog_iface,
