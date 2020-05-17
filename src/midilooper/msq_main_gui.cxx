@@ -118,6 +118,7 @@ public:
   void handle_msq_update(void);
   void handle_key_bindings(wbe_window_input_t *winev);
   void run(void);
+  void mute_all(void);
 };
 
 // First node not checked
@@ -1269,6 +1270,8 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
     case 8:                     // Remove
       mainwin->remove_track(mainwin->dialog_track);
       break;
+    case 9:                     // Mute all
+      mainwin->mute_all();
     default:
       ;
     }
@@ -1556,11 +1559,12 @@ void midilooper_main_window::show_track_dialog(track_editor_t *track_editor)
                                      "Move",
                                      "Copy",
                                      "Add",
-                                     "Remove"};
+                                     "Remove",
+                                     "Mute all"};
 
   msq_dialog_list(&(dialog_iface),
                   (char **) track_menu,
-                  9,
+                  10,
                   track_dialog_res_cb,
                   this);
   dialog_track = track_editor;
@@ -1938,6 +1942,22 @@ void midilooper_main_window::run(void)
       handle_windows();
       handle_save_rq();
     }
+}
+
+void midilooper_main_window::mute_all(void)
+{
+  list_iterator_t it;
+  track_ctx_t *track_ctx;
+
+  for (iter_init(&it, &(engine_ctx->track_list));
+       iter_node(&it);
+       iter_next(&it))
+    {
+      track_ctx = (track_ctx_t *) iter_node_ptr(&it);
+      track_ctx->mute = MSQ_TRUE;
+    }
+  pbt_wgt_draw(&track_list);
+  refresh();
 }
 
 #define PATH_MAX_LEN 256
