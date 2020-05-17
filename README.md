@@ -6,7 +6,7 @@ This code is in development.
 
     mkdir <BUILD_DIR>
     cd <BUILD_DIR>
-    cmake <SRC_DIR>
+    cmake <MIDILOOPER_DIR>
     make
 
 ## Features
