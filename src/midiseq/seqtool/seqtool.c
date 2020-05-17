@@ -136,6 +136,17 @@ tickev_t *search_or_add_tickev(track_t *track, uint_t tick)
   return (tickev_t *) ticknode->addr;
 }
 
+unsigned int msq_get_max_tick(list_t *tickev_list)
+{
+  tickev_t *tickev;
+
+  if (tickev_list->tail == NULL)
+    return 0;
+
+  tickev = tickev_list->tail->addr;
+  return tickev->tick;
+}
+
 seqev_t *alloc_seqev(void *addr,
                      seqevtype_t type)
 {

@@ -4741,6 +4741,35 @@ void msq_quantify_note_selection_cb(void *track_editor_addr)
   msq_quantify_note_selection(&(track_editor->grid_wgt));
 }
 
+void msq_track_editor_setup_adj(track_editor_t *track_editor)
+{
+  unsigned int note_min, note_max;
+  unsigned int min_vpos, max_vpos, size;
+
+  msq_track_info_init(&(track_editor->editor_ctx.track_info),
+                      track_editor->editor_ctx.track_ctx->track);
+  note_min = track_editor->editor_ctx.track_info.channels_info[track_editor->editor_ctx.channel].note_min;
+  note_max = track_editor->editor_ctx.track_info.channels_info[track_editor->editor_ctx.channel].note_max;
+
+  if (note_min == 255 && note_max == 0)
+    {
+      note_min = 60;
+      note_max = 84;
+    }
+  min_vpos = NOTE2YPOS(&(track_editor->editor_ctx), note_max);
+  max_vpos = NOTE2YPOS(&(track_editor->editor_ctx), note_min);
+  size = max_vpos - min_vpos;
+  if (size <= track_editor->editor_ctx.vadj.size)
+    track_editor->editor_ctx.vadj.pos =
+      min_vpos - ((track_editor->editor_ctx.vadj.size - size) / 2);
+  else
+    track_editor->editor_ctx.vadj.pos =
+      min_vpos + ((size - track_editor->editor_ctx.vadj.size) / 2);
+
+  track_editor->editor_ctx.hadj.pos = TICK2XPOS(&(track_editor->editor_ctx),
+                                                track_editor->editor_ctx.track_ctx->loop_start);
+}
+
 #define TRACK_EDITOR_START_WIDTH  800
 #define TRACK_EDITOR_START_HEIGHT 600
 
@@ -5126,6 +5155,8 @@ void track_editor_init(track_editor_t *track_editor,
 
   wbe_window_set_cursor(track_editor->ggt_win.pb_win.win_be,
                         tctx_cursor_arrow(&(track_editor->editor_ctx)));
+
+  msq_track_editor_setup_adj(track_editor);
 
   _pbt_ggt_draw(track_editor->ggt_win.ggt);
 }

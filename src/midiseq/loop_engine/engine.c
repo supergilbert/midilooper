@@ -190,21 +190,14 @@ track_ctx_t *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrac
 {
   track_ctx_t *trackctx = NULL;
   track_t     *track = myalloc(sizeof (track_t));
-  uint_t      loop_start;
-  uint_t      loop_len;
 
   copy_track_list(&(mtrack->track), track);
   if (mtrack->track.name)
     track->name = strdup(mtrack->track.name);
-  loop_start = mtrack->sysex_loop_start;
-  if (mtrack->sysex_loop_len == 0)
-    loop_len = ctx->ppq * 4;
-  else
-    loop_len = mtrack->sysex_loop_len;
   trackctx = _engine_gen_trackctx(ctx,
                                   track,
-                                  loop_start,
-                                  loop_len);
+                                  mtrack->sysex_loop_start,
+                                  mtrack->sysex_loop_len);
   engine_set_miditrack_bindings(ctx, mtrack, trackctx);
   push_to_list_tail(&(ctx->track_list), trackctx);
   return trackctx;
@@ -225,6 +218,8 @@ void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
   midifile_portinfo_t *portinfo = NULL;
   tmpport_cache_t     *portcache = NULL;
   track_ctx_t         *trackctx = NULL;
+  msq_bool_t          loop_info_missing = MSQ_FALSE;
+  unsigned int        max_tick = 0, cur_max;
 
   ctx->ppq = midifile->info.ppq;
   engine_set_tempo(ctx, midifile->info.tempo);
@@ -246,6 +241,8 @@ void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
     {
       mf_track = iter_node_ptr(&trackit);
       trackctx = engine_copyadd_miditrack(ctx, mf_track);
+      if (trackctx->loop_len == 0)
+        loop_info_missing = MSQ_TRUE;
       if (mf_track->sysex_portid != -1)
         {
           for (iter_init(&portit, &tmpport);
@@ -262,6 +259,27 @@ void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
         }
     }
   free_list_node(&tmpport, free);
+
+  if (loop_info_missing == MSQ_TRUE)
+    {
+      for (iter_init(&trackit, &(ctx->track_list));
+           iter_node(&trackit) != NULL;
+           iter_next(&trackit))
+        {
+          trackctx = iter_node_ptr(&trackit);
+          cur_max = msq_get_max_tick(&(trackctx->track->tickev_list));
+          if (cur_max > max_tick)
+            max_tick = cur_max;
+        }
+      cur_max = ((cur_max / (ctx->ppq * 4)) + 1) * (ctx->ppq * 4);
+      for (iter_init(&trackit, &(ctx->track_list));
+           iter_node(&trackit) != NULL;
+           iter_next(&trackit))
+        {
+          trackctx = iter_node_ptr(&trackit);
+          trackctx->loop_len = cur_max;
+        }
+    }
 }
 
 track_ctx_t  *engine_create_trackctx(engine_ctx_t *ctx, char *name)

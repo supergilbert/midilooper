@@ -703,12 +703,12 @@ void msq_track_node_draw_cb(pbt_ggt_t *ggt)
                     &(track_node->main_win->theme.theme.font),
                     track_node->main_win->theme.theme.frame_fg,
                     0, track_node->main_win->theme.theme.font.max_height,
-                    "Key bindings: %s", string_key_bindings);
+                    "Keyboard: %s", string_key_bindings);
   pbt_pbarea_printf(&(ggt->pbarea),
                     &(track_node->main_win->theme.theme.font),
                     track_node->main_win->theme.theme.frame_fg,
                     0, track_node->main_win->theme.theme.font.max_height * 2,
-                    "Note bindings: %s", note_bindings);
+                    "Midi Remote: %s", note_bindings);
   pbt_pbarea_fillrect(&(ggt->pbarea),
                       track_node->main_win->theme.default_separator,
                       _pbt_ggt_height(ggt)

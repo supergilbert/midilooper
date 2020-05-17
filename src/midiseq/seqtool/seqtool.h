@@ -48,7 +48,6 @@ typedef struct
   list_t        tickev_list;
 }	        track_t;
 
-
 void add_new_seqev_head(track_t *track,
                         uint_t tick,
                         void *addr,
@@ -68,6 +67,7 @@ void    dump_seqev(seqev_t *seqev);
 void    free_seqev(void *addr);
 void    free_tickev(void *addr);
 node_t  *search_or_add_ticknode(list_t *tickev_list, uint_t tick);
+unsigned int msq_get_max_tick(list_t *tickev_list);
 seqev_t *alloc_seqev(void *addr, seqevtype_t type);
 node_t  *search_ticknode(list_t *tickev_list, uint_t tick);
 void    goto_next_available_tick(list_iterator_t *tickit, uint_t tick);
