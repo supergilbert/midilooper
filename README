@@ -1,4 +1,25 @@
+# MIDILOOPER
+
 This code is in development.
 
-For old jack api, the environment variable OLDJACKAPI must be set.
-ex: export OLDJACKAPI=yes
+## Build instructions
+
+    mkdir <BUILD_DIR>
+    cd <BUILD_DIR>
+    cmake <SRC_DIR>
+    make
+
+## Features
+
+* Loop Midi tracks over "Alsa sequencer" or "Jack"
+* Midi track editor
+* Midifile reader and writer
+* Remote keyboard and midi to mute unmute tracks
+* Record midi events
+
+## Roadmap
+
+* Improve jack transport
+* Add midi sync
+* Improve graphic interface
+* User helper and documentation
