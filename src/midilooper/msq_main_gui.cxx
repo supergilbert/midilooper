@@ -60,7 +60,6 @@ typedef struct msq_wgt_list_s
   void *move_cb_priv;
 } msq_wgt_list_t;
 
-#define msq_track_node_height(theme) ((theme)->font.max_height * 4)
 #define msq_output_node_height(theme) ((theme)->font.max_height * 2)
 
 class midilooper_main_window

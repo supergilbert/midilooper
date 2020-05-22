@@ -4741,13 +4741,27 @@ void msq_quantify_note_selection_cb(void *track_editor_addr)
   msq_quantify_note_selection(&(track_editor->grid_wgt));
 }
 
-void msq_track_editor_setup_adj(track_editor_t *track_editor)
+unsigned char _msq_editor_get_first_channel(msq_track_info_t *track_info)
+{
+  size_t channel_num;
+  msq_channel_info_t *channel_info;
+
+  for (channel_num = 0;
+       channel_num < CHANNEL_LIST_LEN;
+       channel_num++)
+    {
+      channel_info = &(track_info->channels_info[channel_num]);
+      if (msq_channel_info_has_event(channel_info) ==  MSQ_TRUE)
+        return channel_num;
+    }
+  return 0;
+}
+
+void _msq_track_editor_setup_adj(track_editor_t *track_editor)
 {
   unsigned int note_min, note_max;
   unsigned int min_vpos, max_vpos, size;
 
-  msq_track_info_init(&(track_editor->editor_ctx.track_info),
-                      track_editor->editor_ctx.track_ctx->track);
   note_min = track_editor->editor_ctx.track_info.channels_info[track_editor->editor_ctx.channel].note_min;
   note_max = track_editor->editor_ctx.track_info.channels_info[track_editor->editor_ctx.channel].note_max;
 
@@ -4815,6 +4829,12 @@ void track_editor_init(track_editor_t *track_editor,
   track_editor->editor_ctx.quantize = quantize;
   track_editor->editor_ctx.note_scale = note_scale;
   track_editor->track_node_ggt = track_node_ggt;
+
+  msq_track_info_init(&(track_editor->editor_ctx.track_info),
+                      track_ctx->track);
+
+  track_editor->editor_ctx.channel =
+    _msq_editor_get_first_channel(&(track_editor->editor_ctx.track_info));
 
   /* value type + line + value num + line */
   track_editor->value_min_height = track_editor->editor_ctx.note_height * 2 + 2;
@@ -5156,7 +5176,7 @@ void track_editor_init(track_editor_t *track_editor,
   wbe_window_set_cursor(track_editor->ggt_win.pb_win.win_be,
                         tctx_cursor_arrow(&(track_editor->editor_ctx)));
 
-  msq_track_editor_setup_adj(track_editor);
+  _msq_track_editor_setup_adj(track_editor);
 
   _pbt_ggt_draw(track_editor->ggt_win.ggt);
 }

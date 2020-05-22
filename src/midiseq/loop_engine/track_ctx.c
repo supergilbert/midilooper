@@ -123,12 +123,11 @@ void play_trackctx(uint_t tick, track_ctx_t *track_ctx)
   tick = trackctx_loop_pos(track_ctx, tick);
 
   if (track_ctx->need_sync == MSQ_TRUE)
-    /* reload of the iterator if some node has been deleted
-       and reload again after the trash has been empty */
+    /* reload of the iterator if some node has been deleted */
     {
       goto_next_available_tick(&(track_ctx->current_tickev), tick);
-      if (track_ctx->trash.len == 0)
-        track_ctx->need_sync = MSQ_FALSE;
+      /* if (track_ctx->trash.len == 0) */
+      track_ctx->need_sync = MSQ_FALSE;
     }
 
   if (tick == last_pulse || track_ctx->play_pending_notes)

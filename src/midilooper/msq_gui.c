@@ -136,6 +136,29 @@ void msq_init_minus_button_img(pbt_pixbuf_t *img,
                         fg_color);
 }
 
+void msq_init_track_rec_img(pbt_pixbuf_t *pixbuf,
+                            unsigned int size,
+                            unsigned char *border_color,
+                            unsigned char *bg_color,
+                            unsigned char *fg_color)
+{
+  unsigned int tmp;
+
+  pbt_pixbuf_init(pixbuf, size, size);
+  pbt_pixbuf_fill(pixbuf, border_color);
+  tmp = pixbuf->width >> 3;
+  pbt_pixbuf_fillrect(pixbuf,
+                      tmp, tmp,
+                      pixbuf->width - (tmp << 1),
+                      pixbuf->width - (tmp << 1),
+                      bg_color);
+  pbt_pixbuf_draw_disc(pixbuf,
+                       (pixbuf->width >> 2) + 1,
+                       (pixbuf->width >> 2) + 1,
+                       pixbuf->width >> 1,
+                       fg_color);
+}
+
 void msq_init_track_hp_img(pbt_pixbuf_t *pixbuf,
                            unsigned int size,
                            unsigned char *border_color,
@@ -345,22 +368,22 @@ void gui_default_theme_init(msq_gui_theme_t *global_theme)
                             msq_theme_wgt_hovered_bg(global_theme));
 
   msq_init_track_hp_img(&(global_theme->track_mute_imgs[0]),
-                        global_theme->theme.font.max_height * 4,
+                        msq_track_node_height(&(global_theme->theme)),
                         global_theme->play_color,
                         msq_theme_wgt_activated_bg(global_theme),
                         global_theme->play_color);
   msq_init_track_mute_img(&(global_theme->track_mute_imgs[1]),
-                          global_theme->theme.font.max_height * 4,
+                          msq_track_node_height(&(global_theme->theme)),
                           msq_theme_wgt_activated_fg(global_theme),
                           msq_theme_wgt_activated_bg(global_theme),
                           msq_theme_wgt_activated_fg(global_theme));
   msq_init_track_hp_img(&(global_theme->track_mute_imgs[2]),
-                        global_theme->theme.font.max_height * 4,
+                          msq_track_node_height(&(global_theme->theme)),
                         msq_theme_wgt_activated_fg(global_theme),
                         msq_theme_wgt_activated_bg(global_theme),
                         global_theme->play_color);
   msq_init_track_mute_img(&(global_theme->track_mute_imgs[3]),
-                          global_theme->theme.font.max_height * 4,
+                          msq_track_node_height(&(global_theme->theme)),
                           global_theme->play_color,
                           msq_theme_wgt_activated_bg(global_theme),
                           msq_theme_wgt_activated_fg(global_theme));

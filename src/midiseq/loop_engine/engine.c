@@ -135,6 +135,7 @@ msq_bool_t engine_delete_trackctx(engine_ctx_t *ctx, track_ctx_t *trackctx)
 }
 
 track_ctx_t *_engine_gen_trackctx(engine_ctx_t *ctx,
+                                  output_t *output,
                                   track_t *track,
                                   uint_t loop_start,
                                   uint_t loop_len)
@@ -142,9 +143,11 @@ track_ctx_t *_engine_gen_trackctx(engine_ctx_t *ctx,
   track_ctx_t *trackctx = myalloc(sizeof (track_ctx_t));
 
   trackctx->engine = ctx;
+  trackctx->output = output;
   trackctx->track = track;
   trackctx->loop_start = loop_start;
   trackctx->loop_len = loop_len;
+  trackctx->need_sync = MSQ_TRUE;
   trackctx->mute = MSQ_FALSE;
   trackctx->deleted = MSQ_FALSE;
   pthread_rwlock_init(&(trackctx->lock), NULL);
@@ -163,6 +166,7 @@ track_ctx_t *engine_copy_trackctx(engine_ctx_t *ctx,
   if (trackctx_src->track->name)
     track->name = strdup(trackctx_src->track->name);
   trackctx_dst = _engine_gen_trackctx(ctx,
+                                      trackctx_src->output,
                                       track,
                                       trackctx_src->loop_start,
                                       trackctx_src->loop_len);
@@ -195,6 +199,7 @@ track_ctx_t *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrac
   if (mtrack->track.name)
     track->name = strdup(mtrack->track.name);
   trackctx = _engine_gen_trackctx(ctx,
+                                  NULL,
                                   track,
                                   mtrack->sysex_loop_start,
                                   mtrack->sysex_loop_len);
@@ -288,7 +293,7 @@ track_ctx_t  *engine_create_trackctx(engine_ctx_t *ctx, char *name)
   track_t     *track = myalloc(sizeof (track_t));
 
   track->name = strdup(name);
-  trackctx = _engine_gen_trackctx(ctx, track, 0, ctx->ppq * 4);
+  trackctx = _engine_gen_trackctx(ctx, NULL, track, 0, ctx->ppq * 4);
   push_to_list_tail(&(ctx->track_list), trackctx);
   return trackctx;
 }
