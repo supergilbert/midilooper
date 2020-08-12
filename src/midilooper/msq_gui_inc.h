@@ -40,7 +40,7 @@ typedef struct
   pbt_pixbuf_t plus_button_imgs[3];
   pbt_pixbuf_t minus_button_imgs[3];
   pbt_pixbuf_t track_mute_imgs[4];
-  /* pbt_pixbuf_t track_rec_imgs[4]; */
+  pbt_pixbuf_t track_rec_imgs[4];
 } msq_gui_theme_t;
 
 #define msq_theme_window_fg(msq_theme) (msq_theme)->theme.window_fg
@@ -102,6 +102,7 @@ typedef struct
   pbt_wgt_t wgt;
   pbt_ggt_node_t child;
   msq_transport_iface_t *parent;
+  pbt_ggt_t *track_node;
   track_ctx_t *track_ctx;
 } msq_transport_child_t;
 

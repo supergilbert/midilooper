@@ -860,11 +860,56 @@ typedef struct
 {
   msq_track_node_t track_node;
   pbt_wgt_button_t mute_button;
+  pbt_wgt_button_t rec_button;
   pbt_ggt_ctnr_t hctnr;
   pbt_ggt_ctnr_t vctnr;
   pbt_ggt_node_it_t node_it;
   track_editor_t track_editor;
 } msq_track_line_t;
+
+void msq_rec_button_cb(void *track_line_addr)
+{
+  msq_track_line_t *track_line = (msq_track_line_t *) track_line_addr;
+
+  msq_transport_handle_rec(&(track_line->track_editor.transport));
+}
+
+void _msq_rec_button_draw_cb(pbt_ggt_t *ggt)
+{
+  pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
+  pbt_wgt_button_t *rec_button = (pbt_wgt_button_t *) wgt->priv;
+  msq_track_line_t *track_line = (msq_track_line_t *) rec_button->cb_arg;
+  pbt_pixbuf_t *track_rec_imgs =
+    track_line->track_editor.editor_ctx.theme->global_theme->track_rec_imgs;
+  track_ctx_t *track_ctx = track_line->track_editor.editor_ctx.track_ctx;
+
+  if (track_ctx->engine->rec == MSQ_TRUE
+      && track_ctx->engine->track_rec == track_ctx)
+    {
+      if (track_ctx->engine->track_rec == track_ctx
+          && rec_button->pb_released != &(track_rec_imgs[1]))
+        {
+          rec_button->pb_released = &(track_rec_imgs[1]);
+          rec_button->pb_pressed = &(track_rec_imgs[0]);
+          rec_button->pb_hovered = &(track_rec_imgs[3]);
+          rec_button->bg_released = track_rec_imgs[1].pixels;
+          rec_button->bg_pressed = track_rec_imgs[0].pixels;
+          rec_button->bg_hovered = track_rec_imgs[3].pixels;
+        }
+    }
+  else
+    if (rec_button->pb_released != &(track_rec_imgs[0]))
+      {
+        rec_button->pb_released = &(track_rec_imgs[0]);
+        rec_button->pb_pressed = &(track_rec_imgs[1]);
+        rec_button->pb_hovered = &(track_rec_imgs[2]);
+        rec_button->bg_released = track_rec_imgs[0].pixels;
+        rec_button->bg_pressed = track_rec_imgs[1].pixels;
+        rec_button->bg_hovered = track_rec_imgs[2].pixels;
+      }
+
+  pbt_wgt_button_draw_cb(ggt);
+}
 
 void msq_mute_button_cb(void *track_line_addr)
 {
@@ -933,6 +978,18 @@ msq_track_line_t *msq_track_node_add(msq_wgt_list_t *track_list,
                     track_ctx->engine->ppq / 4,
                     0);
 
+  pbt_wgt_button_init(&(track_line->rec_button),
+                      &(track_editor_theme->global_theme->track_rec_imgs[0]),
+                      &(track_editor_theme->global_theme->track_rec_imgs[1]),
+                      &(track_editor_theme->global_theme->track_rec_imgs[2]),
+                      track_editor_theme->global_theme->track_rec_imgs[0].pixels,
+                      track_editor_theme->global_theme->track_rec_imgs[1].pixels,
+                      track_editor_theme->global_theme->track_rec_imgs[2].pixels,
+                      msq_theme_cursor_finger(track_editor_theme->global_theme),
+                      msq_theme_cursor_arrow(track_editor_theme->global_theme),
+                      msq_rec_button_cb,
+                      track_line);
+  track_line->rec_button.wgt.ggt.draw_cb = _msq_rec_button_draw_cb;
   msq_track_node_init(&(track_line->track_node),
                       &(track_line->track_editor),
                       (midilooper_main_window *) track_list->main_win_addr);
@@ -949,6 +1006,10 @@ msq_track_line_t *msq_track_node_add(msq_wgt_list_t *track_list,
                       track_line);
   track_line->mute_button.wgt.ggt.draw_cb = _msq_mute_button_draw_cb;
   pbt_ggt_hctnr_init(&(track_line->hctnr));
+  pbt_ggt_add_child_wgt(&(track_line->hctnr), &(track_line->rec_button));
+  pbt_ggt_ctnr_add_static_separator(&(track_line->hctnr),
+                                    track_list->theme->default_separator,
+                                    track_list->theme->theme.window_bg);
   pbt_ggt_add_child_wgt(&(track_line->hctnr), &(track_line->track_node));
   pbt_ggt_ctnr_add_static_separator(&(track_line->hctnr),
                                     track_list->theme->default_separator,

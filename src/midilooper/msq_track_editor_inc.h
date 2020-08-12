@@ -214,7 +214,6 @@ typedef struct
   pbt_ggt_ctnr_t vctnr_transport;
   pbt_ggt_ctnr_t hctnr_transport;
   msq_transport_child_t transport;
-  pbt_ggt_t *track_node_ggt;
   pbt_wgt_button_t quantify_button;
   msq_combobox_t resolution_combobox;
   msq_combobox_t output_combobox;

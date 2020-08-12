@@ -256,6 +256,11 @@ void gui_default_theme_destroy(msq_gui_theme_t *global_theme)
   pbt_pixbuf_destroy(&(global_theme->track_mute_imgs[1]));
   pbt_pixbuf_destroy(&(global_theme->track_mute_imgs[2]));
   pbt_pixbuf_destroy(&(global_theme->track_mute_imgs[3]));
+
+  pbt_pixbuf_destroy(&(global_theme->track_rec_imgs[0]));
+  pbt_pixbuf_destroy(&(global_theme->track_rec_imgs[1]));
+  pbt_pixbuf_destroy(&(global_theme->track_rec_imgs[2]));
+  pbt_pixbuf_destroy(&(global_theme->track_rec_imgs[3]));
 }
 
 #include "pbt_tools.h"
@@ -378,7 +383,7 @@ void gui_default_theme_init(msq_gui_theme_t *global_theme)
                           msq_theme_wgt_activated_bg(global_theme),
                           msq_theme_wgt_activated_fg(global_theme));
   msq_init_track_hp_img(&(global_theme->track_mute_imgs[2]),
-                          msq_track_node_height(&(global_theme->theme)),
+                        msq_track_node_height(&(global_theme->theme)),
                         msq_theme_wgt_activated_fg(global_theme),
                         msq_theme_wgt_activated_bg(global_theme),
                         global_theme->play_color);
@@ -387,6 +392,27 @@ void gui_default_theme_init(msq_gui_theme_t *global_theme)
                           global_theme->play_color,
                           msq_theme_wgt_activated_bg(global_theme),
                           msq_theme_wgt_activated_fg(global_theme));
+
+  msq_init_track_rec_img(&(global_theme->track_rec_imgs[0]),
+                         msq_track_node_height(&(global_theme->theme)),
+                         msq_theme_wgt_activated_fg(global_theme),
+                         msq_theme_wgt_activated_bg(global_theme),
+                         msq_theme_wgt_activated_fg(global_theme));
+  msq_init_track_rec_img(&(global_theme->track_rec_imgs[1]),
+                         msq_track_node_height(&(global_theme->theme)),
+                         global_theme->rec_color,
+                         msq_theme_wgt_activated_bg(global_theme),
+                         global_theme->rec_color);
+  msq_init_track_rec_img(&(global_theme->track_rec_imgs[2]),
+                         msq_track_node_height(&(global_theme->theme)),
+                         global_theme->rec_color,
+                         msq_theme_wgt_activated_bg(global_theme),
+                         msq_theme_wgt_activated_fg(global_theme));
+  msq_init_track_rec_img(&(global_theme->track_rec_imgs[3]),
+                         msq_track_node_height(&(global_theme->theme)),
+                         msq_theme_wgt_activated_fg(global_theme),
+                         msq_theme_wgt_activated_bg(global_theme),
+                         global_theme->rec_color);
 }
 
 void transport_gen_imgs_cb(pbt_pixbuf_t **imgs,
@@ -422,13 +448,14 @@ void msq_transport_update_button(msq_transport_iface_t *transport_iface)
     {
       transport_child = iter_node_ptr(&iter);
       pbt_wgt_draw(&(transport_child->rec));
+      _pbt_ggt_draw(transport_child->track_node);
       pbt_wgt_win_put_buffer(&(transport_child->rec.wgt));
     }
+  pbt_wgt_win_put_buffer(&(transport_child->parent->play.wgt));
 }
 
-void handle_rec_cb(void *transport_child_addr)
+void msq_transport_handle_rec(msq_transport_child_t *transport_child)
 {
-  msq_transport_child_t *transport_child = transport_child_addr;
   track_ctx_t *track_ctx = transport_child->track_ctx;
 
   if (track_ctx->engine->rec == MSQ_TRUE)
@@ -444,6 +471,11 @@ void handle_rec_cb(void *transport_child_addr)
       track_ctx->engine->rec = MSQ_TRUE;
     }
   msq_transport_update_button(transport_child->parent);
+}
+
+void handle_rec_cb(void *transport_child_addr)
+{
+  msq_transport_handle_rec(transport_child_addr);
 }
 
 void msq_destroy_transport_button(pbt_ggt_t *ggt)
@@ -729,12 +761,14 @@ void _msq_child_button_rec_draw_cb(pbt_ggt_t *ggt)
 
 void msq_transport_child_init(msq_transport_child_t *transport_child,
                               msq_transport_iface_t *transport_iface,
-                              track_ctx_t *track_ctx)
+                              track_ctx_t *track_ctx,
+                              pbt_ggt_t *track_node_ggt)
 {
   msq_gui_theme_t *global_theme = transport_iface->tempo_wgt.global_theme;
 
   transport_child->parent = transport_iface;
   transport_child->track_ctx = track_ctx;
+  transport_child->track_node = track_node_ggt;
   push_to_list(&(transport_iface->transport_childs), transport_child);
 
   msq_button_init(&(transport_child->play),

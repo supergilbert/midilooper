@@ -4474,7 +4474,7 @@ void output_cbb_dialog_res_cb(size_t idx,
     track_editor->editor_ctx.track_ctx->output =
       engine_get_output(track_editor->editor_ctx.track_ctx->engine,
                         idx - 1);
-  _pbt_ggt_draw(track_editor->track_node_ggt);
+  _pbt_ggt_draw(track_editor->transport.track_node);
   pbt_wgt_win_put_buffer(&(track_editor->transport.parent->play.wgt));
 }
 
@@ -4828,7 +4828,6 @@ void track_editor_init(track_editor_t *track_editor,
   track_editor->editor_ctx.qn_size = qn_size;
   track_editor->editor_ctx.quantize = quantize;
   track_editor->editor_ctx.note_scale = note_scale;
-  track_editor->track_node_ggt = track_node_ggt;
 
   msq_track_info_init(&(track_editor->editor_ctx.track_info),
                       track_ctx->track);
@@ -4880,7 +4879,10 @@ void track_editor_init(track_editor_t *track_editor,
   track_editor->vggts.hscroll  = &(track_editor->hscrollbar_wgt.wgt.ggt);
   track_editor->vggts.zoom     = &(track_editor->hscrollbar_zoom_wgt.wgt.ggt);
 
-  msq_transport_child_init(&(track_editor->transport), transport_iface, track_ctx);
+  msq_transport_child_init(&(track_editor->transport),
+                           transport_iface,
+                           track_ctx,
+                           track_node_ggt);
   pbt_ggt_hctnr_init(&(track_editor->hctnr_transport));
   pbt_ggt_add_child_wgt(&(track_editor->hctnr_transport),
                         &(track_editor->transport));
