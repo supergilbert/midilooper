@@ -2064,6 +2064,7 @@ int main(int ac, char **av)
   midilooper_main_window *main_window;
   static struct option long_options[] =
     {{"alsa",            no_argument,       NULL,  'a'},
+     {"help",            no_argument,       NULL,  'h'},
      {"jack",            no_argument,       NULL,  'j'},
      {"jack-session-id", required_argument, NULL,  's'},
      {"name",            required_argument, NULL,  'n'},
@@ -2077,8 +2078,69 @@ int main(int ac, char **av)
     *name = (char *) default_name.c_str(),
     *file = NULL;
   int type = 0;
+  const char *synopsis = "\
+Usage: midilooper [OPTIONS]... [FILE]\n\
+Loop midi track.\n\
+\n\
+OPTIONS:\n\
+  -a, --alsa\n\
+    run in alsa mode\n\
+  -h, --help\n\
+    display this help\n\
+  -j, --jack\n\
+    run in jack mode\n\
+  -s, --jack-session-id\n\
+    set jacksession id to the jack client\n\
+  -n NAME, --name=NAME\n\
+    set name for the midi client (alsa or jack)\n\
+  -f FILE, --file=FILE\n\
+    load the specified midi file\n\
+\n\
+FILE:\n\
+  load the specified midi file\n\
+\n\
+Editor shortcuts:\n\
+  Ctrl a\n\
+    Select all\n\
+  Ctrl c\n\
+    Copy\n\
+  Ctrl v\n\
+    Paste\n\
+  Ctrl x\n\
+    Cut\n\
+  Alt q\n\
+    Quantize\n\
+  Suppr, Delete\n\
+    Delete selection\n\
+\n\
+Mouse behaviour:\n\
+  In the grid and value area:\n\
+    Right button press set the \"Write mode\". When the button is released the\n\
+    \"Selection mode\" is set.\n\
+    In \"Selection mode\":\n\
+      Left button\n\
+        select writed events.\n\
+      Middle button\n\
+        can change notes size.\n\
+      Wheel\n\
+        scroll up and down.\n\
+      Ctrl. Wheel\n\
+        zoom\n\
+      Alt. wheel\n\
+        scroll left right\n\
+    In \"Write mode\":\n\
+      Left button\n\
+        Write events\n\
+  In the time line area:\n\
+    Left button\n\
+      can change loop range\n\
+    Middle button\n\
+      can change play head\n\
+  In the piano area:\n\
+    Left button\n\
+      play note to output\n";
 
-  while ((opt_ret = getopt_long(ac, av, "ajs:n:f:", long_options, &opt_idx)))
+  while ((opt_ret = getopt_long(ac, av, "ahjs:n:f:", long_options, &opt_idx)))
     {
       if (opt_ret == -1)
         break;
@@ -2090,6 +2152,10 @@ int main(int ac, char **av)
             pbt_abort("can not set alsa and jack at the same time.");
           alsa = true;
           // type = 0;
+          break;
+        case 'h':
+          pbt_logmsg("%s", synopsis);
+          return 0;
           break;
         case 'j':
           if (alsa)
@@ -2107,7 +2173,8 @@ int main(int ac, char **av)
           file = optarg;
           break;
         default:
-          pbt_logmsg("?? getopt returned character code 0%o ??", opt_ret);
+          pbt_logmsg("%s\n?? getopt returned character code 0%o ??",
+                     synopsis, opt_ret);
         }
     }
 

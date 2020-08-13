@@ -153,8 +153,8 @@ void msq_init_track_rec_img(pbt_pixbuf_t *pixbuf,
                       pixbuf->width - (tmp << 1),
                       bg_color);
   pbt_pixbuf_draw_disc(pixbuf,
-                       (pixbuf->width >> 2) + 1,
-                       (pixbuf->width >> 2) + 1,
+                       (pixbuf->width >> 2),
+                       (pixbuf->width >> 2),
                        pixbuf->width >> 1,
                        fg_color);
 }
@@ -206,11 +206,11 @@ void msq_init_track_mute_img(pbt_pixbuf_t *pixbuf,
 }
 
 static unsigned char _default_play_color[4] = {0x0,
-                                                    0x90,
-                                                    0x0,
-                                                    0xFF};
+                                               0x90,
+                                               0x0,
+                                               0xFF};
 
-static unsigned char _default_rec_color[4] = {0xFF,
+static unsigned char _default_rec_color[4] = {0xC0,
                                               0x0,
                                               0x0,
                                               0xFF};
