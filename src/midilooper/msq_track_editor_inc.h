@@ -21,22 +21,6 @@ EXTERN_C_BEGIN
 
 #include <pbt_gadget_window_inc.h>
 
-typedef enum
-  {
-   MSQ_DEL,
-   MSQ_DEL_NOTE,
-   MSQ_ADD,
-   MSQ_ADD_NOTE,
-   MSQ_MARK
-  } msq_history_type_t;
-
-typedef struct
-{
-  msq_history_type_t type;
-  unsigned int tick[2];
-  midicev_t ev[2];
-} msq_history_elt_t;
-
 #define VALUE_TYPE_LEN 130
 
 #define CHANNEL_LIST_LEN 15
@@ -83,6 +67,24 @@ typedef struct
   int tmp_coo[4];
   list_t history;
 } track_editor_ctx_t;
+
+typedef enum
+  {
+   MSQ_MARK,
+   MSQ_DEL,
+   MSQ_DEL_NOTE,
+   MSQ_ADD,
+   MSQ_ADD_NOTE,
+   MSQ_CHANGE_CHANNEL
+  } msq_history_type_t;
+
+typedef struct
+{
+  msq_history_type_t type;
+  unsigned int tick[2];
+  midicev_t ev[2];
+  track_editor_ctx_t *_track_editor_ctx_priv; /* /!\ Caution may be empty */
+} msq_history_elt_t;
 
 typedef struct msq_tmp_tick_bar_st
 {

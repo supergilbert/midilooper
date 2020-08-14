@@ -1206,6 +1206,20 @@ void trackctx_del_event(track_ctx_t *track_ctx,
   evit_del_event(ev_iterator);
 }
 
+void _track_editor_ctx_set_channel(track_editor_ctx_t *track_editor_ctx, byte_t channel)
+{
+  track_ctx_t *track_ctx = track_editor_ctx->track_ctx;
+  ev_iterator_t ev_iterator = {};
+  midicev_t *midicev = NULL;
+
+  track_editor_ctx->channel = channel;
+  for (midicev = evit_init_midiallchannel(&ev_iterator,
+                                          &(track_ctx->track->tickev_list));
+       midicev != NULL;
+       midicev = evit_next_midiallchannel(&ev_iterator))
+    midicev->chan = channel;
+}
+
 void _history_evit_add_midicev(list_t *history,
                                ev_iterator_t *evit,
                                unsigned int tick,
@@ -1305,6 +1319,19 @@ void _history_evit_del_midicev(track_editor_ctx_t *editor_ctx,
   del_func(editor_ctx->track_ctx, evit);
 }
 
+void _history_track_editor_set_channel(track_editor_ctx_t *editor_ctx,
+                                       byte_t channel)
+{
+  msq_history_elt_t *history_elt;
+
+  history_elt = malloc(sizeof (msq_history_elt_t));
+  history_elt->type = MSQ_CHANGE_CHANNEL;
+  history_elt->ev[0].chan = editor_ctx->channel;
+  history_elt->_track_editor_ctx_priv = editor_ctx;
+  _track_editor_ctx_set_channel(editor_ctx, channel);
+  push_to_list(&(editor_ctx->history), history_elt);
+}
+
 void _history_add_mark(list_t *history)
 {
   msq_history_elt_t *history_elt;
@@ -1371,6 +1398,11 @@ void _history_undo(track_editor_ctx_t *editor_ctx)
         {
           evit_add_midicev(&evit, history_elt->tick[0], &(history_elt->ev[0]));
           evit_add_midicev(&evit, history_elt->tick[1], &(history_elt->ev[1]));
+        }
+      else if (history_elt->type == MSQ_CHANGE_CHANNEL)
+        {
+          _track_editor_ctx_set_channel(history_elt->_track_editor_ctx_priv,
+                                        history_elt->ev[0].chan);
         }
       iter_node_del(&it, free);
     }
@@ -4527,7 +4559,8 @@ void channel_setting_dialog_res_cb(size_t idx,
 {
   track_editor_t *track_editor = track_editor_addr;
 
-  track_editor->editor_ctx.channel = idx;
+  _history_add_mark(&(track_editor->editor_ctx.history));
+  _history_track_editor_set_channel(&(track_editor->editor_ctx), idx);
   msq_draw_vggts(&(track_editor->vggts));
 }
 
@@ -4603,6 +4636,13 @@ void msq_combobox_draw_pixbufs(msq_combobox_t *combobox)
                        &(combobox->gui_theme->theme.font),
                        combobox->gui_theme->theme.wgt_hovered_fg,
                        combobox->gui_theme->theme.wgt_hovered_bg);
+}
+
+void msq_combobox_refresh(msq_combobox_t *combobox)
+{
+  msq_combobox_draw_pixbufs(combobox);
+  pbt_wgt_draw(&(combobox->button));
+  pbt_wgt_win_put_buffer(&(combobox->button.wgt));
 }
 
 void msq_combobox_dialog_res_cb(size_t idx,

@@ -1272,6 +1272,7 @@ void track_set_output_dialog_res_cb(size_t idx, void *mainwin_addr)
       engine_get_output(mainwin->engine_ctx, idx - 1);
   pbt_ggt_draw(&(mainwin->track_list.vctnr));
   mainwin->refresh();
+  msq_combobox_refresh(&(mainwin->dialog_track->output_combobox));
 }
 
 void track_rename_dialog_res_cb(char *str, void *mainwin_addr)
