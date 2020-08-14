@@ -109,6 +109,28 @@ typedef struct
   pbt_ggt_t *vscroll;
 } msq_hggts_t;
 
+typedef char *(*msq_combobox_get_default_str_t)(void *cbb_addr);
+typedef void (*msq_combobox_get_list_t)(void *cbb_addr,
+                                        char ***list,
+                                        size_t *list_len);
+typedef void (*msq_combobox_cb_t)(size_t combo_idx, void *arg);
+
+typedef struct
+{
+  pbt_wgt_button_t button;
+  msq_combobox_get_default_str_t combobox_get_default_str;
+  msq_combobox_get_list_t combobox_get_list;
+  msq_combobox_cb_t cb;
+  void *cbb_addr;
+  msq_dialog_iface_t *dialog_iface;
+  pbt_pixbuf_t pb_released;
+  pbt_pixbuf_t pb_pressed;
+  pbt_pixbuf_t pb_hovered;
+  msq_gui_theme_t *gui_theme;
+  pbt_ggt_node_t button_node;
+  pbt_ggt_t ggt;
+} msq_combobox_t;
+
 typedef struct
 {
   pbt_ggt_t *timeline;
@@ -116,6 +138,7 @@ typedef struct
   pbt_ggt_t *value;
   pbt_ggt_t *hscroll;
   pbt_ggt_t *zoom;
+  msq_combobox_t *channel_cbbox;
 } msq_vggts_t;
 
 typedef struct
@@ -178,28 +201,6 @@ typedef struct
 /*   pbt_wgt_button_t dec; */
 /*   pbt_ggt_drawarea_t label; */
 /* } msq_grid_zoom_t */
-
-typedef char *(*msq_combobox_get_default_str_t)(void *cbb_addr);
-typedef void (*msq_combobox_get_list_t)(void *cbb_addr,
-                                        char ***list,
-                                        size_t *list_len);
-typedef void (*msq_combobox_cb_t)(size_t combo_idx, void *arg);
-
-typedef struct
-{
-  pbt_wgt_button_t button;
-  msq_combobox_get_default_str_t combobox_get_default_str;
-  msq_combobox_get_list_t combobox_get_list;
-  msq_combobox_cb_t cb;
-  void *cbb_addr;
-  msq_dialog_iface_t *dialog_iface;
-  pbt_pixbuf_t pb_released;
-  pbt_pixbuf_t pb_pressed;
-  pbt_pixbuf_t pb_hovered;
-  msq_gui_theme_t *gui_theme;
-  pbt_ggt_node_t button_node;
-  pbt_ggt_t ggt;
-} msq_combobox_t;
 
 typedef struct
 {

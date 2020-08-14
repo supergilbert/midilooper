@@ -982,17 +982,56 @@ void _timeline_wgt_set_loop_startnlen(int xpos,
     }
 }
 
+void draw_combobox_button(pbt_pixbuf_t *pixbuf, char *label,
+                          pbt_font_t *font,
+                          unsigned char *fg, unsigned char *bg)
+{
+  int size = font->max_height - 6;;
+  unsigned int xpos = pixbuf->width - 4 - size,
+    ypos = 2 + (size / 2);
+
+  pbt_pixbuf_fill(pixbuf, bg);
+  pbt_pixbuf_printf(pixbuf, font,
+                    fg,
+                    1, 0,
+                    label);
+  pbt_pixbuf_draw_triangle_down(pixbuf, xpos, ypos, size, fg);
+}
+
+void msq_combobox_draw_pixbufs(msq_combobox_t *combobox)
+{
+  draw_combobox_button(&(combobox->pb_released),
+                       combobox->combobox_get_default_str(combobox->cbb_addr),
+                       &(combobox->gui_theme->theme.font),
+                       combobox->gui_theme->theme.wgt_normal_fg,
+                       combobox->gui_theme->theme.wgt_normal_bg);
+  draw_combobox_button(&(combobox->pb_pressed),
+                       combobox->combobox_get_default_str(combobox->cbb_addr),
+                       &(combobox->gui_theme->theme.font),
+                       combobox->gui_theme->theme.wgt_activated_fg,
+                       combobox->gui_theme->theme.wgt_activated_bg);
+  draw_combobox_button(&(combobox->pb_hovered),
+                       combobox->combobox_get_default_str(combobox->cbb_addr),
+                       &(combobox->gui_theme->theme.font),
+                       combobox->gui_theme->theme.wgt_hovered_fg,
+                       combobox->gui_theme->theme.wgt_hovered_bg);
+}
+
+void msq_combobox_refresh(msq_combobox_t *combobox)
+{
+  msq_combobox_draw_pixbufs(combobox);
+  pbt_wgt_draw(&(combobox->button));
+  pbt_wgt_win_put_buffer(&(combobox->button.wgt));
+}
+
 void msq_draw_vggts(msq_vggts_t *vggts)
 {
-  pbt_wgt_t *wgt;
-
   _pbt_ggt_draw(vggts->timeline);
   _pbt_ggt_draw(vggts->grid);
   _pbt_ggt_draw(vggts->value);
   _pbt_ggt_draw(vggts->hscroll);
   _pbt_ggt_draw(vggts->zoom);
-  wgt = vggts->grid->priv;
-  pbt_ggt_win_put_buffer(wgt->ggt_win);
+  msq_combobox_refresh(vggts->channel_cbbox);
 }
 
 void msq_track_draw_tick_pos(track_editor_t *track_editor, uint_t tick)
@@ -4603,48 +4642,6 @@ void value_type_dialog_res_cb(size_t idx,
   pbt_ggt_win_put_buffer(&(track_editor->ggt_win));
 }
 
-void draw_combobox_button(pbt_pixbuf_t *pixbuf, char *label,
-                          pbt_font_t *font,
-                          unsigned char *fg, unsigned char *bg)
-{
-  int size = font->max_height - 6;;
-  unsigned int xpos = pixbuf->width - 4 - size,
-    ypos = 2 + (size / 2);
-
-  pbt_pixbuf_fill(pixbuf, bg);
-  pbt_pixbuf_printf(pixbuf, font,
-                    fg,
-                    1, 0,
-                    label);
-  pbt_pixbuf_draw_triangle_down(pixbuf, xpos, ypos, size, fg);
-}
-
-void msq_combobox_draw_pixbufs(msq_combobox_t *combobox)
-{
-  draw_combobox_button(&(combobox->pb_released),
-                       combobox->combobox_get_default_str(combobox->cbb_addr),
-                       &(combobox->gui_theme->theme.font),
-                       combobox->gui_theme->theme.wgt_normal_fg,
-                       combobox->gui_theme->theme.wgt_normal_bg);
-  draw_combobox_button(&(combobox->pb_pressed),
-                       combobox->combobox_get_default_str(combobox->cbb_addr),
-                       &(combobox->gui_theme->theme.font),
-                       combobox->gui_theme->theme.wgt_activated_fg,
-                       combobox->gui_theme->theme.wgt_activated_bg);
-  draw_combobox_button(&(combobox->pb_hovered),
-                       combobox->combobox_get_default_str(combobox->cbb_addr),
-                       &(combobox->gui_theme->theme.font),
-                       combobox->gui_theme->theme.wgt_hovered_fg,
-                       combobox->gui_theme->theme.wgt_hovered_bg);
-}
-
-void msq_combobox_refresh(msq_combobox_t *combobox)
-{
-  msq_combobox_draw_pixbufs(combobox);
-  pbt_wgt_draw(&(combobox->button));
-  pbt_wgt_win_put_buffer(&(combobox->button.wgt));
-}
-
 void msq_combobox_dialog_res_cb(size_t idx,
                                 void *combobox_addr)
 {
@@ -4918,6 +4915,7 @@ void track_editor_init(track_editor_t *track_editor,
   track_editor->vggts.value    = &(track_editor->value_wgt.wgt.ggt);
   track_editor->vggts.hscroll  = &(track_editor->hscrollbar_wgt.wgt.ggt);
   track_editor->vggts.zoom     = &(track_editor->hscrollbar_zoom_wgt.wgt.ggt);
+  track_editor->vggts.channel_cbbox = &(track_editor->channel_combobox);
 
   msq_transport_child_init(&(track_editor->transport),
                            transport_iface,
