@@ -170,6 +170,7 @@ track_ctx_t *engine_copy_trackctx(engine_ctx_t *ctx,
                                       track,
                                       trackctx_src->loop_start,
                                       trackctx_src->loop_len);
+  trackctx_dst->mute = MSQ_TRUE;
   push_to_list_tail(&(ctx->track_list), trackctx_dst);
   return trackctx_dst;
 }

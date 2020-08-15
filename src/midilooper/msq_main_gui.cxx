@@ -1976,6 +1976,15 @@ void midilooper_main_window::handle_msq_update(void)
           wait_note_binding = false;
         }
     }
+  else
+    {
+      // Temp hack to handle resize refresh bug (pbt_gadget_window.c TODO)
+      if (wait_since + 1.0 < wbe_get_time())
+        {
+          wait_since = wbe_get_time();
+          pbt_ggt_win_put_buffer(&ggt_win);
+        }
+    }
 }
 
 #define DELAY_RUN_MAX        0.03 // ~= 30 fps
