@@ -516,10 +516,49 @@ void msq_transport_tempo_draw_cb(pbt_ggt_t *ggt)
                     60000000 / transport_tempo->engine_ctx->tempo);
 }
 
+void msq_transport_tempo_dec(msq_transport_tempo_t *transport_tempo)
+{
+  unsigned int tmp = 60000000 / transport_tempo->engine_ctx->tempo;
+
+  tmp = 60000000 / (tmp - 1);
+
+  if (tmp > 1500000)
+    tmp = 1500000;
+  engine_set_tempo(transport_tempo->engine_ctx, tmp);
+  pbt_wgt_draw(transport_tempo);
+}
+
+void msq_transport_tempo_inc(msq_transport_tempo_t *transport_tempo)
+{
+  unsigned int tmp = 60000000 / transport_tempo->engine_ctx->tempo;
+
+  tmp = 60000000 / (tmp + 1);
+
+  if (tmp < 288461)
+    tmp = 288461;
+  engine_set_tempo(transport_tempo->engine_ctx, tmp);
+  pbt_wgt_draw(transport_tempo);
+}
+
 pbt_bool_t msq_transport_tempo_set_focus_cb(pbt_ggt_t *ggt,
                                             wbe_window_input_t *winev,
-                                            void *track_node_addr)
+                                            void *transport_tempo_addr)
 {
+  msq_transport_tempo_t *transport_tempo = transport_tempo_addr;
+
+  if (_PBT_IS_IN_GGT(ggt, winev->xpos, winev->ypos) == PBT_TRUE)
+    {
+      if (WBE_GET_BIT(winev->buttons, 3) == 1)
+        {
+          msq_transport_tempo_dec(transport_tempo);
+          pbt_wgt_win_put_buffer(&(transport_tempo->wgt));
+        }
+      else if (WBE_GET_BIT(winev->buttons, 4) == 1)
+        {
+          msq_transport_tempo_inc(transport_tempo);
+          pbt_wgt_win_put_buffer(&(transport_tempo->wgt));
+        }
+    }
   return PBT_FALSE;
 }
 
@@ -528,7 +567,7 @@ void msq_transport_tempo_init_ev(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
   pbt_evh_add_set_focus_cb(&(ggt_win->evh),
                            &(wgt->ggt),
                            msq_transport_tempo_set_focus_cb,
-                           NULL);
+                           wgt->priv);
 }
 
 void msq_transport_tempo_init(msq_transport_tempo_t *transport_tempo,
@@ -556,32 +595,15 @@ void msq_transport_tempo_init(msq_transport_tempo_t *transport_tempo,
   transport_tempo->wgt.init_ev_cb = msq_transport_tempo_init_ev;
 }
 
-void msq_transport_tempo_dec(void *transport_tempo_addr)
+void msq_transport_tempo_dec_cb(void *transport_tempo_addr)
 {
-  msq_transport_tempo_t *transport_tempo = transport_tempo_addr;
-  unsigned int tmp = 60000000 / transport_tempo->engine_ctx->tempo;
-
-  tmp = 60000000 / (tmp - 1);
-
-  if (tmp > 1500000)
-    tmp = 1500000;
-  engine_set_tempo(transport_tempo->engine_ctx, tmp);
-  pbt_wgt_draw(transport_tempo);
+  msq_transport_tempo_dec(transport_tempo_addr);
 }
 
-void msq_transport_tempo_inc(void *transport_tempo_addr)
+void msq_transport_tempo_inc_cb(void *transport_tempo_addr)
 {
-  msq_transport_tempo_t *transport_tempo = transport_tempo_addr;
-  unsigned int tmp = 60000000 / transport_tempo->engine_ctx->tempo;
-
-  tmp = 60000000 / (tmp + 1);
-
-  if (tmp < 288461)
-    tmp = 288461;
-  engine_set_tempo(transport_tempo->engine_ctx, tmp);
-  pbt_wgt_draw(transport_tempo);
+  msq_transport_tempo_inc(transport_tempo_addr);
 }
-
 
 pbt_bool_t msq_transport_iface_set_focus_cb(pbt_ggt_t *ggt,
                                             wbe_window_input_t *winev,
@@ -646,11 +668,11 @@ void msq_transport_init(msq_transport_iface_t *transport_iface,
                            global_theme);
   msq_button_minus_init(&(transport_iface->tempo_dec),
                         global_theme,
-                        msq_transport_tempo_dec,
+                        msq_transport_tempo_dec_cb,
                         &(transport_iface->tempo_wgt));
   msq_button_plus_init(&(transport_iface->tempo_inc),
                        global_theme,
-                       msq_transport_tempo_inc,
+                       msq_transport_tempo_inc_cb,
                        &(transport_iface->tempo_wgt));
   pbt_ggt_hctnr_init(&(transport_iface->root_ctnr));
   pbt_ggt_add_child_wgt(&(transport_iface->root_ctnr),
