@@ -4,6 +4,7 @@ This code is in development.
 
 ## Build instructions
 
+    git submodule update --recursive --init
     mkdir <BUILD_DIR>
     cd <BUILD_DIR>
     cmake <MIDILOOPER_DIR>
