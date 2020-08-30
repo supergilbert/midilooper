@@ -73,10 +73,11 @@ typedef struct
 
 typedef struct
 {
-  seqtype_t type;
-  uint_t    tempo; /* microseconds */
-  uint_t    ppq;
-  list_t    portinfo_list;
+  seqtype_t  type;
+  uint_t     tempo; /* microseconds */
+  uint_t     ppq;
+  list_t     portinfo_list;
+  msq_bool_t is_msq;
   /* char      *name; */
 }           midifile_info_t;
 

@@ -90,13 +90,17 @@ void get_sysex_portname(list_t *port_list, byte_t *buf)
   push_to_list_tail(port_list, portinfo);
 }
 
-void get_msq_sysex(midifile_info_t *info, midifile_track_t *track, byte_t *buffer, uint_t size)
+void get_msq_sysex(midifile_info_t *info,
+                   midifile_track_t *track,
+                   byte_t *buffer,
+                   uint_t size)
 {
   if (buffer[0] == 0
       && buffer[1] == 'M'
       && buffer[2] == 'S'
       && buffer[3] == 'Q')
     {
+      info->is_msq = MSQ_TRUE;
       switch (buffer[4])
         {
         case MSQ_SYSEX_TRACK_LOOPSTART:
@@ -307,7 +311,11 @@ midifile_t *get_midifile_tracks(int fd,
   midifile_t       *midifile = NULL;
   list_t           track_list;
   midifile_track_t *midifile_track = NULL;
-  midifile_info_t  info = {MULTITRACK_MIDIFILE_USYNC, 500000, 120};
+  midifile_info_t  info = {.type = MULTITRACK_MIDIFILE_USYNC,
+                           .tempo = 500000,
+                           .ppq = 192,
+                           .portinfo_list = {},
+                           .is_msq = MSQ_FALSE};
 
   bzero(&track_list, sizeof (list_t));
   info.type = midifile_hdr->format_type;

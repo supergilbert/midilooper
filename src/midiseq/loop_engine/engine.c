@@ -226,6 +226,7 @@ void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
   track_ctx_t         *trackctx = NULL;
   msq_bool_t          loop_info_missing = MSQ_FALSE;
   unsigned int        max_tick = 0, cur_max;
+  output_t            *default_output = NULL;
 
   ctx->ppq = midifile->info.ppq;
   engine_set_tempo(ctx, midifile->info.tempo);
@@ -266,13 +267,15 @@ void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
     }
   free_list_node(&tmpport, free);
 
-  if (loop_info_missing == MSQ_TRUE)
+  if (loop_info_missing == MSQ_TRUE || midifile->info.is_msq == MSQ_FALSE)
     {
+      default_output = engine_create_output(ctx, "default");
       for (iter_init(&trackit, &(ctx->track_list));
            iter_node(&trackit) != NULL;
            iter_next(&trackit))
         {
           trackctx = iter_node_ptr(&trackit);
+          trackctx->output = default_output;
           cur_max = msq_get_max_tick(&(trackctx->track->tickev_list));
           if (cur_max > max_tick)
             max_tick = cur_max;
