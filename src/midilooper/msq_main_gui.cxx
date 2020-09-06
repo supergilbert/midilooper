@@ -2090,7 +2090,7 @@ int main(int ac, char **av)
   int type = 0;
   const char *synopsis = "\
 Usage: midilooper [OPTIONS]... [FILE]\n\
-Loop midi track.\n\
+Loop midi sequencer that can be controlled with keyboard or midi shortcuts.\n\
 \n\
 OPTIONS:\n\
   -a, --alsa\n\
