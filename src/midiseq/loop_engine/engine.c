@@ -123,6 +123,7 @@ msq_bool_t engine_delete_trackctx(engine_ctx_t *ctx, track_ctx_t *trackctx)
       track_ctx = iter_node_ptr(&trackit);
       if (track_ctx == trackctx)
         {
+          engine_del_track_bindings(ctx, track_ctx);
           if (engine_is_running(ctx) == MSQ_TRUE)
             track_ctx->deleted = MSQ_TRUE;
           else
