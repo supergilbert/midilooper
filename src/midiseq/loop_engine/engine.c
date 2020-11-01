@@ -192,7 +192,7 @@ void engine_set_miditrack_bindings(engine_ctx_t *ctx,
                  trackctx);
 }
 
-track_ctx_t *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrack)
+track_ctx_t *_engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrack)
 {
   track_ctx_t *trackctx = NULL;
   track_t     *track = myalloc(sizeof (track_t));
@@ -205,6 +205,8 @@ track_ctx_t *engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrac
                                   track,
                                   mtrack->sysex_loop_start,
                                   mtrack->sysex_loop_len);
+  if (mtrack->sysex_muted == MSQ_TRUE)
+    trackctx->mute = MSQ_TRUE;
   engine_set_miditrack_bindings(ctx, mtrack, trackctx);
   push_to_list_tail(&(ctx->track_list), trackctx);
   return trackctx;
@@ -248,7 +250,7 @@ void engine_read_midifile(engine_ctx_t *ctx, midifile_t *midifile)
        iter_next(&trackit))
     {
       mf_track = iter_node_ptr(&trackit);
-      trackctx = engine_copyadd_miditrack(ctx, mf_track);
+      trackctx = _engine_copyadd_miditrack(ctx, mf_track);
       if (trackctx->loop_len == 0)
         loop_info_missing = MSQ_TRUE;
       if (mf_track->sysex_portid != -1)

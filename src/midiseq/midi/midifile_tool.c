@@ -333,10 +333,19 @@ buf_node_t *_append_sysex_portid(buf_node_t *tail, int sysex_portid)
 {
   byte_t buf[5];
 
-  tail = _append_sysex_header(tail, 5, MSQ_TRACK_PORTID);
+  tail = _append_sysex_header(tail, 5, MSQ_SYSEX_TRACK_PORTID);
   set_be32b_uint(buf, sysex_portid);
   buf[4] = 0xF7;
   tail->next = add_buf_node(buf, 5);
+  return tail->next;
+}
+
+buf_node_t *_append_sysex_muted(buf_node_t *tail)
+{
+  byte_t sysex_end = 0xF7;
+
+  tail = _append_sysex_header(tail, 1, MSQ_SYSEX_TRACK_MUTED);
+  tail->next = add_buf_node(&sysex_end, 1);
   return tail->next;
 }
 
@@ -393,6 +402,8 @@ void write_midifile_track(int fd, midifile_track_t *mtrack, msq_bool_t template)
   tail = _append_sysex_bindings(tail, &(mtrack->bindings));
   if (mtrack->sysex_portid != -1)
     tail = _append_sysex_portid(tail, mtrack->sysex_portid);
+  if (mtrack->sysex_muted == MSQ_TRUE)
+    tail = _append_sysex_muted(tail);
 
   if (template == MSQ_FALSE)
     tail = _append_tickev_list(tail, &(mtrack->track.tickev_list));

@@ -118,7 +118,7 @@ void get_msq_sysex(midifile_info_t *info,
         case MSQ_SYSEX_PORTNAME:
           get_sysex_portname(&(info->portinfo_list), &(buffer[5]));
           break;
-        case MSQ_TRACK_PORTID:
+        case MSQ_SYSEX_TRACK_PORTID:
           track->sysex_portid =  buffer[5] << 24;
           track->sysex_portid += buffer[6] << 16;
           track->sysex_portid += buffer[7] << 8;
@@ -131,6 +131,9 @@ void get_msq_sysex(midifile_info_t *info,
         case MSQ_SYSEX_TRACK_NOTEPRESS:
           track->bindings.notes_sz = (size_t) buffer[5];
           memcpy(track->bindings.notes, &(buffer[6]), track->bindings.notes_sz);
+          break;
+        case MSQ_SYSEX_TRACK_MUTED:
+          track->sysex_muted = MSQ_TRUE;
           break;
         default:
           output_error("Unexpected SYSEX 0x%X", buffer[4]);

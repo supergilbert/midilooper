@@ -97,6 +97,7 @@ typedef struct
   uint_t         sysex_loop_start;
   uint_t         sysex_loop_len;
   int            sysex_portid;
+  msq_bool_t     sysex_muted;
   midif_trackb_t bindings;
   track_t        track;
 } midifile_track_t;
@@ -132,11 +133,12 @@ buf_node_t *create_midifile_trackhdr(size_t track_size);
 #define MSQ_SYSEX_TRACK_LOOPLEN   1   /* 4 byte track sequence length */
 #define MSQ_SYSEX_TRACK_KEYPRESS  2   /* bytes list of key bindings */
 #define MSQ_SYSEX_TRACK_NOTEPRESS 3   /* bytes list of note bindings */
+#define MSQ_SYSEX_TRACK_MUTED     4   /* not followed */
 
 #define MSQ_SYSEX_PORTNAME        128 /* 4 byte portid
                                          2 byte namelen
                                          etc. name data */
-#define MSQ_TRACK_PORTID          129 /* followed by 4 byte */
+#define MSQ_SYSEX_TRACK_PORTID    129 /* followed by 4 byte */
 
 #define GETVLVSIZE(_tick) (_tick < 128) ? 1 :            \
   (((_tick >> 7) < 128) ? 2 :                            \

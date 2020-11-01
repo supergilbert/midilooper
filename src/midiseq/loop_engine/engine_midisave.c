@@ -110,6 +110,7 @@ void set_midifile_track(track_ctx_t *trackctx,
     get_outputid(&(ctx->output_list),
                  trackctx->output) :
     -1;
+  mtrack->sysex_muted = trackctx->mute;
 
   mtrack->bindings.notes_sz =
     _fill_byte_array_w_track_bindings(mtrack->bindings.notes,
