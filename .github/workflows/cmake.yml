@@ -17,6 +17,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     
+    - name: Initialise submodules
+      run: git submodule update --recursive --init
+    
     - name: Install dependencies
       run: sudo apt install libasound2-dev libconfig-dev libfreetype6-dev libgles2-mesa-dev libglfw3-dev libjack-jackd2-dev
 
