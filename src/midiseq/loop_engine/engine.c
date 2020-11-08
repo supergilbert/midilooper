@@ -489,8 +489,7 @@ void engine_toggle_rec(engine_ctx_t *ctx)
 
 msq_bool_t init_engine(engine_ctx_t *engine,
                    char *name,
-                   int type,
-                   char *jacksessionid)
+                   int type)
 {
   bzero(engine, sizeof (engine_ctx_t));
   engine->rbuff = init_midiringbuff(400);
@@ -506,7 +505,7 @@ msq_bool_t init_engine(engine_ctx_t *engine,
     }
   else
     {
-      if (jbe_init_engine(engine, name, jacksessionid) != MSQ_TRUE)
+      if (jbe_init_engine(engine, name) != MSQ_TRUE)
         return MSQ_FALSE;
     }
 

@@ -650,8 +650,10 @@ msq_imgui_dialog::msq_imgui_dialog(msq_dialog_iface_t *dialog_iface_arg, msq_gui
 
   set_style(theme);
 
+  char *current_dir = get_current_dir_name();
   dir_array = new directory_array();
-  dir_array->load_directory("/tmp");
+  dir_array->load_directory(current_dir);
+  free(current_dir);
 
   ImGui_ImplGlfw_InitForOpenGL(glfw_win, true);
   init_font();

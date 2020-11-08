@@ -208,12 +208,11 @@ byte_t     engine_get_sysex_mmc(engine_ctx_t *ctx, byte_t *sysex, uint_t size);
 void engine_toggle_rec(engine_ctx_t *ctx);
 
 msq_bool_t nns_init_engine(engine_ctx_t *ctx, char *name);
-msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid);
+msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name);
 
 msq_bool_t init_engine(engine_ctx_t *engine,
                        char *name,
-                       int type,
-                       char *jacksessionid);
+                       int type);
 void       uninit_engine(engine_ctx_t *engine);
 
 typedef struct

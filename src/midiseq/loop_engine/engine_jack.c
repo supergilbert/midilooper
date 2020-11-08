@@ -396,44 +396,10 @@ void jack_shutdown(void *arg)
   exit (1);
 }
 
-#include <jack/session.h>
-void jack_session_cb(jack_session_event_t *event, void *arg)
-{
-  engine_ctx_t *ctx = (engine_ctx_t *) arg;
-  jbe_hdl_t    *be_hdl = (jbe_hdl_t *) ctx->hdl;
-
-#define SAVEPATH_TPL "midilooper_%s.midi"
-  sprintf(ctx->savepath, "%s"SAVEPATH_TPL, event->session_dir, event->client_uuid);
-  event->command_line = myalloc(1024);
-  sprintf(event->command_line, "midilooper -s %s -j ${SESSION_DIR}"SAVEPATH_TPL,
-          event->client_uuid, event->client_uuid);
-  switch (event->type)
-    {
-    case JackSessionSaveTemplate:
-      ctx->saverq = SAVE_TPL_RQ;
-      output("JackSessionSaveTemplate: %s\n", event->command_line);
-      break;
-    case JackSessionSave:
-      ctx->saverq = SAVE_RQ;
-      output("JackSessionSave: %s\n", event->command_line);
-      break;
-    case JackSessionSaveAndQuit:
-      ctx->saverq = SAVE_N_QUIT_RQ;
-      output("JackSessionSaveAndQuit: %s\n", event->command_line);
-      jbe_stop(ctx);
-      break;
-    default:
-      ;
-    }
-  /* Should it wait save ? */
-  jack_session_reply(be_hdl->client, event);
-  jack_session_event_free(event);
-}
-
-msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid)
+msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name)
 {
   jbe_hdl_t     *hdl = NULL;
-  jack_client_t *client = create_jackh(name, jacksessionid);
+  jack_client_t *client = create_jackh(name);
 
   if (client == NULL)
     return MSQ_FALSE;
@@ -470,8 +436,6 @@ msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name, char *jacksessionid)
                             jbe_process_cb,
                             ctx);
   jack_on_shutdown(hdl->client, jack_shutdown, 0);
-
-  jack_set_session_callback(hdl->client, jack_session_cb, (void *) ctx);
 
   if (jack_activate(client)) {
     output_error("Cannot activate jack client");

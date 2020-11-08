@@ -52,7 +52,7 @@ class directory_array
 {
   list<file_elt *> file_list;
   char *dir_path;
-  void destroy_list(void)
+  void destroy_data(void)
   {
     if (!file_list.empty())
       {
@@ -68,7 +68,7 @@ class directory_array
 public:
   ~directory_array(void)
   {
-    destroy_list();
+    destroy_data();
   }
   directory_array(void)
   {
@@ -85,7 +85,7 @@ public:
     if (directory == NULL)
       return false;
 
-    destroy_list();
+    destroy_data();
 
     while ((readdir_ret = readdir(directory)) != NULL)
       {

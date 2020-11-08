@@ -20,24 +20,16 @@
 #include "./jack/jack_backend.h"
 #include "./debug_tool/debug_tool.h"
 
-jack_client_t *create_jackh(const char *name, char *jacksessionid)
+jack_client_t *create_jackh(const char *name)
 {
   jack_status_t status;
   jack_client_t *client = NULL;
   char          *alternate_name = NULL;
 
-  if (jacksessionid != NULL && *jacksessionid != '\0')
-    {
-      client = jack_client_open(name,
-                                JackNoStartServer|JackSessionID,
-                                &status,
-                                jacksessionid);
-    }
-  else
-    client = jack_client_open(name,
-                              JackNoStartServer,
-                              &status,
-                              NULL);
+  client = jack_client_open(name,
+                            JackNoStartServer,
+                            &status,
+                            NULL);
 
   if (client == NULL)
     {

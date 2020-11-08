@@ -89,9 +89,9 @@ public:
   msq_wgt_list_t track_list = {};
   msq_imgui_dialog *imgui_dialog = NULL;
 
-  void _init_main_window(char *name, int type, char *jack_session_id, char *filename);
-  midilooper_main_window(char *name, int type, char *jack_session_id, char *filename);
-  midilooper_main_window(char *name, int type, char *jack_session_id);
+  void _init_main_window(char *name, int type, char *filename);
+  midilooper_main_window(char *name, int type, char *filename);
+  midilooper_main_window(char *name, int type);
   ~midilooper_main_window(void);
   void handle_dialog(void);
   void handle_windows(void);
@@ -1361,7 +1361,6 @@ void main_window_input_cb(wbe_window_input_t *winev, void *main_window_addr)
 
 void midilooper_main_window::_init_main_window(char *name,
                                                int type,
-                                               char *jack_session_id,
                                                char *filename)
 {
   list_iterator_t it;
@@ -1382,7 +1381,7 @@ void midilooper_main_window::_init_main_window(char *name,
         }
       midifile = read_midifile_fd(midifile_fd);
       engine_ctx = (engine_ctx_t *) malloc(sizeof (engine_ctx_t)); // TODO remove malloc
-      init_engine(engine_ctx, name, type, jack_session_id);
+      init_engine(engine_ctx, name, type);
       engine_read_midifile(engine_ctx, midifile);
       free_midifile(midifile);
       close(midifile_fd);
@@ -1390,7 +1389,7 @@ void midilooper_main_window::_init_main_window(char *name,
   else
     {
       engine_ctx = (engine_ctx_t *) malloc(sizeof (engine_ctx_t)); // TODO bis remove malloc
-      init_engine(engine_ctx, name, type, jack_session_id);
+      init_engine(engine_ctx, name, type);
     }
 
   gui_default_theme_init(&theme);
@@ -1486,17 +1485,15 @@ void midilooper_main_window::_init_main_window(char *name,
 
 midilooper_main_window::midilooper_main_window(char *name,
                                                int type,
-                                               char *jack_session_id,
                                                char *filename)
 {
-  _init_main_window(name, type, jack_session_id, filename);
+  _init_main_window(name, type, filename);
 }
 
 midilooper_main_window::midilooper_main_window(char *name,
-                                               int type,
-                                               char *jack_session_id)
+                                               int type)
 {
-  _init_main_window(name, type, jack_session_id, NULL);
+  _init_main_window(name, type, NULL);
 }
 
 midilooper_main_window::~midilooper_main_window(void)
@@ -2076,7 +2073,6 @@ int main(int ac, char **av)
     {{"alsa",            no_argument,       NULL,  'a'},
      {"help",            no_argument,       NULL,  'h'},
      {"jack",            no_argument,       NULL,  'j'},
-     {"jack-session-id", required_argument, NULL,  's'},
      {"name",            required_argument, NULL,  'n'},
      {"file",            required_argument, NULL,  'f'},
      {NULL,              0,                 NULL,  0}};
@@ -2084,8 +2080,7 @@ int main(int ac, char **av)
   int opt_idx = 0;
   bool alsa = false, jack = false;
   const string default_name = "Midilooper";
-  char *jack_session_id = NULL,
-    *name = (char *) default_name.c_str(),
+  char *name = (char *) default_name.c_str(),
     *file = NULL;
   int type = 0;
   const char *synopsis = "\
@@ -2099,8 +2094,6 @@ OPTIONS:\n\
     display this help\n\
   -j, --jack\n\
     run in jack mode\n\
-  -s, --jack-session-id\n\
-    set jacksession id to the jack client\n\
   -n NAME, --name=NAME\n\
     set name for the midi client (alsa or jack)\n\
   -f FILE, --file=FILE\n\
@@ -2150,7 +2143,7 @@ Mouse behaviour:\n\
     Left button\n\
       play note to output\n";
 
-  while ((opt_ret = getopt_long(ac, av, "ahjs:n:f:", long_options, &opt_idx)))
+  while ((opt_ret = getopt_long(ac, av, "ahjn:f:", long_options, &opt_idx)))
     {
       if (opt_ret == -1)
         break;
@@ -2172,9 +2165,6 @@ Mouse behaviour:\n\
             pbt_abort("can not set jack and alsa at the same time.");
           jack = true;
           type = 1;
-          break;
-        case 's':
-          jack_session_id = optarg;
           break;
         case 'n':
           name = optarg;
@@ -2201,7 +2191,7 @@ Mouse behaviour:\n\
 
   wbe_pbw_backend_init();
 
-  main_window = new midilooper_main_window(name, type, jack_session_id, file);
+  main_window = new midilooper_main_window(name, type, file);
 
   main_window->run();
 
