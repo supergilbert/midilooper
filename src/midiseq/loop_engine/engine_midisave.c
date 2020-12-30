@@ -39,7 +39,7 @@ buf_node_t *_append_sysex_port(buf_node_t *tail, output_t *output, uint_t idx)
   node->next = sysex_buf_node_end((byte_t *) port_name, name_len);
   tail = _append_sysex_header(tail,
                               get_buf_list_size(node),
-                              MSQ_SYSEX_PORTNAME);
+                              MLP_SYSEX_PORTNAME);
   tail->next = node;
   return node->next;
 }
@@ -48,12 +48,16 @@ void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
 {
   list_iterator_t iter;
   output_t        *output;
-  buf_node_t      head = {NULL, 0, NULL};
+  buf_node_t      tmp_root = {};
   buf_node_t      *node;
   uint_t          idx = 0;
 
+  node = _append_metaev_set_tempo(&tmp_root, ctx->tempo);
+
+  node = _append_sysex_file_version(node);
+  node = _append_sysex_engine_type(node, ctx->type);
+
   for (iter_init(&iter, &(ctx->output_list)),
-         node = &head,
          idx = 0;
        iter_node(&iter);
        iter_next(&iter),
@@ -63,12 +67,11 @@ void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
       node = _append_sysex_port(node, output, idx);
     }
 
-  node = _append_metaev_set_tempo(node, ctx->tempo);
   /* node = _append_metaev_eot(node); */
   _append_metaev_eot(node);
 
-  node = create_midifile_trackhdr(get_buf_list_size(head.next));
-  node->next = head.next;
+  node = create_midifile_trackhdr(get_buf_list_size(tmp_root.next));
+  node->next = tmp_root.next;
 
   write_buf_list(fd, node);
   free_buf_list(node);
@@ -117,6 +120,11 @@ void set_midifile_track(track_ctx_t *trackctx,
                                       MSQ_BINDINGS_NOTE_MAX,
                                       &(ctx->bindings.notepress),
                                       trackctx);
+  mtrack->bindings.programs_sz =
+    _fill_byte_array_w_track_bindings(mtrack->bindings.programs,
+                                      MSQ_BINDINGS_NOTE_MAX,
+                                      &(ctx->bindings.programpress),
+                                      trackctx);
   mtrack->bindings.keys_sz =
     _fill_byte_array_w_track_bindings(mtrack->bindings.keys,
                                       MSQ_BINDINGS_KEY_MAX,
@@ -129,7 +137,18 @@ void gen_midinote_bindings_str(char *mnb_str,
                                size_t notes_sz)
 {
   const char *notes_name[] =
-    {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    {"C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"};
   const char *name;
   uint_t     idx, note_idx;
   int_t      note_oct;
@@ -138,7 +157,7 @@ void gen_midinote_bindings_str(char *mnb_str,
     {
       note_idx = notes[idx] % 12;
       name = notes_name[note_idx];
-      while (*name)
+      while (*name != 0)
         {
           *mnb_str = *name;
           mnb_str++;
@@ -159,6 +178,26 @@ void gen_midinote_bindings_str(char *mnb_str,
         }
     }
   *mnb_str = '\0';
+}
+
+void gen_midiprogram_bindings_str(char *mpb_str,
+                                  byte_t *programs,
+                                  size_t programs_sz)
+{
+  uint_t idx;
+  char   str_num[5], *tmp_str;
+
+  for (idx = 0; idx < programs_sz; idx++)
+    {
+      *mpb_str = 'P';
+      mpb_str++;
+      snprintf(str_num, 5, "%hhd", programs[idx]);
+      for (tmp_str = str_num;
+           *tmp_str != '\0';
+           tmp_str++,  mpb_str++)
+        *mpb_str = *tmp_str;
+    }
+  *mpb_str = '\0';
 }
 
 /* void gen_miditrack_info(char *ret_str, */

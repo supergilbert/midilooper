@@ -26,7 +26,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
   debug_midi("midi channel event type: %s %X\n", midicmd_to_str(type), type);
   switch (type)
     {
-    case NOTEOFF:
+    case MSQ_MIDI_NOTEOFF:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
@@ -38,12 +38,12 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
                  chan_ev->event.note.val);
       return 3;
 
-    case NOTEON:
+    case MSQ_MIDI_NOTEON:
       chan_ev->event.note.val = buffer[2];
       if (chan_ev->event.note.val > 0)
         chan_ev->type = type;
       else
-        chan_ev->type = NOTEOFF;
+        chan_ev->type = MSQ_MIDI_NOTEOFF;
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
       chan_ev->event.note.num = buffer[1];
@@ -53,7 +53,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
                  chan_ev->event.note.val);
       return 3;
 
-    case CONTROLCHANGE:
+    case MSQ_MIDI_CONTROLCHANGE:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
@@ -68,7 +68,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
       /*       chan_ev->event.ctrl.val); */
       return 3;
 
-    case KEYAFTERTOUCH:
+    case MSQ_MIDI_KEYAFTERTOUCH:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
@@ -83,7 +83,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
       /*       chan_ev->event.ctrl.val); */
       return 3;
 
-    case PROGRAMCHANGE:
+    case MSQ_MIDI_PROGRAMCHANGE:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
@@ -95,7 +95,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
       /*       chan_ev->event.prg_chg); */
       return 2;
 
-    case CHANNELAFTERTOUCH:
+    case MSQ_MIDI_CHANNELAFTERTOUCH:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
@@ -107,7 +107,7 @@ uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
       /*       chan_ev->event.prg_chg); */
       return 2;
 
-    case PITCHWHEELCHANGE:
+    case MSQ_MIDI_PITCHWHEELCHANGE:
       chan_ev->type = type;
       chan_ev->chan = *buffer & 0xF;
       /* chan_ev->chan--; */
@@ -162,11 +162,11 @@ msq_bool_t is_pending_notes(byte_t *pending_notes, byte_t channel, byte_t num)
 
 void update_pending_notes(byte_t *pending_notes, midicev_t *midicev)
 {
-  if (midicev->type == NOTEON)
+  if (midicev->type == MSQ_MIDI_NOTEON)
     set_pending_note(pending_notes,
                      midicev->chan,
                      midicev->event.note.num);
-  else if (midicev->type == NOTEOFF)
+  else if (midicev->type == MSQ_MIDI_NOTEOFF)
     unset_pending_note(pending_notes,
                        midicev->chan,
                        midicev->event.note.num);
@@ -177,31 +177,31 @@ msq_bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2)
   if (mcev1->type == mcev2->type && mcev1->chan == mcev2->chan)
     switch (mcev1->type)
       {
-      case NOTEOFF:
-      case NOTEON:
+      case MSQ_MIDI_NOTEOFF:
+      case MSQ_MIDI_NOTEON:
         if (mcev1->event.note.num == mcev2->event.note.num &&
             mcev1->event.note.val == mcev2->event.note.val)
           return MSQ_TRUE;
         break;
-      case KEYAFTERTOUCH:
+      case MSQ_MIDI_KEYAFTERTOUCH:
         if (mcev1->event.aftertouch.num == mcev2->event.aftertouch.num &&
             mcev1->event.aftertouch.val == mcev2->event.aftertouch.val)
           return MSQ_TRUE;
         break;
-      case CONTROLCHANGE:
+      case MSQ_MIDI_CONTROLCHANGE:
         if (mcev1->event.ctrl.num == mcev2->event.ctrl.num &&
             mcev1->event.ctrl.val == mcev2->event.ctrl.val)
           return MSQ_TRUE;
         break;
-      case PROGRAMCHANGE:
+      case MSQ_MIDI_PROGRAMCHANGE:
         if (mcev1->event.prg_chg == mcev2->event.prg_chg)
           return MSQ_TRUE;
         break;
-      case CHANNELAFTERTOUCH:
+      case MSQ_MIDI_CHANNELAFTERTOUCH:
         if (mcev1->event.chan_aftertouch == mcev2->event.chan_aftertouch)
           return MSQ_TRUE;
         break;
-      case PITCHWHEELCHANGE:
+      case MSQ_MIDI_PITCHWHEELCHANGE:
         if (mcev1->event.pitchbend.Lval == mcev2->event.pitchbend.Lval &&
             mcev1->event.pitchbend.Hval == mcev2->event.pitchbend.Hval)
           return MSQ_TRUE;
@@ -231,22 +231,22 @@ void dump_seqev(seqev_t *seqev)
       output(" type=%s channel=%i", "MIDICEV", midicev->chan);
       switch (midicev->type)
         {
-        case NOTEON:
+        case MSQ_MIDI_NOTEON:
           output(" | NOTEON  num=%hhd val=%hhd\n",
                  midicev->event.note.num,
                  midicev->event.note.val);
           break;
-        case NOTEOFF:
+        case MSQ_MIDI_NOTEOFF:
           output(" | NOTEOFF num=%hhd val=%hhd\n",
                  midicev->event.note.num,
                  midicev->event.note.val);
           break;
-        case CONTROLCHANGE:
+        case MSQ_MIDI_CONTROLCHANGE:
           output(" | CONTROLCHANGE num=%hhd val=%hhd\n",
                  midicev->event.ctrl.num,
                  midicev->event.ctrl.val);
           break;
-        case PITCHWHEELCHANGE:
+        case MSQ_MIDI_PITCHWHEELCHANGE:
           output(" | PITCHWHEELCHANGE Hval=%hhd Lval=%hhd\n",
                  midicev->event.pitchbend.Hval,
                  midicev->event.pitchbend.Lval);
@@ -261,7 +261,7 @@ void dump_seqev(seqev_t *seqev)
 
 void add_new_midicev(track_t *track, uint_t tick, midicev_t *mcev)
 {
-  if (mcev->type == NOTEOFF)
+  if (mcev->type == MSQ_MIDI_NOTEOFF)
     add_new_seqev_head(track, tick, mcev, MIDICEV);
   else
     add_new_seqev_tail(track, tick, mcev, MIDICEV);

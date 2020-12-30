@@ -27,47 +27,47 @@ msq_bool_t set_aseqev(midicev_t *chnev, snd_seq_event_t *ev, int port)
   bzero(ev, sizeof (snd_seq_event_t));
   switch (chnev->type)
     {
-    case NOTEOFF:
+    case MSQ_MIDI_NOTEOFF:
       ASEQ_SETNOTEOFFEV(ev,
                         port,
                         chnev->chan,
                         chnev->event.note.num,
                         chnev->event.note.val);
       break;
-    case NOTEON:
+    case MSQ_MIDI_NOTEON:
       ASEQ_SETNOTEONEV(ev,
                        port,
                        chnev->chan,
                        chnev->event.note.num,
                        chnev->event.note.val);
       break;
-    case KEYAFTERTOUCH:
+    case MSQ_MIDI_KEYAFTERTOUCH:
       ASEQ_SETKEYAFTERTOUCHEV(ev,
                               port,
                               chnev->chan,
                               chnev->event.aftertouch.num,
                               chnev->event.aftertouch.val);
       break;
-    case CONTROLCHANGE:
+    case MSQ_MIDI_CONTROLCHANGE:
       ASEQ_SETCONTROLCHANGEEV(ev,
                               port,
                               chnev->chan,
                               chnev->event.ctrl.num,
                               chnev->event.ctrl.val);
       break;
-    case PROGRAMCHANGE:
+    case MSQ_MIDI_PROGRAMCHANGE:
       ASEQ_SETPROGRAMCHANGEEV(ev,
                               port,
                               chnev->chan,
                               chnev->event.prg_chg);
       break;
-    case CHANNELAFTERTOUCH:
+    case MSQ_MIDI_CHANNELAFTERTOUCH:
       ASEQ_SETCHANNELAFTERTOUCHEV(ev,
                                   port,
                                   chnev->chan,
                                   chnev->event.chan_aftertouch);
       break;
-    case PITCHWHEELCHANGE:
+    case MSQ_MIDI_PITCHWHEELCHANGE:
       ASEQ_SETPITCHWHEELCHANGEEV(ev,
                                  port,
                                  chnev->chan,
@@ -87,25 +87,25 @@ void aseq_to_mcev(snd_seq_event_t *snd_ev, midicev_t *mcev)
   switch (snd_ev->type)
     {
     case SND_SEQ_EVENT_NOTEON:
-      mcev->type = NOTEON;
+      mcev->type = MSQ_MIDI_NOTEON;
       mcev->chan = snd_ev->data.note.channel;
       mcev->event.note.num = snd_ev->data.note.note;
       mcev->event.note.val = snd_ev->data.note.velocity;
       break;
     case SND_SEQ_EVENT_NOTEOFF:
-      mcev->type = NOTEOFF;
+      mcev->type = MSQ_MIDI_NOTEOFF;
       mcev->chan = snd_ev->data.note.channel;
       mcev->event.note.num = snd_ev->data.note.note;
       mcev->event.note.val = snd_ev->data.note.velocity;
       break;
     case SND_SEQ_EVENT_CONTROLLER:
-      mcev->type = CONTROLCHANGE;
+      mcev->type = MSQ_MIDI_CONTROLCHANGE;
       mcev->chan = snd_ev->data.control.channel;
       mcev->event.ctrl.num = snd_ev->data.control.param;
       mcev->event.ctrl.val = snd_ev->data.control.value;
       break;
     case SND_SEQ_EVENT_PITCHBEND:
-      mcev->type = PITCHWHEELCHANGE;
+      mcev->type = MSQ_MIDI_PITCHWHEELCHANGE;
       mcev->chan = snd_ev->data.control.channel;
       /* 0x2000 = 8192 (value is signed) */
       mcev->event.pitchbend.Lval = (snd_ev->data.control.value + 0x2000) & 0x7F;

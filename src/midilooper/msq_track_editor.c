@@ -342,7 +342,7 @@ void msq_track_info_init(msq_track_info_t *track_info, track_t *track)
        mcev = evit_next_midiallchannel(&evit))
     {
       channel_info = &(track_info->channels_info[mcev->chan]);
-      if (mcev->type == NOTEOFF || mcev->type == NOTEON)
+      if (mcev->type == MSQ_MIDI_NOTEOFF || mcev->type == MSQ_MIDI_NOTEON)
         {
           _msq_bytearray_set_bit(channel_info->usage,
                                  0,
@@ -352,11 +352,11 @@ void msq_track_info_init(msq_track_info_t *track_info, track_t *track)
           if (mcev->event.note.num > channel_info->note_max)
             channel_info->note_max = mcev->event.note.num;
         }
-      else if (mcev->type == PITCHWHEELCHANGE)
+      else if (mcev->type == MSQ_MIDI_PITCHWHEELCHANGE)
         _msq_bytearray_set_bit(channel_info->usage,
                                1,
                                1);
-      else if (mcev->type == CONTROLCHANGE)
+      else if (mcev->type == MSQ_MIDI_CONTROLCHANGE)
         _msq_bytearray_set_bit(channel_info->usage,
                                2 + mcev->event.ctrl.num,
                                1);
@@ -643,7 +643,7 @@ void trackctx_play_noteoff(track_ctx_t *track_ctx,
                            unsigned char channel)
 {
   midicev_t mcev = {.chan = channel,
-                    .type = NOTEOFF,
+                    .type = MSQ_MIDI_NOTEOFF,
                     .event.note.num = note,
                     .event.note.val = 0};
 
@@ -657,7 +657,7 @@ void trackctx_play_noteon(track_ctx_t *track_ctx,
                           unsigned short value)
 {
   midicev_t mcev = {.chan = channel,
-                    .type = NOTEON,
+                    .type = MSQ_MIDI_NOTEON,
                     .event.note.num = note,
                     .event.note.val = value};
 
@@ -1298,13 +1298,13 @@ void _history_add_note(track_editor_ctx_t *editor_ctx, note_t *note)
 
   mcev.chan = note->channel;
   mcev.event.note.num = note->num;
-  mcev.type = NOTEON;
+  mcev.type = MSQ_MIDI_NOTEON;
   mcev.event.note.val = note->val;
   memcpy(&(history_elt->ev[0]), &mcev, sizeof (midicev_t));
   history_elt->tick[0] = note->tick;
   evit_add_midicev(&(noteonoff->evit_noteon), note->tick, &mcev);
 
-  mcev.type = NOTEOFF;
+  mcev.type = MSQ_MIDI_NOTEOFF;
   mcev.event.note.val = 0;
   memcpy(&(history_elt->ev[1]), &mcev, sizeof (midicev_t));
   history_elt->tick[1] = note->tick + note->len;
@@ -2817,13 +2817,13 @@ pbt_bool_t handle_grid_paste_mode(wbe_window_input_t *winev,
           mcev.chan = grid->editor_ctx->channel;
           mcev.event.note.num = note->num + num_offset;
 
-          mcev.type = NOTEON;
+          mcev.type = MSQ_MIDI_NOTEON;
           mcev.event.note.val = note->val;
           _history_evit_add_midicev(&(grid->editor_ctx->history),
                                     &(noteonoff->evit_noteon),
                                     note->tick + tick_offset, &mcev);
 
-          mcev.type = NOTEOFF;
+          mcev.type = MSQ_MIDI_NOTEOFF;
           mcev.event.note.val = 0;
 
           _history_evit_add_midicev(&(grid->editor_ctx->history),
@@ -3873,7 +3873,7 @@ void value_wgt_write_tmp_bar(msq_value_wgt_t *value_wgt)
                 &(editor_ctx->track_ctx->track->tickev_list));
       while (node != NULL)
         {
-          new_midicev.type = PITCHWHEELCHANGE;
+          new_midicev.type = MSQ_MIDI_PITCHWHEELCHANGE;
           new_midicev.chan = editor_ctx->channel;
           new_midicev.event.pitchbend.Lval = node->velocity & 0x7F;
           new_midicev.event.pitchbend.Hval = (node->velocity >> 7) & 0x7F;
@@ -3890,7 +3890,7 @@ void value_wgt_write_tmp_bar(msq_value_wgt_t *value_wgt)
       ctrl_num = value_wgt->type - VALUE_TYPE_OFFSET;
       while (node != NULL)
         {
-          new_midicev.type = CONTROLCHANGE;
+          new_midicev.type = MSQ_MIDI_CONTROLCHANGE;
           new_midicev.chan = editor_ctx->channel;
           new_midicev.event.ctrl.num = ctrl_num;
           new_midicev.event.ctrl.val = node->velocity * MAX_7b_VAL / MAX_14b_VAL;
@@ -4090,7 +4090,7 @@ void value_wgt_delete_selection(msq_value_wgt_t *value)
           mcev = _evit_get_midicev(&evit);
           if (mcev
               && (mcev->chan != editor_ctx->channel
-                  || mcev->type != PITCHWHEELCHANGE))
+                  || mcev->type != MSQ_MIDI_PITCHWHEELCHANGE))
             mcev = evit_next_pitch(&evit, editor_ctx->channel);
         }
     }
@@ -4111,7 +4111,7 @@ void value_wgt_delete_selection(msq_value_wgt_t *value)
           mcev = _evit_get_midicev(&evit);
           if (mcev
               && (mcev->chan != editor_ctx->channel
-                  || mcev->type != CONTROLCHANGE
+                  || mcev->type != MSQ_MIDI_CONTROLCHANGE
                   || mcev->event.ctrl.num != ctrl_num))
             mcev = evit_next_ctrl_num(&evit,
                                       editor_ctx->channel,

@@ -192,14 +192,23 @@ void nns_handle_input(engine_ctx_t *ctx)
           switch (snd_ev->type)
             {
             case SND_SEQ_EVENT_NOTEON:
-              if (snd_ev->data.note.velocity != 0)
+              if (snd_ev->data.note.velocity == 0)
                 {
-                  engine_call_notepress_b(ctx, snd_ev->data.note.note);
-                  break;
+                  if (ctx->bindings.rec_val == 255)
+                    ctx->bindings.rec_val = snd_ev->data.note.note;
                 }
+              else
+                engine_call_notepress_b(ctx, snd_ev->data.note.note);
+              break;
             case SND_SEQ_EVENT_NOTEOFF:
-              if (ctx->bindings.rec_note == 255)
-                ctx->bindings.rec_note = snd_ev->data.note.note;
+              if (ctx->bindings.rec_val == 255)
+                ctx->bindings.rec_val = snd_ev->data.note.note;
+              break;
+            case SND_SEQ_EVENT_PGMCHANGE:
+              if (ctx->bindings.rec_val == 255)
+                ctx->bindings.rec_val = (byte_t) snd_ev->data.control.value;
+              else
+                engine_call_programpress_b(ctx, snd_ev->data.control.value);
               break;
             case SND_SEQ_EVENT_SYSEX:
               switch (engine_get_sysex_mmc(ctx, snd_ev->data.ext.ptr, snd_ev->data.ext.len))
@@ -321,6 +330,7 @@ msq_bool_t nns_init_engine(engine_ctx_t *ctx, char *name)
   if (aseqh == NULL)
     return MSQ_FALSE;
 
+  ctx->type = MSQ_ENG_ALSA;
   ctx->ppq = 192;
   ctx->tempo = 500000;
 

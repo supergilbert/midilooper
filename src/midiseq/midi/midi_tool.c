@@ -24,38 +24,38 @@ msq_bool_t convert_midicev_to_mididata(midicev_t *midicev, byte_t *buf)
 
   switch (midicev->type)
     {
-    case NOTEOFF:
-    case NOTEON:
+    case MSQ_MIDI_NOTEOFF:
+    case MSQ_MIDI_NOTEON:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.note.num & 0xFF;
       buf[2] = midicev->event.note.val & 0xFF;
       ret = MSQ_TRUE;
       break;
-    case KEYAFTERTOUCH:
+    case MSQ_MIDI_KEYAFTERTOUCH:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.aftertouch.num & 0xFF;
       buf[2] = midicev->event.aftertouch.val & 0xFF;
       ret = MSQ_TRUE;
       break;
-    case CONTROLCHANGE:
+    case MSQ_MIDI_CONTROLCHANGE:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.ctrl.num & 0xFF;
       buf[2] = midicev->event.ctrl.val & 0xFF;
       ret = MSQ_TRUE;
       break;
-    case PROGRAMCHANGE:
+    case MSQ_MIDI_PROGRAMCHANGE:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.prg_chg;
       buf[2] = 0;
       ret = MSQ_TRUE;
       break;
-    case CHANNELAFTERTOUCH:
+    case MSQ_MIDI_CHANNELAFTERTOUCH:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.chan_aftertouch;
       buf[2] = 0;
       ret = MSQ_TRUE;
       break;
-    case PITCHWHEELCHANGE:
+    case MSQ_MIDI_PITCHWHEELCHANGE:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.pitchbend.Lval & 0xFF;
       buf[2] = midicev->event.pitchbend.Hval & 0xFF;
@@ -75,41 +75,41 @@ msq_bool_t convert_mididata_to_midicev(byte_t *buf, midicev_t *midicev)
 
   switch (type)
     {
-    case NOTEOFF:
-    case NOTEON:
+    case MSQ_MIDI_NOTEOFF:
+    case MSQ_MIDI_NOTEON:
       midicev->type = type;
       midicev->chan = buf[0] & 0xF;
       midicev->event.note.num = buf[1];
       midicev->event.note.val = buf[2];
       ret = MSQ_TRUE;
       break;
-    case KEYAFTERTOUCH:
+    case MSQ_MIDI_KEYAFTERTOUCH:
       midicev->type = type;
       midicev->chan = buf[0] & 0xF;
       midicev->event.aftertouch.num = buf[1];
       midicev->event.aftertouch.val = buf[2];
       ret = MSQ_TRUE;
       break;
-    case CONTROLCHANGE:
+    case MSQ_MIDI_CONTROLCHANGE:
       midicev->type = type;
       midicev->chan = buf[0] & 0xF;
       midicev->event.ctrl.num = buf[1];
       midicev->event.ctrl.val = buf[2];
       ret = MSQ_TRUE;
       break;
-    case PROGRAMCHANGE:
+    case MSQ_MIDI_PROGRAMCHANGE:
       midicev->type = type;
       midicev->chan = buf[0] & 0xF;
       midicev->event.prg_chg = buf[1];
       ret = MSQ_TRUE;
       break;
-    case CHANNELAFTERTOUCH:
+    case MSQ_MIDI_CHANNELAFTERTOUCH:
       midicev->type = type;
       midicev->chan = buf[0] & 0xF;
       midicev->event.chan_aftertouch = buf[1];
       ret = MSQ_TRUE;
       break;
-    case PITCHWHEELCHANGE:
+    case MSQ_MIDI_PITCHWHEELCHANGE:
       midicev->type = type;
       midicev->chan = buf[0] & 0xF;
       midicev->event.pitchbend.Lval = buf[1];

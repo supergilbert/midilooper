@@ -59,14 +59,14 @@ msq_bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list);
 #define evit_check(evit, tickev_list) _evit_check(evit, (tickev_list))
 #endif
 
-#define evit_next_noteon(evit, chan)                    \
-  (evit_next_midicev_type((evit), (chan), NOTEON))
-#define evit_next_noteoff(evit, chan)                   \
-  (evit_next_midicev_type((evit), (chan), NOTEOFF))
-#define evit_next_ctrl(evit, chan)                              \
-  (evit_next_midicev_type((evit), (chan), CONTROLCHANGE))
-#define evit_next_pitch(evit, chan)                             \
-  (evit_next_midicev_type((evit), (chan), PITCHWHEELCHANGE))
+#define evit_next_noteon(evit, chan)                            \
+  (evit_next_midicev_type((evit), (chan), MSQ_MIDI_NOTEON))
+#define evit_next_noteoff(evit, chan)                           \
+  (evit_next_midicev_type((evit), (chan), MSQ_MIDI_NOTEOFF))
+#define evit_next_ctrl(evit, chan)                                      \
+  (evit_next_midicev_type((evit), (chan), MSQ_MIDI_CONTROLCHANGE))
+#define evit_next_pitch(evit, chan)                                     \
+  (evit_next_midicev_type((evit), (chan), MSQ_MIDI_PITCHWHEELCHANGE))
 
 midicev_t *evit_next_noteoff_num(ev_iterator_t *ev_iterator,
                                  byte_t channel,

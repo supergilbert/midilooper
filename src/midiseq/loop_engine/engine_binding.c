@@ -107,6 +107,8 @@ void _del_track_bindings(list_t *bindings, track_ctx_t *track_ctx)
     }
 }
 
+#include <stdio.h>
+
 msq_bool_t _call_binding(list_t *bindings, byte_t val)
 {
   list_iterator_t iter;
@@ -159,8 +161,23 @@ void engine_call_notepress_b(engine_ctx_t *engine, byte_t note)
 {
   engine->bindings.midib_reading = MSQ_TRUE;
   if (engine->bindings.midib_updating != MSQ_TRUE)
-    engine->mute_state_changed = _call_binding(&(engine->bindings.notepress),
-                                               note);
+    {
+      engine->mute_state_changed = _call_binding(&(engine->bindings.notepress),
+                                                 note);
+      engine->bindings.midib_called = MSQ_TRUE;
+    }
+  engine->bindings.midib_reading = MSQ_FALSE;
+}
+
+void engine_call_programpress_b(engine_ctx_t *engine, byte_t program)
+{
+  engine->bindings.midib_reading = MSQ_TRUE;
+  if (engine->bindings.midib_updating != MSQ_TRUE)
+    {
+      engine->mute_state_changed = _call_binding(&(engine->bindings.programpress),
+                                                 program);
+      engine->bindings.midib_called = MSQ_TRUE;
+    }
   engine->bindings.midib_reading = MSQ_FALSE;
 }
 
@@ -185,7 +202,7 @@ size_t _fill_byte_array_w_track_bindings(byte_t *byte_array,
                                          track_ctx_t *trackctx)
 {
   list_iterator_t iter_binding, iter_track;
-  uint_t          idx;
+  uint_t          idx = 0;
   track_ctx_t     *trackctx_ptr = NULL;
   binding_t       *binding = NULL;
 

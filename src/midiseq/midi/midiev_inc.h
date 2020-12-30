@@ -23,14 +23,14 @@
 
 /* Midi event type list */
 enum {
-  NOTEOFF = 8,
-  NOTEON,
-  KEYAFTERTOUCH,
-  CONTROLCHANGE,
-  PROGRAMCHANGE,
-  CHANNELAFTERTOUCH,
-  PITCHWHEELCHANGE,
-  SYSTEM
+  MSQ_MIDI_NOTEOFF = 8,
+  MSQ_MIDI_NOTEON,
+  MSQ_MIDI_KEYAFTERTOUCH,
+  MSQ_MIDI_CONTROLCHANGE,
+  MSQ_MIDI_PROGRAMCHANGE,
+  MSQ_MIDI_CHANNELAFTERTOUCH,
+  MSQ_MIDI_PITCHWHEELCHANGE,
+  MSQ_MIDI_SYSTEM
 };
 
 typedef struct
@@ -48,13 +48,13 @@ typedef struct
 } midicev_t;
 
 #define midicmd_to_str(cmd)                                             \
-  ((cmd) == NOTEOFF ?           "NOTEOFF" :                             \
-   (cmd) == NOTEON ?            "NOTEON" :                              \
-   (cmd) == KEYAFTERTOUCH ?     "KEYAFTERTOUCH" :                       \
-   (cmd) == CONTROLCHANGE ?     "CONTROLCHANGE" :                       \
-   (cmd) == PROGRAMCHANGE ?     "PROGRAMCHANGE" :                       \
-   (cmd) == CHANNELAFTERTOUCH ? "CHANNELAFTERTOUCH" :                   \
-   (cmd) == PITCHWHEELCHANGE ?  "PITCHWHEELCHANGE" :                    \
+  ((cmd) == MSQ_MIDI_NOTEOFF ?           "NOTEOFF" :                    \
+   (cmd) == MSQ_MIDI_NOTEON ?            "NOTEON" :                     \
+   (cmd) == MSQ_MIDI_KEYAFTERTOUCH ?     "KEYAFTERTOUCH" :              \
+   (cmd) == MSQ_MIDI_CONTROLCHANGE ?     "CONTROLCHANGE" :              \
+   (cmd) == MSQ_MIDI_PROGRAMCHANGE ?     "PROGRAMCHANGE" :              \
+   (cmd) == MSQ_MIDI_CHANNELAFTERTOUCH ? "CHANNELAFTERTOUCH" :          \
+   (cmd) == MSQ_MIDI_PITCHWHEELCHANGE ?  "PITCHWHEELCHANGE" :           \
    "UNKNOWN")
 
 /* #define midievtype_to_str(buf)                                          \ */

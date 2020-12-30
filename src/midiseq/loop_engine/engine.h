@@ -59,10 +59,12 @@ typedef struct
 
 typedef struct
 {
-  byte_t     rec_note;
+  byte_t     rec_val;
   msq_bool_t midib_updating;
   msq_bool_t midib_reading;
+  msq_bool_t midib_called;
   list_t     notepress;
+  list_t     programpress;
   list_t     keypress;
 } bindings_t;
 
@@ -97,8 +99,12 @@ typedef enum {
   SAVE_N_QUIT_RQ
 } saverq_t;
 
+#define MSQ_ENG_ALSA 0
+#define MSQ_ENG_JACK 1
+
 typedef struct engine_ctx_s
 {
+  byte_t           type;
   void             *hdl;
   list_t           output_list;
   list_t           track_list;
@@ -180,6 +186,7 @@ void        _engine_free_trash(engine_ctx_t *ctx);
 void engine_del_track_bindings(engine_ctx_t *engine, track_ctx_t *track_ctx);
 void engine_clear_all_bindings(engine_ctx_t *engine);
 void engine_call_notepress_b(engine_ctx_t *engine, byte_t key);
+void engine_call_programpress_b(engine_ctx_t *engine, byte_t key);
 void _add_binding(list_t *bindings, byte_t val, track_ctx_t *track_ctx);
 void engine_add_notebinding(engine_ctx_t *engine,
                             byte_t key,
@@ -231,6 +238,10 @@ void trackctx_set_name(track_ctx_t *traxkctx, const char *name);
 void gen_midinote_bindings_str(char *mnb_str,
                                byte_t *notes,
                                size_t notes_sz);
+
+void gen_midiprogram_bindings_str(char *mpb_str,
+                                  byte_t *programs,
+                                  size_t programs_sz);
 
 char **engine_gen_output_str_list(engine_ctx_t *engine_ctx,
                                   size_t *str_list_len);

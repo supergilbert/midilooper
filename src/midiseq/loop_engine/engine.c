@@ -190,6 +190,10 @@ void engine_set_miditrack_bindings(engine_ctx_t *ctx,
     _add_binding(&(ctx->bindings.notepress),
                  mtrack->bindings.notes[idx],
                  trackctx);
+  for (idx = 0; idx < mtrack->bindings.programs_sz; idx++)
+    _add_binding(&(ctx->bindings.programpress),
+                 mtrack->bindings.programs[idx],
+                 trackctx);
 }
 
 track_ctx_t *_engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrack)
@@ -367,7 +371,7 @@ void output_pending_notes(output_t *output, byte_t *notes_on_state)
   uint_t          note_idx, channel_idx;
   midicev_t       mcev;
 
-  mcev.type = NOTEOFF;
+  mcev.type = MSQ_MIDI_NOTEOFF;
   mcev.event.note.val = 0;
 
   for (channel_idx = 0;
@@ -488,8 +492,8 @@ void engine_toggle_rec(engine_ctx_t *ctx)
 }
 
 msq_bool_t init_engine(engine_ctx_t *engine,
-                   char *name,
-                   int type)
+                       char *name,
+                       int type)
 {
   bzero(engine, sizeof (engine_ctx_t));
   engine->rbuff = init_midiringbuff(400);

@@ -42,7 +42,7 @@ void _play_if_noteoff(track_ctx_t *trackctx,
     case ASEQTYPE:
     case MIDICEV:
       mcev = (midicev_t *) seqev->addr;
-      if (mcev->type == NOTEOFF)
+      if (mcev->type == MSQ_MIDI_NOTEOFF)
         {
           output_add_req(trackctx->output, mcev);
           /* set_aseqev(mcev, */

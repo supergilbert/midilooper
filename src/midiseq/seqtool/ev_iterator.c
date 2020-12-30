@@ -158,7 +158,7 @@ midicev_t *evit_init_noteon(ev_iterator_t *ev_iterator,
 {
   midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
 
-  if (midicev && midicev->type != NOTEON)
+  if (midicev && midicev->type != MSQ_MIDI_NOTEON)
     midicev = evit_next_noteon(ev_iterator, channel);
   return midicev;
 }
@@ -201,7 +201,7 @@ midicev_t *evit_init_ctrl_num(ev_iterator_t *ev_iterator,
 {
   midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
 
-  if (midicev && (midicev->type != CONTROLCHANGE
+  if (midicev && (midicev->type != MSQ_MIDI_CONTROLCHANGE
                   || midicev->event.ctrl.num != ctrl_num))
     midicev = evit_next_ctrl_num(ev_iterator, channel, ctrl_num);
   return midicev;
@@ -213,7 +213,7 @@ midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator,
 {
   midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
 
-  if (midicev && midicev->type != PITCHWHEELCHANGE)
+  if (midicev && midicev->type != MSQ_MIDI_PITCHWHEELCHANGE)
     midicev = evit_next_pitch(ev_iterator, channel);
   return midicev;
 }
@@ -223,22 +223,22 @@ msq_bool_t compare_midicev_type(midicev_t *mcev1, midicev_t *mcev2)
   if (mcev1->type == mcev2->type && mcev1->chan == mcev2->chan)
     switch (mcev1->type)
       {
-      case NOTEOFF:
-      case NOTEON:
+      case MSQ_MIDI_NOTEOFF:
+      case MSQ_MIDI_NOTEON:
         if (mcev1->event.note.num == mcev2->event.note.num)
           return MSQ_TRUE;
         break;
-      case KEYAFTERTOUCH:
+      case MSQ_MIDI_KEYAFTERTOUCH:
         if (mcev1->event.aftertouch.num == mcev2->event.aftertouch.num)
           return MSQ_TRUE;
         break;
-      case CONTROLCHANGE:
+      case MSQ_MIDI_CONTROLCHANGE:
         if (mcev1->event.ctrl.num == mcev2->event.ctrl.num)
           return MSQ_TRUE;
         break;
-      case PROGRAMCHANGE:
-      case CHANNELAFTERTOUCH:
-      case PITCHWHEELCHANGE:
+      case MSQ_MIDI_PROGRAMCHANGE:
+      case MSQ_MIDI_CHANNELAFTERTOUCH:
+      case MSQ_MIDI_PITCHWHEELCHANGE:
         return MSQ_TRUE;
         break;
       default:
@@ -387,7 +387,7 @@ node_t *_add_new_midicev(list_t *seqev_list, midicev_t *midicev)
 {
   seqev_t  *seqev     = alloc_seqev(midicev, MIDICEV);
 
-  if (midicev->type == NOTEOFF)
+  if (midicev->type == MSQ_MIDI_NOTEOFF)
     return push_to_list(seqev_list, (void *) seqev);
   else
     return push_to_list_tail(seqev_list, (void *) seqev);

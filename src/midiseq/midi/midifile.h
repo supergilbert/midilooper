@@ -23,18 +23,18 @@
 #include "seqtool/seqtool.h"
 #include "midi/midiev.h"
 
-/* #define copy_to_2B(dst, src)	(dst) = *(src);			\ */
+/* #define copy_to_2B(dst, src) (dst) = *(src);\ */
 /*                                       (dst) = *(src + 1) */
 
-/* #define copy_to_4B(dst, src)	(dst) = *(src);		\ */
-/*                                       (dst) = *(src + 1);	\ */
-/*                                       (dst) = *(src + 2);	\ */
+/* #define copy_to_4B(dst, src) (dst) = *(src); \ */
+/*                                       (dst) = *(src + 1); \ */
+/*                                       (dst) = *(src + 2); \ */
 /*                                       (dst) = *(src + 3)) */
 
-#define get_midifile_type_str(type) ((type) == 0 ?	"Single track"	\
-				     : (type) == 1 ?	"Multiple tracks, synchronous" \
-				     : (type) == 2 ? "Multiple tracks, asynchronous" \
-				     : "Unknown midifile format type")
+#define get_midifile_type_str(type) ((type) == 0 ? "Single track"       \
+                                     : (type) == 1 ? "Multiple tracks, synchronous" \
+                                     : (type) == 2 ? "Multiple tracks, asynchronous" \
+                                     : "Unknown midifile format type")
 
 #define TICK_PER_BEAT 0
 #define FRAME_PER_SEC 1
@@ -76,8 +76,10 @@ typedef struct
   seqtype_t  type;
   uint_t     tempo; /* microseconds */
   uint_t     ppq;
-  list_t     portinfo_list;
   msq_bool_t is_msq;
+  list_t     portinfo_list;
+  uint_t     engine_type;
+  uint_t     version;
   /* char      *name; */
 }           midifile_info_t;
 
@@ -87,9 +89,11 @@ typedef struct
 typedef struct
 {
   byte_t notes[MSQ_BINDINGS_NOTE_MAX];
+  byte_t programs[MSQ_BINDINGS_NOTE_MAX];
   byte_t keys[MSQ_BINDINGS_KEY_MAX];
-  size_t notes_sz;
-  size_t keys_sz;
+  byte_t notes_sz;
+  byte_t programs_sz;
+  byte_t keys_sz;
 } midif_trackb_t;
 
 typedef struct
@@ -125,20 +129,30 @@ buf_node_t *add_buf_node(byte_t *buffer, size_t len);
 size_t get_buf_list_size(buf_node_t *buff);
 buf_node_t *get_var_len_buf(uint_t tick);
 buf_node_t *_append_sysex_header(buf_node_t *tail, size_t len, byte_t type);
+buf_node_t *_append_sysex_file_version(buf_node_t *tail);
+buf_node_t *_append_sysex_engine_type(buf_node_t *tail, uint_t engine_type);
 void free_buf_list(buf_node_t *buff);
 size_t write_buf_list(int fd, buf_node_t *buff);
 buf_node_t *create_midifile_trackhdr(size_t track_size);
 
-#define MSQ_SYSEX_TRACK_LOOPSTART 0   /* 4 byte track sequence length */
-#define MSQ_SYSEX_TRACK_LOOPLEN   1   /* 4 byte track sequence length */
-#define MSQ_SYSEX_TRACK_KEYPRESS  2   /* bytes list of key bindings */
-#define MSQ_SYSEX_TRACK_NOTEPRESS 3   /* bytes list of note bindings */
-#define MSQ_SYSEX_TRACK_MUTED     4   /* not followed */
+#define MLP_SYSEX_FILE_VERSION 0x00 /* 4 bytes */
+#define MLP_SYSEX_ENGINE_TYPE  0x01 /* 4 bytes */
+#define MLP_SYSEX_PORTNAME     0x02 /* 4 byte portid
+                                       + 2 byte namelen
+                                       + name data */
 
-#define MSQ_SYSEX_PORTNAME        128 /* 4 byte portid
-                                         2 byte namelen
-                                         etc. name data */
-#define MSQ_SYSEX_TRACK_PORTID    129 /* followed by 4 byte */
+#define MLP_SYSEX_TRACK_LOOPSTART         0x20 /* 4 bytes track sequence
+                                                  start uint32_t */
+#define MLP_SYSEX_TRACK_LOOPLEN           0x21 /* 4 bytes track sequence
+                                                  length uint32_t */
+#define MLP_SYSEX_TRACK_MUTED             0x24 /* not followed */
+#define MLP_SYSEX_TRACK_PORTID            0x25 /* followed by 4 byte */
+#define MLP_SYSEX_TRACK_BINDING_KEYPRESS  0x28 /* byte list of
+                                                  key bindings */
+#define MLP_SYSEX_TRACK_BINDING_NOTEPRESS 0x29 /* byte list of
+                                                  note bindings */
+#define MLP_SYSEX_TRACK_BINDING_PROGPRESS 0x2A /* byte list of
+                                                  program bindings */
 
 #define GETVLVSIZE(_tick) (_tick < 128) ? 1 :            \
   (((_tick >> 7) < 128) ? 2 :                            \

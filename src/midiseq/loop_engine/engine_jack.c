@@ -292,7 +292,7 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
   void                   *port_buf   = jack_port_get_buffer(hdl->remote_input, nframes);
   jack_nframes_t         event_count = jack_midi_get_event_count(port_buf);
   jack_midi_event_t      jackev;
-  byte_t                 chanev_type = 0;
+  byte_t                 chanev_msg = 0;
   uint32_t               idx;
   midicev_t              midicev;
   uint64_t               tick;
@@ -325,23 +325,31 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
         }
       else
         {
-          if (0x80 <= jackev.buffer[0] && jackev.buffer[0] < 0xA0)
+          chanev_msg = jackev.buffer[0] >> 4;
+          switch (chanev_msg)
             {
-              chanev_type = jackev.buffer[0] >> 4;
-              if ((chanev_type == NOTEON && jackev.buffer[2] == 0)
-                  || chanev_type == NOTEOFF)
+            case MSQ_MIDI_NOTEON:
+              if (jackev.buffer[2] == 0)
                 {
-                  if (ctx->bindings.rec_note == 255)
-                    ctx->bindings.rec_note = jackev.buffer[1];
+                  if (ctx->bindings.rec_val == 255)
+                    ctx->bindings.rec_val = jackev.buffer[1];
                 }
               else
-                {
-                  if (chanev_type == NOTEON)
-                    engine_call_notepress_b(ctx, jackev.buffer[1]);
-                }
+                engine_call_notepress_b(ctx, jackev.buffer[1]);
+              break;
+            case MSQ_MIDI_NOTEOFF:
+              if (jackev.buffer[2] == 255)
+                ctx->bindings.rec_val = jackev.buffer[1];
+              break;
+            case MSQ_MIDI_PROGRAMCHANGE:
+              if (ctx->bindings.rec_val == 255)
+                ctx->bindings.rec_val = jackev.buffer[1];
+              else
+                engine_call_programpress_b(ctx, jackev.buffer[1]);
+              break;
+            default:
+              ;
             }
-          /* else */
-          /*   print_bin(stdout, jackev.buffer, jackev.size); */
         }
     }
 
@@ -404,6 +412,7 @@ msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name)
   if (client == NULL)
     return MSQ_FALSE;
 
+  ctx->type = MSQ_ENG_JACK;
   ctx->ppq = 192;
   ctx->tempo = 500000;
 

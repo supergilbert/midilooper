@@ -90,49 +90,80 @@ void get_sysex_portname(list_t *port_list, byte_t *buf)
   push_to_list_tail(port_list, portinfo);
 }
 
-void get_msq_sysex(midifile_info_t *info,
-                   midifile_track_t *track,
-                   byte_t *buffer,
-                   uint_t size)
+msq_bool_t get_mlp_sysex_file_version(byte_t *buffer,
+                                      size_t size,
+                                      u_int32_t *version)
 {
   if (buffer[0] == 0
       && buffer[1] == 'M'
-      && buffer[2] == 'S'
-      && buffer[3] == 'Q')
+      && buffer[2] == 'L'
+      && buffer[3] == 'P')
+    if (buffer[4] == MLP_SYSEX_FILE_VERSION)
+      {
+        *version =  buffer[5] << 24;
+        *version += buffer[6] << 16;
+        *version += buffer[7] << 8;
+        *version += buffer[8];
+        return MSQ_TRUE;
+      }
+  return MSQ_FALSE;
+}
+
+void get_mlp_sysex(midifile_info_t *info,
+                   midifile_track_t *track,
+                   byte_t *buffer,
+                   size_t size)
+{
+  if (buffer[0] == 0
+      && buffer[1] == 'M'
+      && buffer[2] == 'L'
+      && buffer[3] == 'P')
     {
       info->is_msq = MSQ_TRUE;
       switch (buffer[4])
         {
-        case MSQ_SYSEX_TRACK_LOOPSTART:
+        case MLP_SYSEX_ENGINE_TYPE:
+          info->type =  buffer[5] << 24;
+          info->type += buffer[6] << 16;
+          info->type += buffer[7] << 8;
+          info->type += buffer[8];
+          break;
+        case MLP_SYSEX_TRACK_LOOPSTART:
           track->sysex_loop_start =  buffer[5] << 24;
           track->sysex_loop_start += buffer[6] << 16;
           track->sysex_loop_start += buffer[7] << 8;
           track->sysex_loop_start += buffer[8];
           break;
-        case MSQ_SYSEX_TRACK_LOOPLEN:
+        case MLP_SYSEX_TRACK_LOOPLEN:
           track->sysex_loop_len =  buffer[5] << 24;
           track->sysex_loop_len += buffer[6] << 16;
           track->sysex_loop_len += buffer[7] << 8;
           track->sysex_loop_len += buffer[8];
           break;
-        case MSQ_SYSEX_PORTNAME:
+        case MLP_SYSEX_PORTNAME:
           get_sysex_portname(&(info->portinfo_list), &(buffer[5]));
           break;
-        case MSQ_SYSEX_TRACK_PORTID:
+        case MLP_SYSEX_TRACK_PORTID:
           track->sysex_portid =  buffer[5] << 24;
           track->sysex_portid += buffer[6] << 16;
           track->sysex_portid += buffer[7] << 8;
           track->sysex_portid += buffer[8];
           break;
-        case MSQ_SYSEX_TRACK_KEYPRESS:
+        case MLP_SYSEX_TRACK_BINDING_KEYPRESS:
           track->bindings.keys_sz = (size_t) buffer[5];
           memcpy(track->bindings.keys, &(buffer[6]), track->bindings.keys_sz);
           break;
-        case MSQ_SYSEX_TRACK_NOTEPRESS:
+        case MLP_SYSEX_TRACK_BINDING_NOTEPRESS:
           track->bindings.notes_sz = (size_t) buffer[5];
           memcpy(track->bindings.notes, &(buffer[6]), track->bindings.notes_sz);
           break;
-        case MSQ_SYSEX_TRACK_MUTED:
+        case MLP_SYSEX_TRACK_BINDING_PROGPRESS:
+          track->bindings.programs_sz = (size_t) buffer[5];
+          memcpy(track->bindings.programs,
+                 &(buffer[6]),
+                 track->bindings.programs_sz);
+          break;
+        case MLP_SYSEX_TRACK_MUTED:
           track->sysex_muted = MSQ_TRUE;
           break;
         default:
@@ -152,6 +183,7 @@ msq_bool_t get_midifile_track(midifile_info_t *info,
   byte_t           *end = NULL;
   uint_t           tick;//, smallest = (uint_t) -1, biggest = 0;
   uint_t           offset;
+  u_int32_t        version;
   midicev_t        chan_ev;
   midimev_t        meta_ev;
   byte_t           status_byte = 0;
@@ -216,9 +248,17 @@ msq_bool_t get_midifile_track(midifile_info_t *info,
               case 0xF0:
                 buffer++;
                 offset = get_varlen_from_ptr(&buffer); /* /!\ */
-                get_msq_sysex(info, midifile_track, buffer, offset);
+                if (info->is_msq == MSQ_TRUE)
+                  get_mlp_sysex(info, midifile_track, buffer, offset);
+                else
+                  if (get_mlp_sysex_file_version(buffer,
+                                                 offset,
+                                                 &version) == MSQ_TRUE
+                      && version == 1)
+                    info->is_msq = MSQ_TRUE;
                 status_byte = 0;
                 break;
+
               case 0xF7:
                 debug_midi("SysEx event detected\n");
                 debug_midi("\nUnsuported System Exclusive Event type: 0x%02X\n", *buffer);

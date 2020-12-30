@@ -252,7 +252,7 @@ buf_node_t *_append_metaev_set_tempo(buf_node_t *tail, uint_t tempo)
 buf_node_t *_append_sysex_header(buf_node_t *tail, size_t buflen, byte_t type)
 {
   byte_t hdr[2] = {0, 0xF0};
-  byte_t msq_hdr[5] = {0, 'M', 'S', 'Q', type};
+  byte_t msq_hdr[5] = {0, 'M', 'L', 'P', type};
 
   tail->next = add_buf_node(hdr, 2);
   tail = tail->next;
@@ -276,11 +276,35 @@ void set_be16b_uint(byte_t *buf, uint_t val)
   buf[1] = val & 0xFF;
 }
 
+#define MSQ_FILE_VERSION 1
+
+buf_node_t *_append_sysex_file_version(buf_node_t *tail)
+{
+  byte_t buf[5];
+
+  tail = _append_sysex_header(tail, 5, MLP_SYSEX_FILE_VERSION);
+  set_be32b_uint(buf, MSQ_FILE_VERSION);
+  buf[4] = 0xF7;
+  tail->next = add_buf_node(buf, 5);
+  return tail->next;
+}
+
+buf_node_t *_append_sysex_engine_type(buf_node_t *tail, uint_t engine_type)
+{
+  byte_t buf[5];
+
+  tail = _append_sysex_header(tail, 5, MLP_SYSEX_ENGINE_TYPE);
+  set_be32b_uint(buf, engine_type);
+  buf[4] = 0xF7;
+  tail->next = add_buf_node(buf, 5);
+  return tail->next;
+}
+
 buf_node_t *_append_sysex_loopstart(buf_node_t *tail, uint_t start)
 {
   byte_t buf[5];
 
-  tail = _append_sysex_header(tail, 5, MSQ_SYSEX_TRACK_LOOPSTART);
+  tail = _append_sysex_header(tail, 5, MLP_SYSEX_TRACK_LOOPSTART);
   set_be32b_uint(buf, start);
   buf[4] = 0xF7;
   tail->next = add_buf_node(buf, 5);
@@ -291,26 +315,31 @@ buf_node_t *_append_sysex_looplen(buf_node_t *tail, uint_t len)
 {
   byte_t buf[5];
 
-  tail = _append_sysex_header(tail, 5, MSQ_SYSEX_TRACK_LOOPLEN);
+  tail = _append_sysex_header(tail, 5, MLP_SYSEX_TRACK_LOOPLEN);
   set_be32b_uint(buf, len);
   buf[4] = 0xF7;
   tail->next = add_buf_node(buf, 5);
   return tail->next;
 }
 
-buf_node_t *_append_sysex_type_bindings(buf_node_t *tail, uint_t type, byte_t *array, size_t sz)
+buf_node_t *_append_sysex_type_bindings(buf_node_t *tail,
+                                        uint_t type,
+                                        byte_t *array,
+                                        byte_t array_sz)
 {
-  byte_t array_sz = sz;
+  byte_t tmp;
   tail = _append_sysex_header(tail,
-                              sz + 2, /* array + sz (8b) + 0xF7 */
+                              array_sz + 2, /* sz (8b) + array + 0xF7 */
                               type);
   /* Add size */
   tail->next = add_buf_node(&array_sz, 1);
   tail = tail->next;
-  /* Marking end of sysex array size < 256 */
-  array[sz] = 0xF7;
-  /* Add array with sysex end */
-  tail->next = add_buf_node(array, sz + 1);
+  /* Add array */
+  tail->next = add_buf_node(array, array_sz);
+  tail = tail->next;
+  /* Add sysex end */
+  tmp = 0xF7;
+  tail->next = add_buf_node(&tmp, 1);
   return tail->next;
 }
 
@@ -318,14 +347,19 @@ buf_node_t *_append_sysex_bindings(buf_node_t *tail, midif_trackb_t *bindings)
 {
   if (bindings->keys_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MSQ_SYSEX_TRACK_KEYPRESS,
+                                       MLP_SYSEX_TRACK_BINDING_KEYPRESS,
                                        bindings->keys,
                                        bindings->keys_sz);
   if (bindings->notes_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MSQ_SYSEX_TRACK_NOTEPRESS,
+                                       MLP_SYSEX_TRACK_BINDING_NOTEPRESS,
                                        bindings->notes,
                                        bindings->notes_sz);
+  if (bindings->programs_sz > 0)
+    tail = _append_sysex_type_bindings(tail,
+                                       MLP_SYSEX_TRACK_BINDING_PROGPRESS,
+                                       bindings->programs,
+                                       bindings->programs_sz);
   return tail;
 }
 
@@ -333,7 +367,7 @@ buf_node_t *_append_sysex_portid(buf_node_t *tail, int sysex_portid)
 {
   byte_t buf[5];
 
-  tail = _append_sysex_header(tail, 5, MSQ_SYSEX_TRACK_PORTID);
+  tail = _append_sysex_header(tail, 5, MLP_SYSEX_TRACK_PORTID);
   set_be32b_uint(buf, sysex_portid);
   buf[4] = 0xF7;
   tail->next = add_buf_node(buf, 5);
@@ -344,7 +378,7 @@ buf_node_t *_append_sysex_muted(buf_node_t *tail)
 {
   byte_t sysex_end = 0xF7;
 
-  tail = _append_sysex_header(tail, 1, MSQ_SYSEX_TRACK_MUTED);
+  tail = _append_sysex_header(tail, 1, MLP_SYSEX_TRACK_MUTED);
   tail->next = add_buf_node(&sysex_end, 1);
   return tail->next;
 }
