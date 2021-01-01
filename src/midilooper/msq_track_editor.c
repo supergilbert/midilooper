@@ -1430,8 +1430,16 @@ void _history_undo(track_editor_ctx_t *editor_ctx)
               } while (iter_node(&it) != NULL);
               return;
             }
-          evit_del_event(&evit);
-          evit_del_event(&evitoff);
+          if (engine_is_running(editor_ctx->track_ctx->engine) == MSQ_TRUE)
+            {
+              trackctx_event2trash(editor_ctx->track_ctx, &evit);
+              trackctx_event2trash(editor_ctx->track_ctx, &evitoff);
+            }
+          else
+            {
+              evit_del_event(&evit);
+              evit_del_event(&evitoff);
+            }
         }
       else if (history_elt->type == MSQ_DEL_NOTE)
         {
