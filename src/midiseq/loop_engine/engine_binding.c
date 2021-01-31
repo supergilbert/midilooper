@@ -22,6 +22,7 @@ void free_binding(void *addr)
   binding_t *binding = addr;
 
   free_list_node(&(binding->tracks), NULL);
+  free(binding);
 }
 
 void engine_clear_all_bindings(engine_ctx_t *engine)

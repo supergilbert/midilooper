@@ -645,6 +645,13 @@ void msq_transport_destroy(pbt_ggt_t *ggt)
   _pbt_ggt_destroy(ctnr_ggt);
 }
 
+void _msq_transport_set_new_engine(msq_transport_iface_t *transport_iface,
+                                   engine_ctx_t *engine_ctx)
+{
+  transport_iface->engine_ctx = engine_ctx;
+  transport_iface->tempo_wgt.engine_ctx = engine_ctx;
+}
+
 void msq_transport_init(msq_transport_iface_t *transport_iface,
                         msq_gui_theme_t *global_theme,
                         engine_ctx_t *engine_ctx)
@@ -914,7 +921,7 @@ void msq_dialog_list(msq_dialog_iface_t *dialog_iface,
                      msq_dialog_idx_result_cb_t result_idx_cb,
                      void *arg_addr)
 {
-  dialog_iface->type = LIST;
+  dialog_iface->type = MSQ_DIALOG_LIST;
   dialog_iface->need_popup = MSQ_TRUE;
   dialog_iface->need_update = MSQ_TRUE;
   msq_dialog_str_list_init(dialog_iface, str_list, str_list_len);
@@ -926,7 +933,7 @@ void msq_dialog_filebrowser(msq_dialog_iface_t *dialog_iface,
                             msq_dialog_str_result_cb_t result_str_cb,
                             void *arg_addr)
 {
-  dialog_iface->type = FILE_BROWSER;
+  dialog_iface->type = MSQ_DIALOG_FILE_BROWSER;
   dialog_iface->need_popup = MSQ_TRUE;
   dialog_iface->need_update = MSQ_TRUE;
   dialog_iface->result_str_cb = result_str_cb;
@@ -936,7 +943,7 @@ void msq_dialog_filebrowser(msq_dialog_iface_t *dialog_iface,
 void msq_dialog_text(msq_dialog_iface_t *dialog_iface,
                      const char *str)
 {
-  dialog_iface->type = STRING;
+  dialog_iface->type = MSQ_DIALOG_STRING;
   dialog_iface->need_popup = MSQ_TRUE;
   dialog_iface->need_update = MSQ_TRUE;
   dialog_iface->str = (char *) str;
@@ -946,7 +953,7 @@ void msq_dialog_string_input(msq_dialog_iface_t *dialog_iface,
                              msq_dialog_str_result_cb_t result_str_cb,
                              void *arg_addr)
 {
-  dialog_iface->type = STRING_INPUT;
+  dialog_iface->type = MSQ_DIALOG_STRING_INPUT;
   dialog_iface->need_popup = MSQ_TRUE;
   dialog_iface->need_update = MSQ_TRUE;
   dialog_iface->result_str_cb = result_str_cb;

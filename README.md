@@ -18,9 +18,23 @@ This code is in development.
 * Remote keyboard and midi to mute unmute tracks
 * Record midi events
 
-## Roadmap
+## Roadmap (todo)
 
-* Improve jack transport
-* Add midi sync
+* Add New Session Manager support (jack session now unsupported)
+* Sync
+  * Improve jack transport
+  * Add midi sync (In Out All)
+  * Tap tempo (MIDI and Interface)
 * Improve graphic interface
+  * Imgui implementation (fonts, update)
+  * Main window
+    * Colored track
+  * Editor
+    * Add keyboard binding to piano in editor
 * User helper and documentation
+* ???
+  * OSC
+  * plugin (lv2, dssi, vst???)
+* Clean
+  * Remove all hacks
+  * Factorize

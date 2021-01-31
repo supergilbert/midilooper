@@ -23,6 +23,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 void free_midifile_track(midifile_track_t *mtrack)
 {
   if (mtrack)
@@ -123,10 +127,11 @@ void get_mlp_sysex(midifile_info_t *info,
       switch (buffer[4])
         {
         case MLP_SYSEX_ENGINE_TYPE:
-          info->type =  buffer[5] << 24;
-          info->type += buffer[6] << 16;
-          info->type += buffer[7] << 8;
-          info->type += buffer[8];
+          info->engine_type =  buffer[5] << 24;
+          info->engine_type += buffer[6] << 16;
+          info->engine_type += buffer[7] << 8;
+          info->engine_type += buffer[8];
+          printf("Found eng type:%d\n", info->engine_type);
           break;
         case MLP_SYSEX_TRACK_LOOPSTART:
           track->sysex_loop_start =  buffer[5] << 24;
@@ -432,8 +437,9 @@ midifile_t *get_midifile_tracks(int fd,
     {
       COPY_LIST_NODE(&track_list, &(midifile->track_list));
     }
-  midifile->number_of_track = midifile_hdr->number_of_track;
+  /* midifile->number_of_track = midifile_hdr->number_of_track; */
   bcopy(&info, &midifile->info, sizeof (midifile_info_t));
+  printf("eng type:%d %d\n", info.engine_type, midifile->info.engine_type);
   return midifile;
 }
 
@@ -444,12 +450,12 @@ msq_bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr)
   /* size_t	size = 0; */
 
   if (strncmp(str, "MThd", 4))
-    return 0;
+    return MSQ_FALSE;
   buffer += 4;
   /* size = buffer[0]; size += (size << 8) + buffer[1]; */
   /* copy_to_2B(size, buffer); */
   if (buffer[3] != 6)
-    return 0;
+    return MSQ_FALSE;
   buffer += 4;
   mdhdr->format_type = buffer[2];
   buffer += 2;
@@ -468,7 +474,7 @@ msq_bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr)
       mdhdr->time_division.flag = MSQ_FALSE;
       mdhdr->time_division.value.tick_per_beat = (buffer[0] << 8) + buffer[1];
     }
-  return 1;
+  return MSQ_TRUE;
 }
 
 void output_midifile_hdr(midifile_hdr_chunk_t *midifile_hdr)
@@ -490,18 +496,26 @@ void output_midifile_hdr(midifile_hdr_chunk_t *midifile_hdr)
            midifile_hdr->time_division.value.tick_per_beat);
 }
 
-midifile_t *read_midifile_fd(int fd)
+midifile_t *read_midifile(const char *path)
 {
   byte_t               buffer[14];
   midifile_hdr_chunk_t midifile_hdr;
   size_t               size;
+  int                  midifile_fd;
+  midifile_t           *midifile;
 
+  midifile_fd = open(path, O_RDONLY);
+  if (midifile_fd == -1)
+    {
+      output_error("Unable to open filename: %s", path);
+      return NULL;
+    }
   //  bzero(buffer, 14);
-  size = read(fd, buffer, 14);
+  size = read(midifile_fd, buffer, 14);
   if (size != 14)
     {
       output_error("Problem while reading file header\n");
-      close(fd);
+      close(midifile_fd);
       return NULL;
     }
 
@@ -509,14 +523,18 @@ midifile_t *read_midifile_fd(int fd)
   print_bin(stdout, buffer, 14);
 #endif
 
-  if (!get_midifile_hdr(&midifile_hdr, buffer))
+  if (get_midifile_hdr(&midifile_hdr, buffer) == MSQ_FALSE)
     {
       output_error("Wrong midi file header\n");
-      close(fd);
+      close(midifile_fd);
       return NULL;
     }
 
   /* output_midifile_hdr(&midifile_hdr); */
 
-  return get_midifile_tracks(fd, &midifile_hdr);
+  midifile = get_midifile_tracks(midifile_fd, &midifile_hdr);
+
+  close(midifile_fd);
+
+  return midifile;
 }

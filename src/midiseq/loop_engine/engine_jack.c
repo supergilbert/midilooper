@@ -69,7 +69,8 @@ void jbe_destroy_hdl(engine_ctx_t *ctx)
   if (engine_is_running(ctx))
     engine_stop(ctx);
 
-  output_error("Not entirely implemented");
+  free_output_list(ctx);
+  /* output_error("Not entirely implemented"); */
   jack_client_close(hdl->client);
   free(hdl);
 }

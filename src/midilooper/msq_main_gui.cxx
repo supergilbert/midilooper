@@ -27,14 +27,13 @@ extern "C"
 
 #include "msq_gui.h"
 #include "msq_track_editor.h"
+#include "msq_nsm.h"
 }
 
 #include <list>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <libconfig.h>
+#include <libgen.h>
 
 #define TMP_DEFAULT_WIDTH 300
 
@@ -70,6 +69,14 @@ typedef enum
     MSQ_WAIT_MIDI_PROGRAM
   } msq_wait_binding_t;
 
+struct mlp_nsm_session_t
+{
+  char *client_id;
+  char *filepath;
+  midifile_t *midifile;
+  void *main_window_addr;
+};
+
 class midilooper_main_window
 {
   track_editor_theme_t track_editor_theme = {};
@@ -77,8 +84,8 @@ class midilooper_main_window
   msq_transport_iface_t transport_iface = {};
   msq_margin_ggt_t margin = {};
   pbt_ggt_ctnr_t root_child_vctnr = {};
-  msq_wait_binding_t wait_binding_type;
-  msq_time_t wait_since;
+  msq_wait_binding_t wait_binding_type = MSQ_WAIT_NONE;
+  msq_time_t wait_since = 0;
 
 public:
   track_ctx_t *track_waiting_binding = NULL;
@@ -88,6 +95,7 @@ public:
   pbt_ggt_win_t ggt_win = {};
   pbt_ggt_ctnr_t menubar_hctnr = {};
   pbt_wgt_button_t menubar_file_button = {};
+  pbt_wgt_button_t menubar_options = {};
   bool should_close = false;
   msq_dialog_iface_t dialog_iface = {};
   output_t *dialog_output;
@@ -95,15 +103,19 @@ public:
   msq_wgt_list_t output_list = {};
   msq_wgt_list_t track_list = {};
   msq_imgui_dialog *imgui_dialog = NULL;
+  bool nsm_session_activated = false;
 
-  void _init_main_window(char *name, int type, char *filename);
-  midilooper_main_window(char *name, int type, char *filename);
-  midilooper_main_window(char *name, int type);
+  void _init_main_window(void);
+  void _switch_engine(void);
+  midilooper_main_window(char *name, char *savepath_arg, midifile_t *midifile);
+  midilooper_main_window(char *name, byte_t engine_type);
+  midilooper_main_window(mlp_nsm_session_t *nsm_session);
   ~midilooper_main_window(void);
   void handle_dialog(void);
   void handle_windows(void);
   bool closed(void);
   void show_filemenu_dialog(void);
+  void show_options_dialog(void);
   void show_output_dialog(output_t *output);
   void show_set_output(track_editor_t *track_editor);
   void show_track_dialog(track_editor_t *track_editor);
@@ -1252,6 +1264,56 @@ void output_rename_dialog_res_cb(char *str, void *mainwin_addr)
   mainwin->redraw();
 }
 
+void set_keyboard_configuration(wbe_key_layout_t key_layout)
+{
+  config_t config;
+  config_setting_t *setting = NULL;
+  string config_path = getenv("HOME");
+
+  if (key_layout == wbe_window_backend_get_key_layout())
+    return;
+
+  config_path += "/.config/midilooper/midilooper.conf";
+  config_init(&config);
+  if (config_read_file(&config, config_path.c_str()) == CONFIG_TRUE)
+    setting = config_lookup(&config, "keyboard_language");
+
+  if (key_layout == WBE_KEY_LAYOUT_FR)
+    {
+      wbe_window_backend_set_key_layout(WBE_KEY_LAYOUT_FR);
+      if (setting == NULL)
+        setting = config_setting_add(config_root_setting(&config),
+                                     "keyboard_language",
+                                     CONFIG_TYPE_STRING);
+      config_setting_set_string(setting, "fr");
+    }
+  else
+    {
+      wbe_window_backend_set_key_layout(WBE_KEY_LAYOUT_EN);
+      if (setting != NULL)
+        config_setting_remove(config_root_setting(&config),
+                              "keyboard_language");
+    }
+  config_write_file(&config, config_path.c_str());
+  config_destroy(&config);
+}
+
+void options_dialog_res_cb(size_t idx, void *mainwin_addr)
+{
+  midilooper_main_window *mainwin =
+    (midilooper_main_window *) mainwin_addr;
+
+  if (idx == 0)
+    {
+      if (wbe_window_backend_get_key_layout() == WBE_KEY_LAYOUT_FR)
+        set_keyboard_configuration(WBE_KEY_LAYOUT_EN);
+      else
+        set_keyboard_configuration(WBE_KEY_LAYOUT_FR);
+    }
+  else if (idx == 1)
+    mainwin->_switch_engine();
+}
+
 void output_dialog_res_cb(size_t idx, void *mainwin_addr)
 {
   midilooper_main_window *mainwin =
@@ -1366,6 +1428,14 @@ void show_filemenu_dialog_cb(void *main_window_addr)
   main_window->show_filemenu_dialog();
 }
 
+void show_options_dialog_cb(void *main_window_addr)
+{
+  midilooper_main_window *main_window =
+    (midilooper_main_window *) main_window_addr;
+
+  main_window->show_options_dialog();
+}
+
 #include "pbt_tools.h"
 #include "wbe_gl.h"
 
@@ -1378,46 +1448,128 @@ void main_window_input_cb(wbe_window_input_t *winev, void *main_window_addr)
   pbt_evh_handle(&(main_window->ggt_win.evh), winev);
 }
 
+void midilooper_main_window::_switch_engine(void)
+{
+  engine_ctx_t *old_engine_ctx = engine_ctx;
+  midifile_t *midifile_rep;
+  list_iterator_t  iter = {};
+  output_t *output;
+  msq_track_line_t *track_line;
+  track_ctx_t *trackctx;
+  engine_ctx_t *new_engine_ctx =
+    (engine_ctx_t *) malloc(sizeof (engine_ctx_t));
 
-void midilooper_main_window::_init_main_window(char *name,
-                                               int type,
-                                               char *filename)
+  memset(new_engine_ctx, 0, sizeof (engine_ctx_t));
+
+  if (engine_ctx->type == MSQ_ENG_ALSA)
+    {
+      if (init_engine(new_engine_ctx,
+                      engine_ctx->name,
+                      MSQ_ENG_JACK) == MSQ_FALSE)
+        {
+          pbt_logerr("Unable to init jack engine");
+          return;
+        }
+    }
+  else
+    {
+      if (init_engine(new_engine_ctx,
+                      engine_ctx->name,
+                      MSQ_ENG_ALSA) == MSQ_FALSE)
+        {
+          pbt_logerr("Unable to init alsa engine");
+          return;
+        }
+    }
+
+  midifile_rep = engine_gen_midifile_struct(engine_ctx);
+
+  // invalid chunk size
+  while (engine_ctx->track_list.len > 0)
+    {
+      trackctx = (track_ctx_t *) engine_ctx->track_list.head->addr;
+      track_line = msq_track_list_get(&track_list, trackctx);
+      pbt_ggt_node_it_del(&(track_line->node_it));
+      engine_delete_trackctx(engine_ctx, trackctx);
+    }
+  while (engine_ctx->output_list.len > 0)
+    {
+      output = (output_t *) engine_ctx->output_list.head->addr;
+      remove_output(output);
+    }
+
+  engine_stop(engine_ctx);
+
+  engine_ctx = new_engine_ctx;
+
+  _msq_transport_set_new_engine(&transport_iface, new_engine_ctx);
+
+  engine_read_midifile(engine_ctx, midifile_rep);
+  free_midifile(midifile_rep);
+
+  uninit_engine(old_engine_ctx);
+  free(old_engine_ctx);
+
+  for (iter_init(&iter, &(engine_ctx->output_list));
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      output = (output_t *) iter_node_ptr(&iter);
+      msq_output_node_add(&output_list, output);
+    }
+
+  for (iter_init(&iter, &(engine_ctx->track_list));
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      trackctx = (track_ctx_t *) iter_node_ptr(&iter);
+      track_line = msq_track_node_add(&track_list,
+                                      trackctx,
+                                      &track_editor_theme,
+                                      &dialog_iface,
+                                      &transport_iface);
+      pbt_ggt_win_set_min_size(&ggt_win);
+      pbt_ggt_win_init_child_ev(&ggt_win, track_line->node_it.node);
+    }
+  pbt_ggt_win_set_min_size(&ggt_win);
+  redraw();
+}
+
+void midilooper_main_window::_init_main_window(void)
 {
   list_iterator_t it;
   output_t *output = NULL;
   track_ctx_t *track_ctx;
   msq_track_line_t *track_line;
-  int midifile_fd;
-  midifile_t *midifile;
-
-  if (filename != NULL)
-    {
-      save_path = filename;
-      midifile_fd = open(filename, O_RDONLY);
-      if (midifile_fd == -1)
-        {
-          fprintf(stderr, "Unable to open filename: %s\n", filename);
-          abort();
-        }
-      midifile = read_midifile_fd(midifile_fd);
-      engine_ctx = (engine_ctx_t *) malloc(sizeof (engine_ctx_t)); // TODO remove malloc
-      init_engine(engine_ctx, name, type);
-      engine_read_midifile(engine_ctx, midifile);
-      free_midifile(midifile);
-      close(midifile_fd);
-    }
-  else
-    {
-      engine_ctx = (engine_ctx_t *) malloc(sizeof (engine_ctx_t)); // TODO bis remove malloc
-      init_engine(engine_ctx, name, type);
-    }
+  char *current_dir = NULL;
 
   gui_default_theme_init(&theme);
   track_editor_default_theme_init(&track_editor_theme,
                                   &theme);
 
-  _pbt_wgt_label_button_init(&menubar_file_button,
-                             "File",
+  pbt_ggt_hctnr_init(&menubar_hctnr);
+  if (nsm_session_activated == false)
+    {
+      _pbt_wgt_label_button_init(&menubar_file_button,
+                                 "File",
+                                 &(theme.theme.font),
+                                 theme.theme.window_fg,
+                                 theme.theme.window_bg,
+                                 theme.theme.wgt_activated_fg,
+                                 theme.theme.wgt_activated_bg,
+                                 theme.theme.frame_fg,
+                                 theme.theme.frame_bg,
+                                 theme.theme.cursor_finger,
+                                 theme.theme.cursor_arrow,
+                                 show_filemenu_dialog_cb,
+                                 this);
+      pbt_ggt_add_child_wgt(&menubar_hctnr, &menubar_file_button);
+      pbt_ggt_ctnr_add_static_separator(&menubar_hctnr,
+                                        theme.default_margin,
+                                        theme.theme.window_bg);
+    }
+  _pbt_wgt_label_button_init(&menubar_options,
+                             "Options",
                              &(theme.theme.font),
                              theme.theme.window_fg,
                              theme.theme.window_bg,
@@ -1427,10 +1579,9 @@ void midilooper_main_window::_init_main_window(char *name,
                              theme.theme.frame_bg,
                              theme.theme.cursor_finger,
                              theme.theme.cursor_arrow,
-                             show_filemenu_dialog_cb,
+                             show_options_dialog_cb,
                              this);
-  pbt_ggt_hctnr_init(&menubar_hctnr);
-  pbt_ggt_add_child_wgt(&menubar_hctnr, &menubar_file_button);
+  pbt_ggt_add_child_wgt(&menubar_hctnr, &menubar_options);
   pbt_ggt_ctnr_add_empty(&menubar_hctnr, theme.theme.window_bg);
 
   msq_transport_init(&transport_iface, &theme, engine_ctx);
@@ -1471,7 +1622,7 @@ void midilooper_main_window::_init_main_window(char *name,
   pbt_ggt_add_child_ggt(&root_vctnr, &margin);
 
   pbt_ggt_win_init(&ggt_win,
-                   "Midilooper2",
+                   "Midilooper",
                    &root_vctnr,
                    0, 0,
                    PBT_FALSE);
@@ -1494,7 +1645,15 @@ void midilooper_main_window::_init_main_window(char *name,
 
   pbt_ggt_draw(&(root_vctnr));
 
-  imgui_dialog = new msq_imgui_dialog(&(dialog_iface), &theme);
+  if (save_path.empty())
+    current_dir = get_current_dir_name();
+  else
+    {
+      current_dir = strdup(save_path.c_str());
+      dirname(current_dir);
+    }
+  imgui_dialog = new msq_imgui_dialog(&(dialog_iface), &theme, current_dir);
+  free(current_dir);
 
   wbe_window_map(ggt_win.pb_win.win_be);
   wbe_pbw_put_buffer(&(ggt_win.pb_win));
@@ -1504,16 +1663,55 @@ void midilooper_main_window::_init_main_window(char *name,
 }
 
 midilooper_main_window::midilooper_main_window(char *name,
-                                               int type,
-                                               char *filename)
+                                               char *savepath_arg,
+                                               midifile_t *midifile)
 {
-  _init_main_window(name, type, filename);
+  save_path = savepath_arg;
+  // TODO engine reload
+  engine_ctx = (engine_ctx_t *) malloc(sizeof (engine_ctx_t));
+  if (init_engine(engine_ctx, name, midifile->info.engine_type) == MSQ_FALSE)
+    pbt_abort("Unable to init engine (type:%s)",
+              midifile->info.engine_type == MSQ_ENG_ALSA ? "alsa" : "jack");
+  engine_read_midifile(engine_ctx, midifile);
+  _init_main_window();
 }
 
-midilooper_main_window::midilooper_main_window(char *name,
-                                               int type)
+midilooper_main_window::midilooper_main_window(char *name, byte_t engine_type)
 {
-  _init_main_window(name, type, NULL);
+  // TODO engine reload
+  engine_ctx = (engine_ctx_t *) malloc(sizeof (engine_ctx_t));
+  if (init_engine(engine_ctx, name, engine_type) == MSQ_FALSE)
+    pbt_abort("Unable to init engine (type:%s)",
+              engine_type == MSQ_ENG_ALSA ? "alsa" : "jack");
+  _init_main_window();
+}
+
+midilooper_main_window::midilooper_main_window(mlp_nsm_session_t *mlp_nsm_session)
+{
+  save_path = mlp_nsm_session->filepath;
+  nsm_session_activated = true;
+  // TODO engine reload
+  engine_ctx = (engine_ctx_t *) malloc(sizeof (engine_ctx_t));
+  if (mlp_nsm_session->midifile != NULL)
+    {
+      if (init_engine(engine_ctx,
+                      mlp_nsm_session->client_id,
+                      mlp_nsm_session->midifile->info.engine_type) == MSQ_FALSE)
+        pbt_abort("Unable to init engine (type:%s)",
+                  mlp_nsm_session->midifile->info.engine_type ==
+                  MSQ_ENG_ALSA ? "alsa" : "jack");
+      engine_read_midifile(engine_ctx, mlp_nsm_session->midifile);
+      free_midifile(mlp_nsm_session->midifile);
+      mlp_nsm_session->midifile = NULL;
+    }
+  else
+    {
+      if (init_engine(engine_ctx, mlp_nsm_session->client_id, MSQ_ENG_ALSA)
+          == MSQ_FALSE)
+        pbt_abort("Unable to init engine (type:alsa)");
+    }
+  _init_main_window();
+  mlp_nsm_session->main_window_addr = (void *) this;
 }
 
 midilooper_main_window::~midilooper_main_window(void)
@@ -1532,14 +1730,16 @@ void midilooper_main_window::handle_dialog(void)
 {
   if (dialog_iface.need_popup == MSQ_TRUE)
     {
-      if (dialog_iface.type == LIST)
+      if (dialog_iface.type == MSQ_DIALOG_LIST)
         imgui_dialog->popup_list();
-      else if (dialog_iface.type == FILE_BROWSER)
+      else if (dialog_iface.type == MSQ_DIALOG_FILE_BROWSER)
         imgui_dialog->popup_file_browser();
-      else if (dialog_iface.type == STRING)
+      else if (dialog_iface.type == MSQ_DIALOG_STRING)
         imgui_dialog->popup_text();
-      else if (dialog_iface.type == STRING_INPUT)
+      else if (dialog_iface.type == MSQ_DIALOG_STRING_INPUT)
         imgui_dialog->popup_string_input();
+      // else // if (dialog_iface.type == MSQ_DIALOG_OPTIONS)
+      //   imgui_dialog->popup_options();
 
       dialog_iface.need_popup = MSQ_FALSE;
     }
@@ -1597,6 +1797,25 @@ void midilooper_main_window::show_filemenu_dialog(void)
                   (char **) file_menu,
                   3,
                   filemenu_dialog_cb,
+                  this);
+}
+
+void midilooper_main_window::show_options_dialog(void)
+{
+  static const char *options_menu[2];
+
+  if (wbe_window_backend_get_key_layout() == WBE_KEY_LAYOUT_FR)
+    options_menu[0] = "Setup qwerty keyboard";
+  else
+    options_menu[0] = "Setup azerty keyboard";
+  if (engine_ctx->type == MSQ_ENG_ALSA)
+    options_menu[1] = "Reload in jack mode /!\\";
+  else
+    options_menu[1] = "Reload in alsa mode /!\\";
+  msq_dialog_list(&(dialog_iface),
+                  (char **) options_menu,
+                  2,
+                  options_dialog_res_cb,
                   this);
 }
 
@@ -1811,6 +2030,7 @@ void midilooper_main_window::save_file_as(const char *file_path)
 {
   engine_save_project(engine_ctx, file_path, MSQ_FALSE);
   save_path = file_path;
+  printf("%s\n", file_path);
 }
 
 #define _check_alpha_keys(byte_array)           \
@@ -2022,7 +2242,7 @@ void midilooper_main_window::handle_msq_update(void)
   else
     {
       // Temp hack to handle resize refresh bug (pbt_gadget_window.c TODO)
-      if (wait_since + 1.0 < wbe_get_time())
+      if ((wait_since + 1.0) < wbe_get_time())
         {
           wait_since = wbe_get_time();
           pbt_ggt_win_put_buffer(&ggt_win);
@@ -2116,44 +2336,120 @@ void load_configuration(void)
   config_destroy(&config);
 }
 
+msq_bool_t mlp_nsm_open(const char *project_path,
+                        const char *client_id,
+                        void *arg)
+{
+  mlp_nsm_session_t *mlp_nsm_session = (mlp_nsm_session_t *) arg;
+  string filepath;
+
+  filepath = project_path;
+  filepath += ".midi";
+
+  mlp_nsm_session->client_id = strdup(client_id);
+  mlp_nsm_session->filepath = strdup(filepath.c_str());
+  mlp_nsm_session->midifile = read_midifile(mlp_nsm_session->filepath);
+  return MSQ_TRUE;
+}
+
+void mlp_nsm_quit(void *arg)
+{
+  mlp_nsm_session_t *mlp_nsm_session = (mlp_nsm_session_t *) arg;
+  midilooper_main_window *main_window =
+    (midilooper_main_window *) mlp_nsm_session->main_window_addr;
+
+  main_window->should_close = true;
+}
+
+msq_bool_t mlp_nsm_save(void *arg)
+{
+  mlp_nsm_session_t *mlp_nsm_session = (mlp_nsm_session_t *) arg;
+  midilooper_main_window *main_window =
+    (midilooper_main_window *) mlp_nsm_session->main_window_addr;
+
+  main_window->save_file_as(mlp_nsm_session->filepath);
+  return MSQ_TRUE;
+}
+
+int mlp_start_nsm_session(char *nsm_srv_url)
+{
+  mlp_nsm_session_t mlp_nsm_session = {};
+  msq_nsm_client_t nsm_client = {};
+  string project_path;
+  // midifile_t *midifile = NULL;
+  midilooper_main_window *main_window;
+
+  msq_nsm_start_client(&nsm_client,
+                       nsm_srv_url,
+                       "Midilooper",
+                       "midilooper",
+                       mlp_nsm_open,
+                       mlp_nsm_quit,
+                       mlp_nsm_save,
+                       &mlp_nsm_session);
+
+  while (mlp_nsm_session.filepath == NULL)
+    usleep(200000);
+
+  wbe_pbw_backend_init();
+
+  main_window = new midilooper_main_window(&mlp_nsm_session);
+
+  main_window->run();
+
+  delete main_window;
+
+  wbe_gl_color_destroy();
+  wbe_gl_texture_n_color_destroy();
+  wbe_pbw_backend_destroy();
+
+  free(mlp_nsm_session.client_id);
+  free(mlp_nsm_session.filepath);
+
+  return 0;
+}
+
 #include <getopt.h>
 
-int main(int ac, char **av)
+int mlp_start_opt_session(int ac, char **av)
 {
   midilooper_main_window *main_window;
   static struct option long_options[] =
-    {{"alsa",            no_argument,       NULL,  'a'},
-     {"help",            no_argument,       NULL,  'h'},
-     {"jack",            no_argument,       NULL,  'j'},
-     {"name",            required_argument, NULL,  'n'},
-     {"file",            required_argument, NULL,  'f'},
-     {NULL,              0,                 NULL,  0}};
+    {{"alsa",               no_argument,       NULL,  'a'},
+     {"help",               no_argument,       NULL,  'h'},
+     {"interface-help",     no_argument,       NULL,  'i'},
+     {"jack",               no_argument,       NULL,  'j'},
+     {"name",               required_argument, NULL,  'n'},
+     {"file",               required_argument, NULL,  'f'},
+     {NULL,                 0,                 NULL,  0}};
   int opt_ret;
   int opt_idx = 0;
-  bool alsa = false, jack = false;
+  bool alsa_bool = false, jack_bool = false;
+
   const string default_name = "Midilooper";
   char *name = (char *) default_name.c_str(),
-    *file = NULL;
-  int type = 0;
+    *filepath = NULL;
+  midifile_t *midifile = NULL;
   const char *synopsis = "\
 Usage: midilooper [OPTIONS]... [FILE]\n\
-Loop midi sequencer that can be controlled with keyboard or midi shortcuts.\n\
+  Loop midi sequencer controlled with interface.\n\
+  (keyboard or midi note and prog)\n\
 \n\
 OPTIONS:\n\
   -a, --alsa\n\
-    run in alsa mode\n\
-  -h, --help\n\
-    display this help\n\
-  -j, --jack\n\
-    run in jack mode\n\
-  -n NAME, --name=NAME\n\
-    set name for the midi client (alsa or jack)\n\
+    Alsa mode (default)\n\
   -f FILE, --file=FILE\n\
-    load the specified midi file\n\
-\n\
-FILE:\n\
-  load the specified midi file\n\
-\n\
+    Load FILEPATH (midi file)\n\
+  -h, --help\n\
+    Display this help\n\
+  -i, --interface-help\n\
+    Display interface help\n\
+  -j, --jack\n\
+    Jack mode\n\
+  -n NAME, --name=NAME\n\
+    Set the midi client name (alsa or jack)\n";
+
+  const char *interface_help = "\
 Editor shortcuts:\n\
   Ctrl a\n\
     Select all\n\
@@ -2195,7 +2491,7 @@ Mouse behaviour:\n\
     Left button\n\
       play note to output\n";
 
-  while ((opt_ret = getopt_long(ac, av, "ahjn:f:", long_options, &opt_idx)))
+  while ((opt_ret = getopt_long(ac, av, "ahijn:f:m", long_options, &opt_idx)))
     {
       if (opt_ret == -1)
         break;
@@ -2203,47 +2499,72 @@ Mouse behaviour:\n\
       switch (opt_ret)
         {
         case 'a':
-          if (jack)
+          if (jack_bool)
             pbt_abort("can not set alsa and jack at the same time.");
-          alsa = true;
+          alsa_bool = true;
           // type = 0;
+          break;
+        case 'f':
+          filepath = optarg;
           break;
         case 'h':
           pbt_logmsg("%s", synopsis);
           return 0;
           break;
+        case 'i':
+          pbt_logmsg("%s", interface_help);
+          return 0;
+          break;
         case 'j':
-          if (alsa)
+          if (alsa_bool)
             pbt_abort("can not set jack and alsa at the same time.");
-          jack = true;
-          type = 1;
+          jack_bool = true;
           break;
         case 'n':
           name = optarg;
           break;
-        case 'f':
-          file = optarg;
-          break;
         default:
-          pbt_logmsg("%s\n?? getopt returned character code 0%o ??",
-                     synopsis, opt_ret);
+          pbt_abort("%s\n?? getopt returned character code 0%o ??",
+                    synopsis, opt_ret);
         }
     }
 
   if (optind < ac)
     {
-      if (file)
+      if (filepath)
         pbt_abort("File already provided");
       if (ac - optind > 1)
         pbt_abort("Only one file must be privoded");
-      file = av[optind];
+      filepath = av[optind];
     }
-
-  load_configuration();
 
   wbe_pbw_backend_init();
 
-  main_window = new midilooper_main_window(name, type, file);
+  if (filepath != NULL)
+    {
+      midifile = read_midifile(filepath);
+      pbt_logmsg("engine type: %d", midifile->info.engine_type);
+      if (jack_bool)
+        {
+          midifile->info.engine_type = MSQ_ENG_JACK;
+          main_window = new midilooper_main_window(name, filepath, midifile);
+        }
+      else if (alsa_bool)
+        {
+          midifile->info.engine_type = MSQ_ENG_ALSA;
+          main_window = new midilooper_main_window(name, filepath, midifile);
+        }
+      else
+        main_window = new midilooper_main_window(name, filepath, midifile);
+      free_midifile(midifile);
+    }
+  else
+    {
+      if (jack_bool)
+        main_window = new midilooper_main_window(name, MSQ_ENG_JACK);
+      else
+        main_window = new midilooper_main_window(name, MSQ_ENG_ALSA);
+    }
 
   main_window->run();
 
@@ -2253,5 +2574,19 @@ Mouse behaviour:\n\
   wbe_gl_texture_n_color_destroy();
   wbe_pbw_backend_destroy();
 
+  return 0;
+}
+
+int main(int ac, char **av)
+{
+  char *nsm_url = NULL;
+
+  load_configuration();
+
+  nsm_url = getenv("NSM_URL");
+  if (nsm_url == NULL)
+    return mlp_start_opt_session(ac, av);
+  else
+    mlp_start_nsm_session(nsm_url);
   return 0;
 }

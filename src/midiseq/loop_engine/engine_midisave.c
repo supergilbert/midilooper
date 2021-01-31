@@ -105,7 +105,7 @@ void set_midifile_track(track_ctx_t *trackctx,
 
   COPY_LIST_NODE(&(trackctx->track->tickev_list),
                  &(mtrack->track.tickev_list));
-  mtrack->track.name = trackctx->track->name;
+  mtrack->track.name = strdup(trackctx->track->name);
 
   mtrack->sysex_loop_start = trackctx->loop_start;
   mtrack->sysex_loop_len = trackctx->loop_len;
@@ -137,18 +137,7 @@ void gen_midinote_bindings_str(char *mnb_str,
                                size_t notes_sz)
 {
   const char *notes_name[] =
-    {"C",
-     "C#",
-     "D",
-     "D#",
-     "E",
-     "F",
-     "F#",
-     "G",
-     "G#",
-     "A",
-     "A#",
-     "B"};
+    {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
   const char *name;
   uint_t     idx, note_idx;
   int_t      note_oct;
@@ -236,7 +225,7 @@ void gen_midiprogram_bindings_str(char *mpb_str,
 void engine_save_project(engine_ctx_t *ctx, const char *file_path, msq_bool_t template)
 {
   int              fd;
-  list_iterator_t  iter;
+  list_iterator_t  iter = {};
   track_ctx_t      *trackctx = NULL;
   midifile_track_t mtrack;
 
@@ -270,4 +259,52 @@ void engine_save_project(engine_ctx_t *ctx, const char *file_path, msq_bool_t te
       close(fd);
     }
   debug("End of write\n\n\n");
+}
+
+midifile_t *engine_gen_midifile_struct(engine_ctx_t *ctx)
+{
+  midifile_portinfo_t *portinfo;
+  output_t *output;
+  size_t idx;
+  track_ctx_t      *trackctx = NULL;
+  midifile_track_t *mtrack;
+  list_iterator_t  iter = {};
+  midifile_t *midifile = malloc(sizeof (midifile_t));
+
+  memset(midifile, 0, sizeof (midifile_t));
+
+  midifile->info.type = MULTITRACK_MIDIFILE_SYNC;
+  midifile->info.tempo = ctx->tempo;
+  midifile->info.ppq = ctx->ppq;
+  midifile->info.is_msq = MSQ_TRUE;
+  midifile->info.engine_type = ctx->type;
+  midifile->info.version = 0;
+
+  if (ctx->output_list.len > 0)
+    for (iter_init(&iter, &(ctx->output_list)),
+           idx = 0;
+         iter_node(&iter);
+         iter_next(&iter),
+           idx++)
+      {
+        output = iter_node_ptr(&iter);
+        portinfo = myalloc(sizeof (midifile_portinfo_t));
+        portinfo->id = idx;
+        portinfo->name = strdup(output_get_name(output));
+        push_to_list_tail(&(midifile->info.portinfo_list),
+                          portinfo);
+      }
+
+  if (ctx->track_list.len > 0)
+      for (iter_init(&iter, &(ctx->track_list));
+           iter_node(&iter);
+           iter_next(&iter))
+        {
+          mtrack = myalloc(sizeof (midifile_track_t));
+          trackctx = iter_node_ptr(&iter);
+          set_midifile_track(trackctx, mtrack);
+          push_to_list_tail(&(midifile->track_list),
+                            (void *) mtrack);
+        }
+  return midifile;
 }

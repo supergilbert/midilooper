@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "pbt_type.h"
 #include <stdio.h>
 
 EXTERN_C_BEGIN

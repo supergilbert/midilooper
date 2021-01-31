@@ -493,7 +493,7 @@ void engine_toggle_rec(engine_ctx_t *ctx)
 
 msq_bool_t init_engine(engine_ctx_t *engine,
                        char *name,
-                       int type)
+                       byte_t type)
 {
   bzero(engine, sizeof (engine_ctx_t));
   engine->rbuff = init_midiringbuff(400);
@@ -502,16 +502,18 @@ msq_bool_t init_engine(engine_ctx_t *engine,
   engine->ppq = 192;
   engine->tempo = 500000;
 
-  if (type == 0)
-    {
-      if (nns_init_engine(engine, name) != MSQ_TRUE)
-        return MSQ_FALSE;
-    }
-  else
+  if (type == MSQ_ENG_JACK)
     {
       if (jbe_init_engine(engine, name) != MSQ_TRUE)
         return MSQ_FALSE;
     }
+  else
+    {
+      if (nns_init_engine(engine, name) != MSQ_TRUE)
+        return MSQ_FALSE;
+    }
+
+  engine->name = strdup(name);
 
   return MSQ_TRUE;
 }
@@ -526,6 +528,7 @@ void free_output_list(engine_ctx_t *ctx)
        iter_node_del(&output_it, NULL))
     {
       output = (output_t *) iter_node_ptr(&output_it);
+      free_list_node(&(output->req_list), free);
       ctx->delete_output_node(ctx, output);
     }
 }
@@ -538,6 +541,7 @@ void uninit_engine(engine_ctx_t *engine)
   free_list_node(&(engine->track_list), _free_trackctx);
   engine_clear_all_bindings(engine);
   free_midiringbuff(engine->rbuff);
+  free(engine->name);
   /* bzero(engine, sizeof (engine_ctx_t)); */
 }
 

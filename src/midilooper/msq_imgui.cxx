@@ -29,9 +29,16 @@ extern "C"
 bool list_compare_file_elt(const file_elt *first, const file_elt *second)
 {
   size_t idx = 0;
-  size_t max = first->name.size();
+  size_t max;
 
-  if (max > second->name.size())
+  if (first->is_directory == true && second->is_directory == false)
+    return true;
+  if (first->is_directory == false && second->is_directory == true)
+    return false;
+
+  if (first->name.size() < second->name.size())
+    max = first->name.size();
+  else
     max = second->name.size();
 
   while (idx < max)
@@ -42,7 +49,7 @@ bool list_compare_file_elt(const file_elt *first, const file_elt *second)
         return false;
       idx++;
     }
-  return first->name.size() < second->name.size();
+  return (first->name.size() < second->name.size());
 }
 
 void msq_imgui_dialog::free_popup_list(void)
@@ -310,7 +317,17 @@ void msq_imgui_dialog::render_file_browser(void)
   ImGui::ListBoxFooter();
 
   ImGui::PushItemWidth(-1);
-  ImGui::InputText("Enter a filename", buff, BUFFSIZE);
+  if (ImGui::InputText("Enter a filename",
+                       buff,
+                       BUFFSIZE,
+                       ImGuiInputTextFlags_EnterReturnsTrue))
+    {
+      new_dir_path = dir_array->get_path();
+      new_dir_path += "/";
+      new_dir_path += buff;
+      strcpy(buff, new_dir_path.c_str());
+      msq_dialog_result_str(dialog_iface, buff);
+    }
   ImGui::PopItemWidth();
   if (ImGui::Button("Ok"))
     {
@@ -449,13 +466,13 @@ void msq_imgui_dialog::handle_window(void)
         unmap_window();
       else
         {
-          if (dialog_iface->type == LIST)
+          if (dialog_iface->type == MSQ_DIALOG_LIST)
             render_list();
-          else if (dialog_iface->type == FILE_BROWSER)
+          else if (dialog_iface->type == MSQ_DIALOG_FILE_BROWSER)
             render_file_browser();
-          else if (dialog_iface->type == STRING)
+          else if (dialog_iface->type == MSQ_DIALOG_STRING)
             render_text();
-          else
+          else // if (dialog_iface->type == MSQ_DIALOG_STRING_INPUT)
             render_string_input();
         }
     }
@@ -586,7 +603,9 @@ void msq_imgui_dialog_focus_cb(wbe_bool_t focused, void *msq_imgui_arg)
 
 #include <stdlib.h>             // abort
 
-msq_imgui_dialog::msq_imgui_dialog(msq_dialog_iface_t *dialog_iface_arg, msq_gui_theme_t *theme)
+msq_imgui_dialog::msq_imgui_dialog(msq_dialog_iface_t *dialog_iface_arg,
+                                   msq_gui_theme_t *theme,
+                                   const char *current_dir)
 {
   GLchar vshader_str[] =
     "uniform vec2 i_dpy_size;"
@@ -650,10 +669,8 @@ msq_imgui_dialog::msq_imgui_dialog(msq_dialog_iface_t *dialog_iface_arg, msq_gui
 
   set_style(theme);
 
-  char *current_dir = get_current_dir_name();
   dir_array = new directory_array();
   dir_array->load_directory(current_dir);
-  free(current_dir);
 
   ImGui_ImplGlfw_InitForOpenGL(glfw_win, true);
   init_font();

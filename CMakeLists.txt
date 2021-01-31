@@ -64,6 +64,7 @@ add_executable(${PROJECT_NAME}
   ${IMGUI_SRC}
   ${MIDISEQ_SRC}
   ${MIDILOOPER_DIR}/msq_gui.c
+  ${MIDILOOPER_DIR}/msq_nsm.c
   ${MIDILOOPER_DIR}/msq_track_editor.c
   ${MIDILOOPER_DIR}/msq_imgui.cxx
   ${MIDILOOPER_DIR}/msq_main_gui.cxx)
@@ -75,6 +76,7 @@ find_package(PkgConfig)
 pkg_check_modules(ALSA      REQUIRED alsa)
 pkg_check_modules(JACK      REQUIRED jack)
 pkg_check_modules(LIBCONFIG REQUIRED libconfig)
+pkg_check_modules(LIBLO     REQUIRED liblo)
 
 target_link_libraries(${PROJECT_NAME}
   ${wbe_lib_name}
@@ -87,6 +89,7 @@ target_link_libraries(${PROJECT_NAME}
   ${JACK_LIBRARIES}
   ${FREETYPE2_LIBRARIES}
   ${LIBCONFIG_LIBRARIES}
+  ${LIBLO_LIBRARIES}
   pthread)
 
 include_directories(${CMAKE_BINARY_DIR}

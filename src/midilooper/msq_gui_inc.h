@@ -108,10 +108,10 @@ typedef struct
 
 typedef enum
   {
-   LIST,
-   FILE_BROWSER,
-   STRING,
-   STRING_INPUT
+   MSQ_DIALOG_LIST,
+   MSQ_DIALOG_FILE_BROWSER,
+   MSQ_DIALOG_STRING,
+   MSQ_DIALOG_STRING_INPUT
   } msq_dialog_type_t;
 
 #include "tool/tool.h"

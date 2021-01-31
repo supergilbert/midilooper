@@ -283,6 +283,11 @@ void wbe_glfw_callback_refresh(GLFWwindow *glfw_win)
   win_node->need_refresh = WBE_TRUE;
 }
 
+wbe_key_layout_t wbe_window_backend_get_key_layout(void)
+{
+  return _wbe_window_backend.key_layout;
+}
+
 void wbe_window_backend_set_key_layout(wbe_key_layout_t key_layout)
 {
   _wbe_window_backend.key_layout = key_layout;

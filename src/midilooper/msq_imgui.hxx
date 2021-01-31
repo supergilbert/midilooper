@@ -134,7 +134,9 @@ public:
   bool hide_on_focus_lost = false;
   void init_font(void);
   ~msq_imgui_dialog(void);
-  msq_imgui_dialog(msq_dialog_iface_t *dialog_iface, msq_gui_theme_t *theme);
+  msq_imgui_dialog(msq_dialog_iface_t *dialog_iface,
+                   msq_gui_theme_t *theme,
+                   const char *current_dir);
   void free_popup_list(void);
   void popup_file_browser(void);
   void popup_list(void);

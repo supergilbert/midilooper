@@ -78,7 +78,7 @@ typedef struct
   uint_t     ppq;
   msq_bool_t is_msq;
   list_t     portinfo_list;
-  uint_t     engine_type;
+  byte_t     engine_type;
   uint_t     version;
   /* char      *name; */
 }           midifile_info_t;
@@ -111,7 +111,7 @@ typedef struct
   /* midifile_hdr_chunk_t  *hdr_info; */
   midifile_info_t       info;
   /* integrer les fonctions de clock au prochaine sequence, compatible au track node*/
-  uint_t                number_of_track;
+  /* uint_t                number_of_track; */
   list_t                track_list;
 }                       midifile_t;
 
@@ -167,7 +167,7 @@ buf_node_t *create_midifile_trackhdr(size_t track_size);
 size_t get_midifile_track_size(byte_t *buffer);
 
 msq_bool_t get_midifile_hdr(midifile_hdr_chunk_t *mdhdr, void *ptr);
-midifile_t *read_midifile_fd(int fd);
+midifile_t *read_midifile(const char *path);
 void free_midifile_track(midifile_track_t *mtrack);
 void free_midifile(midifile_t *sequence);
 size_t midifile_trackev_size(track_t *track);

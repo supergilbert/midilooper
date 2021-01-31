@@ -6,28 +6,25 @@ midilooper \- midi loop sequencer
 [\fI\,OPTION\/\fR] ... [\fI\,FILEPATH\/\fR]
 .SH DESCRIPTION
 .PP
-Loop midi sequencer that can be controlled with keyboard or midi shortcuts.
+Loop midi sequencer controlled with interface, (keyboard or midi note and prog).
 .SH OPTION
 .TP
-\fB\-j\fR, \fB\-\-jack\fR
-Enable jack backend
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Display help
-.TP
 \fB\-a\fR, \fB\-\-alsa\fR
-Enable alsa sequencer backend (default).
-.TP
-\fB\-i\fR, \fB\-\-import\fR \fIFILEPATH\fR
-Import midi file
+Alsa mode (default)
 .TP
 \fB\-f\fR, \fB\-\-file\fR \fIFILEPATH\fR
-Import midi file
-.TP
-\fB\-n\fR, \fB\-\-name \fINAME\fR
-Set sequencer backend name
+Load FILEPATH (midi file)
 .TP
 \fB\-h\fR, \fB\-\-help\fR
-Show the help
+Display this help
+.TP
+\fB\-i\fR, \fB\-\-interface-help\fR
+Display interface help
+.TP
+\fB\-j\fR, \fB\-\-jack\fR
+Jack mode
+.TP
+\fB\-n\fR, \fB\-\-name \fINAME\fR
+Set the midi client name (alsa or jack)
 .SH AUTHOR
 Written by Gilbert Romer

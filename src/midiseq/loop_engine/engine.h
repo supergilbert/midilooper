@@ -104,6 +104,7 @@ typedef enum {
 
 typedef struct engine_ctx_s
 {
+  char             *name;
   byte_t           type;
   void             *hdl;
   list_t           output_list;
@@ -176,6 +177,7 @@ void        engine_read_midifile(engine_ctx_t *engine, midifile_t *midifile);
 void        engine_save_project(engine_ctx_t *engine,
                                 const char *file_path,
                                 msq_bool_t is_template);
+midifile_t *engine_gen_midifile_struct(engine_ctx_t *ctx);
 /* void gen_miditrack_info(char *retstr, */
 /*                         engine_ctx_t *ctx, */
 /*                         track_ctx_t *trackctx); */
@@ -200,6 +202,8 @@ size_t _fill_byte_array_w_track_bindings(byte_t *byte_array,
                                          list_t *bindings,
                                          track_ctx_t *trackctx);
 
+void free_output_list(engine_ctx_t *ctx);
+
 void play_outputs_reqs(engine_ctx_t *ctx);
 void play_tracks_pending_notes(engine_ctx_t *ctx);
 void play_tracks(engine_ctx_t *ctx);
@@ -219,7 +223,7 @@ msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name);
 
 msq_bool_t init_engine(engine_ctx_t *engine,
                        char *name,
-                       int type);
+                       byte_t type);
 void       uninit_engine(engine_ctx_t *engine);
 
 typedef struct

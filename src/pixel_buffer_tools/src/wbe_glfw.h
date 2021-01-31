@@ -79,6 +79,7 @@ void wbe_window_map(wbe_window_t *win);
   glfwWaitEvents()
 
 void wbe_window_backend_set_key_layout(wbe_key_layout_t key_layout);
+wbe_key_layout_t wbe_window_backend_get_key_layout(void);
 
 wbe_bool_t wbe_window_backend_init(void);
 
