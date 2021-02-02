@@ -89,8 +89,9 @@ public:
 
     while ((readdir_ret = readdir(directory)) != NULL)
       {
-        file_list.push_back(new file_elt(readdir_ret->d_name,
-                                         readdir_ret->d_type == DT_DIR));
+        if (readdir_ret->d_name[0] != '.' || readdir_ret->d_name[1] != '\0')
+          file_list.push_back(new file_elt(readdir_ret->d_name,
+                                           readdir_ret->d_type == DT_DIR));
       }
     closedir(directory);
     file_list.sort(list_compare_file_elt);

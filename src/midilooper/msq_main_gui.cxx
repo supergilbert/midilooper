@@ -1264,16 +1264,26 @@ void output_rename_dialog_res_cb(char *str, void *mainwin_addr)
   mainwin->redraw();
 }
 
+#define MLP_CONFIG_DIR  ".config/midilooper"
+#define MLP_CONFIG_FILE "midilooper.conf"
+
 void set_keyboard_configuration(wbe_key_layout_t key_layout)
 {
   config_t config;
   config_setting_t *setting = NULL;
-  string config_path = getenv("HOME");
+  string config_dir;
+  string config_path;
 
   if (key_layout == wbe_window_backend_get_key_layout())
     return;
 
-  config_path += "/.config/midilooper/midilooper.conf";
+  config_dir = getenv("HOME");
+  config_dir += "/";
+  config_dir += MLP_CONFIG_DIR;
+
+  config_path = config_dir + "/";
+  config_path += MLP_CONFIG_FILE;
+
   config_init(&config);
   if (config_read_file(&config, config_path.c_str()) == CONFIG_TRUE)
     setting = config_lookup(&config, "keyboard_language");
@@ -1294,7 +1304,11 @@ void set_keyboard_configuration(wbe_key_layout_t key_layout)
         config_setting_remove(config_root_setting(&config),
                               "keyboard_language");
     }
-  config_write_file(&config, config_path.c_str());
+  // TODO check and create config dir
+  if (config_write_file(&config, config_path.c_str()) == CONFIG_FALSE)
+    pbt_logerr("Unable to create config file %s\n"
+               "(Sorry config directory not created automatically)",
+               config_path.c_str());
   config_destroy(&config);
 }
 
@@ -2030,7 +2044,7 @@ void midilooper_main_window::save_file_as(const char *file_path)
 {
   engine_save_project(engine_ctx, file_path, MSQ_FALSE);
   save_path = file_path;
-  printf("%s\n", file_path);
+  pbt_logmsg("%s saved\n");
 }
 
 #define _check_alpha_keys(byte_array)           \
@@ -2318,15 +2332,9 @@ void load_configuration(void)
           == CONFIG_TRUE)
         {
           if (strcmp("fr", tmp_str) == 0)
-            {
-              printf("set keyboard language %s\n", tmp_str);
-              wbe_window_backend_set_key_layout(WBE_KEY_LAYOUT_FR);
-            }
+            wbe_window_backend_set_key_layout(WBE_KEY_LAYOUT_FR);
           else if (strcmp("FR", tmp_str) == 0)
-            {
-              printf("set keyboard language %s\n", tmp_str);
-              wbe_window_backend_set_key_layout(WBE_KEY_LAYOUT_FR);
-            }
+            wbe_window_backend_set_key_layout(WBE_KEY_LAYOUT_FR);
           // else if (strcmp("us", tmp_str) == 0)
           //   ;                   // nothing todo default setting
           // else if (strcmp("US", tmp_str) == 0)
@@ -2543,6 +2551,8 @@ Mouse behaviour:\n\
   if (filepath != NULL)
     {
       midifile = read_midifile(filepath);
+      if (midifile == NULL)
+        pbt_abort("Unable to load file (%s)", filepath);
       pbt_logmsg("engine type: %d", midifile->info.engine_type);
       if (jack_bool)
         {

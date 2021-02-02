@@ -2,12 +2,12 @@
 
 This code is in development.
 
-## Build instructions
+## Build instruction example
 
     git submodule update --recursive --init
-    mkdir <BUILD_DIR>
-    cd <BUILD_DIR>
-    cmake <MIDILOOPER_DIR>
+    mkdir build
+    cd build
+    cmake ..
     make
 
 ## Features

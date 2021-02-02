@@ -21,13 +21,14 @@ export DEBEMAIL="$(git config --get user.email)"
 export DEBFULLNAME="$(git config --get user.name)"
 
 SRC_DIR=$1
+DEB_TYPE=$2
 
 VERSION=$(dpkg-parsechangelog -l $SRC_DIR/debian/changelog --show-field Version)
 if ! (git -C $SRC_DIR log --max-count=1 --pretty="%d" | grep tag | grep -q $VERSION); then
     TIMESTAMP=$(git -C $SRC_DIR rev-list --timestamp --max-count=1 HEAD | cut -d' ' -f1)
     if git -C $SRC_DIR diff-index --quiet HEAD; then
-        debchange --newversion "${VERSION}.${TIMESTAMP}" "Temporary dev not stable version."
+        debchange --newversion "${VERSION}.${TIMESTAMP}-${DEB_TYPE}" "Temporary dev not stable version."
     else
-        debchange --newversion "${VERSION}.${TIMESTAMP}-modified" "Experimental with not committed sources."
+        debchange --newversion "${VERSION}.${TIMESTAMP}-${DEB_TYPE}-modified" "Experimental with not committed sources."
     fi
 fi

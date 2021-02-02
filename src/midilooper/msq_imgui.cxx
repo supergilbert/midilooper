@@ -43,9 +43,14 @@ bool list_compare_file_elt(const file_elt *first, const file_elt *second)
 
   while (idx < max)
     {
+      if (first->name[idx] == '.' && second->name[idx] != '.')
+        return true;
+      else if (first->name[idx] != '.' && second->name[idx] == '.')
+        return false;
+
       if (first->name[idx] < second->name[idx])
         return true;
-      else
+      else if (first->name[idx] > second->name[idx])
         return false;
       idx++;
     }

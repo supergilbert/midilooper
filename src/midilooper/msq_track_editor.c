@@ -1807,11 +1807,17 @@ void draw_loop_veil(pbt_pbarea_t *pbarea, track_editor_ctx_t *editor_ctx)
 
 uint_t msq_get_track_loop_tick(track_ctx_t *track_ctx, uint_t tick)
 {
-  uint_t loop_tick = tick % track_ctx->loop_len;
-
-  if (loop_tick < track_ctx->loop_start)
-    loop_tick += track_ctx->loop_len;
-  return loop_tick;
+  if (tick < track_ctx->loop_start)
+    {
+      tick += track_ctx->loop_len
+        * (1 + (track_ctx->loop_start / track_ctx->loop_len));
+      if (tick > (track_ctx->loop_start + track_ctx->loop_len))
+        return tick - track_ctx->loop_len;
+      return tick;
+    }
+  else
+    return ((tick - track_ctx->loop_start) % track_ctx->loop_len)
+      + track_ctx->loop_start;
 }
 
 uint_t msq_get_current_track_tick(track_ctx_t *track_ctx)
@@ -4825,8 +4831,7 @@ void _msq_track_editor_setup_adj(track_editor_t *track_editor)
     track_editor->editor_ctx.vadj.pos =
       min_vpos + ((size - track_editor->editor_ctx.vadj.size) / 2);
 
-  track_editor->editor_ctx.hadj.pos = TICK2XPOS(&(track_editor->editor_ctx),
-                                                track_editor->editor_ctx.track_ctx->loop_start);
+  msq_update_hadj_startnlen(&(track_editor->editor_ctx));
 }
 
 #define TRACK_EDITOR_START_WIDTH  800
