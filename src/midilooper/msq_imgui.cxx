@@ -305,7 +305,7 @@ void msq_imgui_dialog::render_file_browser(void)
                 else
                   new_dir_path.erase(found);
               }
-            else if (elt->name !=  "./")
+            else if (elt->name != "./")
               {
                 new_dir_path = dir_array->get_path();
                 if (new_dir_path[new_dir_path.length() - 1] != '/')
@@ -328,7 +328,8 @@ void msq_imgui_dialog::render_file_browser(void)
                        ImGuiInputTextFlags_EnterReturnsTrue))
     {
       new_dir_path = dir_array->get_path();
-      new_dir_path += "/";
+      if (new_dir_path.back() != '/')
+        new_dir_path += "/";
       new_dir_path += buff;
       strcpy(buff, new_dir_path.c_str());
       msq_dialog_result_str(dialog_iface, buff);
@@ -337,7 +338,8 @@ void msq_imgui_dialog::render_file_browser(void)
   if (ImGui::Button("Ok"))
     {
       new_dir_path = dir_array->get_path();
-      new_dir_path += "/";
+      if (new_dir_path.back() != '/')
+        new_dir_path += "/";
       new_dir_path += buff;
       strcpy(buff, new_dir_path.c_str());
       msq_dialog_result_str(dialog_iface, buff);

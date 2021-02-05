@@ -2044,7 +2044,7 @@ void midilooper_main_window::save_file_as(const char *file_path)
 {
   engine_save_project(engine_ctx, file_path, MSQ_FALSE);
   save_path = file_path;
-  pbt_logmsg("%s saved\n");
+  pbt_logmsg("%s saved\n", file_path);
 }
 
 #define _check_alpha_keys(byte_array)           \
