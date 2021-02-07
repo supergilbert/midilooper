@@ -21,6 +21,7 @@ This code is in development.
 
 ## Roadmap (todo)
 
+* Prevent all segfault
 * Sync
   * Improve jack transport
   * Add midi sync (In Out All)

@@ -1323,6 +1323,12 @@ void _history_del_noteonoff(track_editor_ctx_t *editor_ctx,
   seqev_t *seqev_on = evit_get_seqev(&(noteonoff->evit_noteon));
   seqev_t *seqev_off = evit_get_seqev(&(noteonoff->evit_noteoff));
 
+  if (seqev_on == NULL || seqev_off == NULL)
+    {
+      pbt_logmsg("/!\ Problem while trying to del note\n"
+                 "(Unable to retrieve events)");
+      return;
+    }
   history_elt = malloc(sizeof (msq_history_elt_t));
   history_elt->type = MSQ_DEL_NOTE;
   history_elt->tick[0] = noteonoff->evit_noteon.tick;
