@@ -1325,7 +1325,7 @@ void _history_del_noteonoff(track_editor_ctx_t *editor_ctx,
 
   if (seqev_on == NULL || seqev_off == NULL)
     {
-      pbt_logmsg("/!\ Problem while trying to del note\n"
+      pbt_logmsg("/!\\ Problem while trying to del note\n"
                  "(Unable to retrieve events)");
       return;
     }

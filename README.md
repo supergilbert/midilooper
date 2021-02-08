@@ -22,6 +22,7 @@ This code is in development.
 ## Roadmap (todo)
 
 * Prevent all segfault
+* Add CC Remote
 * Sync
   * Improve jack transport
   * Add midi sync (In Out All)
