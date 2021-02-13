@@ -31,4 +31,15 @@ void copy_midicev_to_track(track_t *track, uint_t tick, midicev_t *mcev);
 track_t *merge_all_track(char *name, list_t *track_list);
 void copy_track_list(track_t *track_src, track_t *track_dst);
 
+void dump_midicev(midicev_t *midicev);
+
+void msq_mcev_tick_list_add(list_t *mcev_tick_list,
+                            uint_t tick,
+                            midicev_t *mcev);
+msq_mcev_tick_t *_msq_mcev_tick_list_pop_prev_noteon(list_t *mcev_tick_list,
+                                                     uint_t tick,
+                                                     byte_t channel,
+                                                     byte_t num);
+void msq_mcev_tick_list_clear(list_t *mcev_tick_list);
+
 #endif

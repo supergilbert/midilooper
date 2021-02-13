@@ -487,6 +487,8 @@ void engine_toggle_rec(engine_ctx_t *ctx)
       if (ctx->track_rec == NULL
           && ctx->track_list.len > 0)
         engine_set_rec(ctx, ctx->track_list.head->addr);
+      else
+        engine_set_rec(ctx, ctx->track_rec);
     }
   ctx->rec_state_changed = MSQ_TRUE;
 }

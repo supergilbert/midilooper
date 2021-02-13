@@ -18,8 +18,50 @@
 
 #include "midi/midiev_inc.h"
 #include "debug_tool/debug_tool.h"
+#include <string.h>
 
-uint_t		get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
+void msq_mcev_tick_list_add(list_t *mcev_tick_list,
+                            uint_t tick,
+                            midicev_t *mcev)
+{
+  msq_mcev_tick_t *mcev_tick = malloc(sizeof (msq_mcev_tick_t));
+
+  mcev_tick->tick = tick;
+  memcpy(&(mcev_tick->mcev), mcev, sizeof (midicev_t));
+
+  push_to_list_tail(mcev_tick_list, mcev_tick);
+}
+
+msq_mcev_tick_t *_msq_mcev_tick_list_pop_prev_noteon(list_t *mcev_tick_list,
+                                                     uint_t tick,
+                                                     byte_t channel,
+                                                     byte_t num)
+{
+  list_iterator_t iter;
+  msq_mcev_tick_t *mcev_tick;
+
+  for (iter_init(&iter, mcev_tick_list);
+       iter_node(&iter);
+       iter_next(&iter))
+    {
+      mcev_tick = iter_node_ptr(&iter);
+      if (mcev_tick->tick < tick
+          && mcev_tick->mcev.chan == channel
+          && mcev_tick->mcev.event.note.num == num)
+        {
+          iter_node_del(&iter, NULL);
+          return mcev_tick;
+        }
+    }
+  return NULL;
+}
+
+void msq_mcev_tick_list_clear(list_t *mcev_tick_list)
+{
+  free_list_node(mcev_tick_list, free);
+}
+
+uint_t get_midi_channel_event(midicev_t *chan_ev, byte_t *buffer)
 {
   byte_t        type = *buffer >> 4;
 
@@ -218,6 +260,44 @@ msq_bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2)
 #include <stdlib.h>
 #include <strings.h>
 
+void dump_midicev(midicev_t *midicev)
+{
+  switch (midicev->type)
+    {
+    case MSQ_MIDI_NOTEON:
+      output("NOTEON  num=%hhd val=%hhd\n",
+             midicev->event.note.num,
+             midicev->event.note.val);
+      break;
+    case MSQ_MIDI_NOTEOFF:
+      output("NOTEOFF num=%hhd val=%hhd\n",
+             midicev->event.note.num,
+             midicev->event.note.val);
+      break;
+    case MSQ_MIDI_CONTROLCHANGE:
+      output("CONTROLCHANGE num=%hhd val=%hhd\n",
+             midicev->event.ctrl.num,
+             midicev->event.ctrl.val);
+      break;
+    case MSQ_MIDI_PITCHWHEELCHANGE:
+      output("PITCHWHEELCHANGE Hval=%hhd Lval=%hhd\n",
+             midicev->event.pitchbend.Hval,
+             midicev->event.pitchbend.Lval);
+      break;
+    case MSQ_MIDI_KEYAFTERTOUCH:
+      output("KEYAFTERTOUCH Unsupported event\n");
+      break;
+    case MSQ_MIDI_PROGRAMCHANGE:
+      output("PROGRAMCHANGE Unsupported event\n");
+      break;
+    case MSQ_MIDI_CHANNELAFTERTOUCH:
+      output("CHANNELAFTERTOUCH Unsupported event\n");
+      break;
+    default:
+      output("Unsupported event\n");
+    }
+}
+
 void dump_seqev(seqev_t *seqev)
 {
   midicev_t *midicev = NULL;
@@ -228,32 +308,8 @@ void dump_seqev(seqev_t *seqev)
   if (seqev->type == MIDICEV)
     {
       midicev = (midicev_t *) seqev->addr;
-      output(" type=%s channel=%i", "MIDICEV", midicev->chan);
-      switch (midicev->type)
-        {
-        case MSQ_MIDI_NOTEON:
-          output(" | NOTEON  num=%hhd val=%hhd\n",
-                 midicev->event.note.num,
-                 midicev->event.note.val);
-          break;
-        case MSQ_MIDI_NOTEOFF:
-          output(" | NOTEOFF num=%hhd val=%hhd\n",
-                 midicev->event.note.num,
-                 midicev->event.note.val);
-          break;
-        case MSQ_MIDI_CONTROLCHANGE:
-          output(" | CONTROLCHANGE num=%hhd val=%hhd\n",
-                 midicev->event.ctrl.num,
-                 midicev->event.ctrl.val);
-          break;
-        case MSQ_MIDI_PITCHWHEELCHANGE:
-          output(" | PITCHWHEELCHANGE Hval=%hhd Lval=%hhd\n",
-                 midicev->event.pitchbend.Hval,
-                 midicev->event.pitchbend.Lval);
-          break;
-        default:
-          output(" | Unsupported event\n");
-        }
+      output(" type=%s channel=%i | ", "MIDICEV", midicev->chan);
+      dump_midicev(midicev);
     }
   else
     output("type=UNKNOWN\n");
@@ -271,7 +327,7 @@ void copy_midicev_to_track(track_t *track, uint_t tick, midicev_t *mcev)
 {
   midicev_t     *new_mcev = myalloc(sizeof (midicev_t));
 
-  bcopy(mcev, new_mcev, sizeof (midicev_t));
+  memcpy(new_mcev, mcev, sizeof (midicev_t));
   add_new_midicev(track, tick, new_mcev);
 }
 
@@ -288,7 +344,10 @@ void _list_copy_seqev(void *addr, void *arg)
 
   if (seqev->type == MIDICEV)
     {
-      debug_midi("adding midi channel event\n");
+#ifdef DEBUG_MIDI_MODE
+      output("copying_seqev\ttick:% 7d", list_arg->tick);
+      dump_seqev(seqev);
+#endif
       if (seqev->deleted == MSQ_FALSE)
         copy_midicev_to_track(list_arg->track, list_arg->tick, seqev->addr);
     }
@@ -315,6 +374,9 @@ void _list_copy_tickev(void *addr, void *track_addr)
 
 void copy_track_list(track_t *track_src, track_t *track_dst)
 {
+#ifdef DEBUG_MIDI_MODE
+  output("\ncopying track %s\n", track_src->name);
+#endif
   foreach_list_node(&(track_src->tickev_list), _list_copy_tickev, (void *) track_dst);
 }
 
@@ -326,7 +388,6 @@ void _list_copy_track(void *src_addr, void *dst_addr)
   copy_track_list(track_src, track_dst);
 }
 
-#include <string.h>
 track_t *merge_all_track(char *name, list_t *track_list)
 {
   track_t *track;

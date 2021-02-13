@@ -96,15 +96,15 @@ int_t get_outputid(list_t *output_list, output_t *output)
    return -1;
 }
 
-void set_midifile_track(track_ctx_t *trackctx,
-                        midifile_track_t *mtrack)
+void trackctx_copy_to_midifile_track(track_ctx_t *trackctx,
+                                     midifile_track_t *mtrack)
 {
   engine_ctx_t *ctx = trackctx->engine;
 
   bzero(mtrack, sizeof (midifile_track_t));
 
-  COPY_LIST_NODE(&(trackctx->track->tickev_list),
-                 &(mtrack->track.tickev_list));
+  copy_track_list(trackctx->track,
+                  &(mtrack->track));
   mtrack->track.name = strdup(trackctx->track->name);
 
   mtrack->sysex_loop_start = trackctx->loop_start;
@@ -227,7 +227,7 @@ void engine_save_project(engine_ctx_t *ctx, const char *file_path, msq_bool_t te
   int              fd;
   list_iterator_t  iter = {};
   track_ctx_t      *trackctx = NULL;
-  midifile_track_t mtrack;
+  midifile_track_t *mtrack;
 
   if (0 == access(file_path, F_OK))
     unlink(file_path);
@@ -253,8 +253,10 @@ void engine_save_project(engine_ctx_t *ctx, const char *file_path, msq_bool_t te
            iter_next(&iter))
         {
           trackctx = iter_node_ptr(&iter);
-          set_midifile_track(trackctx, &mtrack);
-          write_midifile_track(fd, &mtrack, template);
+          mtrack = myalloc(sizeof (midifile_track_t));
+          trackctx_copy_to_midifile_track(trackctx, mtrack);
+          write_midifile_track(fd, mtrack, template);
+          free_midifile_track(mtrack);
         }
       close(fd);
     }
@@ -269,9 +271,7 @@ midifile_t *engine_gen_midifile_struct(engine_ctx_t *ctx)
   track_ctx_t      *trackctx = NULL;
   midifile_track_t *mtrack;
   list_iterator_t  iter = {};
-  midifile_t *midifile = malloc(sizeof (midifile_t));
-
-  memset(midifile, 0, sizeof (midifile_t));
+  midifile_t *midifile = myalloc(sizeof (midifile_t));
 
   midifile->info.type = MULTITRACK_MIDIFILE_SYNC;
   midifile->info.tempo = ctx->tempo;
@@ -302,7 +302,7 @@ midifile_t *engine_gen_midifile_struct(engine_ctx_t *ctx)
         {
           mtrack = myalloc(sizeof (midifile_track_t));
           trackctx = iter_node_ptr(&iter);
-          set_midifile_track(trackctx, mtrack);
+          trackctx_copy_to_midifile_track(trackctx, mtrack);
           push_to_list_tail(&(midifile->track_list),
                             (void *) mtrack);
         }

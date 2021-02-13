@@ -437,7 +437,7 @@ void handle_stop_cb(void *transport_iface_addr)
   engine_stop(transport_iface->engine_ctx);
 }
 
-void msq_transport_update_button(msq_transport_iface_t *transport_iface)
+void msq_transport_update_buttons(msq_transport_iface_t *transport_iface)
 {
   list_iterator_t iter;
   msq_transport_child_t *transport_child;
@@ -470,7 +470,7 @@ void msq_transport_handle_rec(msq_transport_child_t *transport_child)
       track_ctx->engine->track_rec = track_ctx;
       track_ctx->engine->rec = MSQ_TRUE;
     }
-  msq_transport_update_button(transport_child->parent);
+  msq_transport_update_buttons(transport_child->parent);
 }
 
 void handle_rec_cb(void *transport_child_addr)
@@ -618,7 +618,7 @@ pbt_bool_t msq_transport_iface_set_focus_cb(pbt_ggt_t *ggt,
       if (engine_is_running(transport_iface->engine_ctx) == MSQ_TRUE)
         {
           transport_iface->engine_ctx->rec = MSQ_FALSE;
-          msq_transport_update_button(transport_iface);
+          msq_transport_update_buttons(transport_iface);
         }
       engine_start(transport_iface->engine_ctx);
       key_pressed = MSQ_TRUE;

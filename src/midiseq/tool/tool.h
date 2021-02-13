@@ -67,8 +67,6 @@ void foreach_list_node(list_t *list, list_func func, void *args);
 #define LIST_HEAD(list) ((list)->head)
 #define LIST_TAIL(list) ((list)->tail)
 
-#define COPY_LIST_NODE(src, dest) (dest)->head = (src)->head; (dest)->tail = (src)->tail; (dest)->len = (src)->len
-
 typedef struct
 {
   node_t *node;

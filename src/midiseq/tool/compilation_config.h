@@ -15,11 +15,7 @@
 /* You should have received a copy of the GNU General Public License */
 /* along with midilooper.  If not, see <http://www.gnu.org/licenses/>. */
 
-
-#ifndef __CCONFIG_H
-#define __CCONFIG_H
+#pragma once
 
 /* #define DEBUG_MODE */
 /* #define DEBUG_MIDI_MODE */
-
-#endif

@@ -32,7 +32,7 @@ pbt_bool_t pbt_font_request_size(pbt_font_t *hdl,
       return PBT_FALSE;
     }
 
-  if ((FT_FACE_FLAG_SCALABLE && hdl->face->face_flags)
+  if ((FT_FACE_FLAG_SCALABLE & hdl->face->face_flags)
       == FT_FACE_FLAG_SCALABLE)
     {
       /* Prevent floating point exception */

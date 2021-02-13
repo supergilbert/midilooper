@@ -131,7 +131,6 @@ void get_mlp_sysex(midifile_info_t *info,
           info->engine_type += buffer[6] << 16;
           info->engine_type += buffer[7] << 8;
           info->engine_type += buffer[8];
-          printf("Found eng type:%d\n", info->engine_type);
           break;
         case MLP_SYSEX_TRACK_LOOPSTART:
           track->sysex_loop_start =  buffer[5] << 24;
@@ -177,6 +176,44 @@ void get_mlp_sysex(midifile_info_t *info,
     }
 }
 
+msq_bool_t filter_add_midicev_to_track(track_t *track,
+                                       uint_t tick,
+                                       midicev_t *mcev,
+                                       list_t *noteon_list)
+{
+  msq_mcev_tick_t *noteon_ret;
+
+  switch (mcev->type)
+    {
+    case MSQ_MIDI_NOTEON:
+      if (mcev->event.note.val != 0)
+        {
+          msq_mcev_tick_list_add(noteon_list, tick, mcev);
+          return MSQ_TRUE;
+        }
+      mcev->type = MSQ_MIDI_NOTEOFF;
+    case MSQ_MIDI_NOTEOFF:
+      noteon_ret = _msq_mcev_tick_list_pop_prev_noteon(noteon_list,
+                                                       tick,
+                                                       mcev->chan,
+                                                       mcev->event.note.num);
+      if (noteon_ret != NULL)
+        {
+          copy_midicev_to_track(track, noteon_ret->tick, &(noteon_ret->mcev));
+          copy_midicev_to_track(track, tick, mcev);
+          free(noteon_ret);
+          return MSQ_TRUE;
+        }
+      return MSQ_FALSE;
+    case MSQ_MIDI_CONTROLCHANGE:
+    case MSQ_MIDI_PITCHWHEELCHANGE:
+      copy_midicev_to_track(track, tick, mcev);
+      return MSQ_TRUE;
+      break;
+    }
+  return MSQ_FALSE;
+}
+
 /* Get midifile track information, and add
    midi channel event to track to the track structure */
 msq_bool_t get_midifile_track(midifile_info_t *info,
@@ -193,6 +230,7 @@ msq_bool_t get_midifile_track(midifile_info_t *info,
   midimev_t        meta_ev;
   byte_t           status_byte = 0;
   msq_bool_t       tempo_set = MSQ_FALSE;
+  static list_t noteon_list = {};
 
   midifile_track->sysex_portid = -1;
   debug_midi("!!! start=%p end=%p\n", buffer, &(buffer[size]));
@@ -224,7 +262,10 @@ msq_bool_t get_midifile_track(midifile_info_t *info,
                 buffer++;
                 offset = get_midi_meta_event(&meta_ev, buffer); /* retour donne le type et loffset */
                 if (0 == offset)
-                  return MSQ_FALSE;
+                  {
+                    msq_mcev_tick_list_clear(&noteon_list);
+                    return MSQ_FALSE;
+                  }
                 debug_midi("Meta event %s detected %u\n", midime_to_str(meta_ev.type), meta_ev.type);
                 switch (meta_ev.type)
                   {
@@ -279,13 +320,17 @@ msq_bool_t get_midifile_track(midifile_info_t *info,
                   {
                     output_error("Problem while searching channel event (type=0x%02X)", *buffer);
                     free_midifile_track(midifile_track);
+                    msq_mcev_tick_list_clear(&noteon_list);
                     return MSQ_FALSE;
                   }
                 if (chan_ev.type >= 0x8 && chan_ev.type <= 0xE)
                   {
                     status_byte = (chan_ev.type << 4) + chan_ev.chan;
                     debug_midi("Add midi channel event to track\n");
-                    copy_midicev_to_track(&(midifile_track->track), tick, &chan_ev);
+                    filter_add_midicev_to_track(&(midifile_track->track),
+                                                tick,
+                                                &chan_ev,
+                                                &noteon_list);
                   }
               }
           }
@@ -300,17 +345,22 @@ msq_bool_t get_midifile_track(midifile_info_t *info,
               {
                 output_error("Problem while searching channel event (type=0x%02X)", *buffer);
                 free_midifile_track(midifile_track);
+                msq_mcev_tick_list_clear(&noteon_list);
                 return MSQ_FALSE;
               }
             if (chan_ev.type >= 0x8 && chan_ev.type <= 0xE)
               {
                 debug_midi("Add midi channel event to track\n");
-                copy_midicev_to_track(&(midifile_track->track), tick, &chan_ev);
+                filter_add_midicev_to_track(&(midifile_track->track),
+                                            tick,
+                                            &chan_ev,
+                                            &noteon_list);
               }
           }
         else
           {
             output_error("Problem with event type: 0x%02X", *buffer);
+            msq_mcev_tick_list_clear(&noteon_list);
             return MSQ_FALSE;
             /* output_warning("Skipping event(s) and searching for next command"); */
             /* for (offset = 0; */
@@ -344,6 +394,7 @@ msq_bool_t get_midifile_track(midifile_info_t *info,
       debug_midi("No tick event found\n");
       free_midifile_track(midifile_track);
     }
+  msq_mcev_tick_list_clear(&noteon_list);
   return MSQ_TRUE;
 }
 
@@ -435,11 +486,12 @@ midifile_t *get_midifile_tracks(int fd,
   /* midifile->type = midifile_hdr->format_type; */
   if (LIST_HEAD(&track_list) != NULL)
     {
-      COPY_LIST_NODE(&track_list, &(midifile->track_list));
+      midifile->track_list.head = track_list.head;
+      midifile->track_list.tail = track_list.tail;
+      midifile->track_list.len = track_list.len;
     }
   /* midifile->number_of_track = midifile_hdr->number_of_track; */
   bcopy(&info, &midifile->info, sizeof (midifile_info_t));
-  printf("eng type:%d %d\n", info.engine_type, midifile->info.engine_type);
   return midifile;
 }
 

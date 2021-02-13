@@ -1471,7 +1471,7 @@ void midilooper_main_window::_switch_engine(void)
   msq_track_line_t *track_line;
   track_ctx_t *trackctx;
   engine_ctx_t *new_engine_ctx =
-    (engine_ctx_t *) malloc(sizeof (engine_ctx_t));
+    (engine_ctx_t *) myalloc(sizeof (engine_ctx_t));
 
   memset(new_engine_ctx, 0, sizeof (engine_ctx_t));
 
@@ -2114,16 +2114,12 @@ void midilooper_main_window::handle_key_bindings(wbe_window_input_t *winev)
     keys = 0;
 }
 
-struct msq_mcev_tick_t
-{
-  uint tick;
-  midicev_t mcev;
-};
-
 bool midilooper_main_window::handle_midi_rec(void)
 {
-  static list<msq_mcev_tick_t> noteon_list;
-  msq_mcev_tick_t mcev_tick;
+  static list_t noteon_list = {};
+  uint_t tick;
+  midicev_t mcev;
+  msq_mcev_tick_t *noteon_ret;
   ev_iterator_t evit;
   bool midicev_added = false;
   msq_track_line_t *track_line
@@ -2131,9 +2127,15 @@ bool midilooper_main_window::handle_midi_rec(void)
   track_editor_t *track_editor;
   note_t note;
 
+  if (engine_ctx->rec_state_changed == MSQ_TRUE)
+    {
+      engine_ctx->rec_state_changed = MSQ_FALSE;
+      msq_transport_update_buttons(&transport_iface);
+    }
+
   if (engine_ctx->rec == MSQ_FALSE || track_line == NULL)
     {
-      noteon_list.clear();
+      msq_mcev_tick_list_clear(&noteon_list);
       return false;
     }
 
@@ -2141,52 +2143,58 @@ bool midilooper_main_window::handle_midi_rec(void)
   evit_init(&evit,
             &(track_editor->editor_ctx.track_ctx->track->tickev_list));
 
-  while (mrb_read(engine_ctx->rbuff,
-                  &(mcev_tick.tick),
-                  &(mcev_tick.mcev)) == MSQ_TRUE)
+  while (mrb_read(engine_ctx->rbuff, &tick, &mcev) == MSQ_TRUE)
     {
-      switch (mcev_tick.mcev.type)
+      switch (mcev.type)
         {
         case MSQ_MIDI_NOTEON:
-          if (mcev_tick.mcev.event.note.val != 0)
+          if (mcev.event.note.val != 0)
             {
-              noteon_list.push_back(mcev_tick);
+              msq_mcev_tick_list_add(&noteon_list, tick, &mcev);
               break;
             }
-          mcev_tick.mcev.type = MSQ_MIDI_NOTEOFF;
+          mcev.type = MSQ_MIDI_NOTEOFF;
+          // Do not break here note on val 0 = note off
         case MSQ_MIDI_NOTEOFF:
-          for (list<msq_mcev_tick_t>::iterator it = noteon_list.begin();
-               it != noteon_list.end();
-               it++)
-            if ((*it).mcev.chan == mcev_tick.mcev.chan
-                && (*it).mcev.event.note.num == mcev_tick.mcev.event.note.num
-                && (*it).tick < mcev_tick.tick)
-              {
-                note.channel = (*it).mcev.chan;
-                note.num = (*it).mcev.event.note.num;
-                note.val = (*it).mcev.event.note.val;
-                note.tick =
-                  msq_get_track_loop_tick(track_editor->editor_ctx.track_ctx,
-                                          (*it).tick);
-                note.len = mcev_tick.tick - (*it).tick;
-                if (note_collision(&note,
-                                   &(track_editor->editor_ctx),
-                                   MSQ_FALSE) == MSQ_FALSE)
+          noteon_ret = _msq_mcev_tick_list_pop_prev_noteon(&noteon_list,
+                                                           tick,
+                                                           mcev.chan,
+                                                           mcev.event.note.num);
+          if (noteon_ret != NULL)
+            {
+              note.channel = noteon_ret->mcev.chan;
+              note.num = noteon_ret->mcev.event.note.num;
+              note.val = noteon_ret->mcev.event.note.val;
+              note.tick =
+                msq_get_track_loop_tick(track_editor->editor_ctx.track_ctx,
+                                        noteon_ret->tick);
+              note.len = tick - noteon_ret->tick;
+              if (note_collision(&note,
+                                 &(track_editor->editor_ctx),
+                                 MSQ_FALSE) == MSQ_FALSE)
+                {
                   _history_add_note(&(track_editor->editor_ctx), &note);
-                noteon_list.erase(it);
-                midicev_added = true;
-                break;
-              }
+                  midicev_added = true;
+                }
+              free(noteon_ret);
+            }
           break;
-        default:
-          midicev_added = true;
-          mcev_tick.tick =
+        case MSQ_MIDI_CONTROLCHANGE:
+        case MSQ_MIDI_PITCHWHEELCHANGE:
+          tick =
             msq_get_track_loop_tick(track_editor->editor_ctx.track_ctx,
-                                    mcev_tick.tick);
+                                    tick);
           _history_evit_add_midicev(&(track_editor->editor_ctx.history),
                                     &evit,
-                                    mcev_tick.tick,
-                                    &(mcev_tick.mcev));
+                                    tick,
+                                    &mcev);
+          midicev_added = true;
+          break;
+        // case MSQ_MIDI_KEYAFTERTOUCH:
+        // case MSQ_MIDI_PROGRAMCHANGE:
+        // case MSQ_MIDI_CHANNELAFTERTOUCH:
+        default:
+          break;
         }
     }
 
@@ -2356,7 +2364,8 @@ msq_bool_t mlp_nsm_open(const char *project_path,
 
   mlp_nsm_session->client_id = strdup(client_id);
   mlp_nsm_session->filepath = strdup(filepath.c_str());
-  mlp_nsm_session->midifile = read_midifile(mlp_nsm_session->filepath);
+  if (access(mlp_nsm_session->filepath, R_OK|W_OK) == 0)
+    mlp_nsm_session->midifile = read_midifile(mlp_nsm_session->filepath);
   return MSQ_TRUE;
 }
 

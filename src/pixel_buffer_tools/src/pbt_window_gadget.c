@@ -676,7 +676,7 @@ void pbt_wgt_button_draw_cb(pbt_ggt_t *ggt)
       pixbuf = button->pb_released;
       bg_color = button->bg_released;
     }
-  else if (button->state == HOVERED)
+  else /* if (button->state == HOVERED) */
     {
       pixbuf = button->pb_hovered;
       bg_color = button->bg_hovered;

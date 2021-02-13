@@ -123,5 +123,10 @@ void       update_pending_notes(byte_t *noteson_state, midicev_t *midicev);
 msq_bool_t is_pending_notes(byte_t *pending_notes, byte_t channel, byte_t num);
 msq_bool_t compare_midicev(midicev_t *mcev1, midicev_t *mcev2);
 
+typedef struct
+{
+  uint tick;
+  midicev_t mcev;
+} msq_mcev_tick_t;
 
 #endif

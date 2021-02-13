@@ -3389,7 +3389,7 @@ void _draw_value_num(pbt_pbarea_t *pbarea,
   unsigned int str_width;
   unsigned int xpos;
 
-  snprintf(value_label, 4, "%hhd", value);
+  snprintf(value_label, 4, "%hd", value);
 
   pbt_pbarea_fill(pbarea, tctx_wgt_normal_bg(&(track_editor->editor_ctx)));
 

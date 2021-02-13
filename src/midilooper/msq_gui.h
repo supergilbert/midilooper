@@ -72,6 +72,8 @@ void msq_transport_child_init(msq_transport_child_t *transport_child,
                               track_ctx_t *track_ctx,
                               pbt_ggt_t *track_node_ggt);
 
+void msq_transport_update_buttons(msq_transport_iface_t *transport_iface);
+
 void msq_dialog_result_idx(msq_dialog_iface_t *dialog_iface, size_t idx);
 
 void msq_dialog_result_str(msq_dialog_iface_t *dialog_iface, char *str);
