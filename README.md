@@ -23,7 +23,7 @@ This code is in development.
 
 * Prevent all segfault
 * Add CC Remote
-* Add KEYAFTERTOUCHi, PROGRAMCHANGE, CHANNELAFTERTOUCH to editor
+* Add KEYAFTERTOUCH, PROGRAMCHANGE, CHANNELAFTERTOUCH to editor
 * Sync
   * Improve jack transport
   * Add midi sync (In Out All)
