@@ -451,7 +451,7 @@ void msq_transport_update_buttons(msq_transport_iface_t *transport_iface)
       _pbt_ggt_draw(transport_child->track_node);
       pbt_wgt_win_put_buffer(&(transport_child->rec.wgt));
     }
-  pbt_wgt_win_put_buffer(&(transport_child->parent->play.wgt));
+  pbt_wgt_win_put_buffer(&(transport_iface->play.wgt));
 }
 
 void msq_transport_handle_rec(msq_transport_child_t *transport_child)
