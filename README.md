@@ -22,7 +22,7 @@ It is a midi looper inspired of seq24 and ableton/live.
 
 ## Roadmap (todo)
 
-* Prevent all segfault
+* Prevent all kind of error
 * Add remote control of rec button
 * Add CC Remote
 * Add KEYAFTERTOUCH, PROGRAMCHANGE, CHANNELAFTERTOUCH to editor
