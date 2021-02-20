@@ -115,21 +115,52 @@ void trackctx_copy_to_midifile_track(track_ctx_t *trackctx,
     -1;
   mtrack->sysex_muted = trackctx->mute;
 
-  mtrack->bindings.notes_sz =
-    _fill_byte_array_w_track_bindings(mtrack->bindings.notes,
+  mtrack->mute_bindings.notes_sz =
+    _fill_byte_array_w_track_bindings(mtrack->mute_bindings.notes,
                                       MSQ_BINDINGS_NOTE_MAX,
-                                      &(ctx->bindings.notepress),
+                                      &(ctx->bindings.mute_notepress),
                                       trackctx);
-  mtrack->bindings.programs_sz =
-    _fill_byte_array_w_track_bindings(mtrack->bindings.programs,
+  mtrack->mute_bindings.programs_sz =
+    _fill_byte_array_w_track_bindings(mtrack->mute_bindings.programs,
                                       MSQ_BINDINGS_NOTE_MAX,
-                                      &(ctx->bindings.programpress),
+                                      &(ctx->bindings.mute_programpress),
                                       trackctx);
-  mtrack->bindings.keys_sz =
-    _fill_byte_array_w_track_bindings(mtrack->bindings.keys,
+  mtrack->mute_bindings.keys_sz =
+    _fill_byte_array_w_track_bindings(mtrack->mute_bindings.keys,
                                       MSQ_BINDINGS_KEY_MAX,
-                                      &(ctx->bindings.keypress),
+                                      &(ctx->bindings.mute_keypress),
                                       trackctx);
+  mtrack->rec_bindings.notes_sz =
+    _fill_byte_array_w_track_bindings(mtrack->rec_bindings.notes,
+                                      MSQ_BINDINGS_NOTE_MAX,
+                                      &(ctx->bindings.rec_notepress),
+                                      trackctx);
+  mtrack->rec_bindings.programs_sz =
+    _fill_byte_array_w_track_bindings(mtrack->rec_bindings.programs,
+                                      MSQ_BINDINGS_NOTE_MAX,
+                                      &(ctx->bindings.rec_programpress),
+                                      trackctx);
+  mtrack->rec_bindings.keys_sz =
+    _fill_byte_array_w_track_bindings(mtrack->rec_bindings.keys,
+                                      MSQ_BINDINGS_KEY_MAX,
+                                      &(ctx->bindings.rec_keypress),
+                                      trackctx);
+}
+
+void gen_key_bindings_str(char *kb_str,
+                          byte_t *programs,
+                          size_t programs_sz)
+{
+  uint_t idx;
+
+  for (idx = 0; idx < programs_sz; idx++)
+    {
+      *kb_str = ' ';
+      kb_str++;
+      *kb_str = programs[idx];
+      kb_str++;
+    }
+  *kb_str = '\0';
 }
 
 void gen_midinote_bindings_str(char *mnb_str,
@@ -144,6 +175,8 @@ void gen_midinote_bindings_str(char *mnb_str,
 
   for (idx = 0; idx < notes_sz; idx++)
     {
+      *mnb_str = ' ';
+      mnb_str++;
       note_idx = notes[idx] % 12;
       name = notes_name[note_idx];
       while (*name != 0)
@@ -178,7 +211,7 @@ void gen_midiprogram_bindings_str(char *mpb_str,
 
   for (idx = 0; idx < programs_sz; idx++)
     {
-      *mpb_str = 'P';
+      *mpb_str = ' ';
       mpb_str++;
       snprintf(str_num, 5, "%hhd", programs[idx]);
       for (tmp_str = str_num;

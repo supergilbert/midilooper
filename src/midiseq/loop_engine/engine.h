@@ -59,13 +59,17 @@ typedef struct
 
 typedef struct
 {
+  /* TODO: Modify rec_val check 255 api with an enum to filter prog and note
+     midi binding rec */
   byte_t     rec_val;
   msq_bool_t midib_updating;
   msq_bool_t midib_reading;
-  msq_bool_t midib_called;
-  list_t     notepress;
-  list_t     programpress;
-  list_t     keypress;
+  list_t     mute_notepress;
+  list_t     mute_programpress;
+  list_t     mute_keypress;
+  list_t     rec_notepress;
+  list_t     rec_programpress;
+  list_t     rec_keypress;
 } bindings_t;
 
 typedef struct
@@ -190,13 +194,46 @@ void engine_clear_all_bindings(engine_ctx_t *engine);
 void engine_call_notepress_b(engine_ctx_t *engine, byte_t key);
 void engine_call_programpress_b(engine_ctx_t *engine, byte_t key);
 void _add_binding(list_t *bindings, byte_t val, track_ctx_t *track_ctx);
-void engine_add_notebinding(engine_ctx_t *engine,
-                            byte_t key,
-                            track_ctx_t *track_ctx);
+void _safe_add_binding(engine_ctx_t *engine,
+                       list_t *binding_list,
+                       byte_t val,
+                       track_ctx_t *track_ctx);
+void _safe_add_ontrack_binding(engine_ctx_t *engine,
+                               list_t *binding_list,
+                               byte_t val,
+                               track_ctx_t *track_ctx);
+#define engine_add_mute_notebinding(_engine, _note, _track_ctx) \
+  _safe_add_binding((_engine),                                  \
+                    &((_engine)->bindings.mute_notepress),      \
+                    _note,                                      \
+                    _track_ctx)
+#define engine_add_mute_programbinding(_engine, _val, _track_ctx)       \
+  _safe_add_binding((_engine),                                          \
+                    &((_engine)->bindings.mute_programpress),           \
+                    _val,                                               \
+                    _track_ctx)
+#define engine_add_mute_keybinding(_engine, _key, _track_ctx)   \
+  _safe_add_binding((_engine),                                  \
+                    &((_engine)->bindings.mute_keypress),       \
+                    _key,                                       \
+                    _track_ctx)
+#define engine_add_rec_notebinding(_engine, _note, _track_ctx)          \
+  _safe_add_ontrack_binding((_engine),                                  \
+                            &((_engine)->bindings.rec_notepress),       \
+                            _note,                                      \
+                            _track_ctx)
+#define engine_add_rec_programbinding(_engine, _val, _track_ctx)        \
+  _safe_add_ontrack_binding((_engine),                                  \
+                            &((_engine)->bindings.rec_programpress),    \
+                            _val,                                       \
+                            _track_ctx)
+#define engine_add_rec_keybinding(_engine, _key, _track_ctx)            \
+  _safe_add_ontrack_binding((_engine),                                  \
+                            &((_engine)->bindings.rec_keypress),        \
+                            _key,                                       \
+                            _track_ctx)
+
 msq_bool_t engine_call_keypress_b(engine_ctx_t *engine, byte_t key);
-void engine_add_keybinding(engine_ctx_t *engine,
-                           byte_t key,
-                           track_ctx_t *track_ctx);
 size_t _fill_byte_array_w_track_bindings(byte_t *byte_array,
                                          size_t max_sz,
                                          list_t *bindings,
@@ -238,6 +275,10 @@ void trackctx_event2trash(track_ctx_t *traxkctx,
                           ev_iterator_t *ev_iterator);
 
 void trackctx_set_name(track_ctx_t *traxkctx, const char *name);
+
+void gen_key_bindings_str(char *kb_str,
+                          byte_t *notes,
+                          size_t notes_sz);
 
 void gen_midinote_bindings_str(char *mnb_str,
                                byte_t *notes,

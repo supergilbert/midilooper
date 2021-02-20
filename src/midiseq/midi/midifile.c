@@ -153,19 +153,41 @@ void get_mlp_sysex(midifile_info_t *info,
           track->sysex_portid += buffer[7] << 8;
           track->sysex_portid += buffer[8];
           break;
-        case MLP_SYSEX_TRACK_BINDING_KEYPRESS:
-          track->bindings.keys_sz = (size_t) buffer[5];
-          memcpy(track->bindings.keys, &(buffer[6]), track->bindings.keys_sz);
-          break;
-        case MLP_SYSEX_TRACK_BINDING_NOTEPRESS:
-          track->bindings.notes_sz = (size_t) buffer[5];
-          memcpy(track->bindings.notes, &(buffer[6]), track->bindings.notes_sz);
-          break;
-        case MLP_SYSEX_TRACK_BINDING_PROGPRESS:
-          track->bindings.programs_sz = (size_t) buffer[5];
-          memcpy(track->bindings.programs,
+        case MLP_SYSEX_MUTE_TRACK_BINDING_KEYPRESS:
+          track->mute_bindings.keys_sz = (size_t) buffer[5];
+          memcpy(track->mute_bindings.keys,
                  &(buffer[6]),
-                 track->bindings.programs_sz);
+                 track->mute_bindings.keys_sz);
+          break;
+        case MLP_SYSEX_MUTE_TRACK_BINDING_NOTEPRESS:
+          track->mute_bindings.notes_sz = (size_t) buffer[5];
+          memcpy(track->mute_bindings.notes,
+                 &(buffer[6]),
+                 track->mute_bindings.notes_sz);
+          break;
+        case MLP_SYSEX_MUTE_TRACK_BINDING_PROGPRESS:
+          track->mute_bindings.programs_sz = (size_t) buffer[5];
+          memcpy(track->mute_bindings.programs,
+                 &(buffer[6]),
+                 track->mute_bindings.programs_sz);
+          break;
+        case MLP_SYSEX_REC_TRACK_BINDING_KEYPRESS:
+          track->rec_bindings.keys_sz = (size_t) buffer[5];
+          memcpy(track->rec_bindings.keys,
+                 &(buffer[6]),
+                 track->rec_bindings.keys_sz);
+          break;
+        case MLP_SYSEX_REC_TRACK_BINDING_NOTEPRESS:
+          track->rec_bindings.notes_sz = (size_t) buffer[5];
+          memcpy(track->rec_bindings.notes,
+                 &(buffer[6]),
+                 track->rec_bindings.notes_sz);
+          break;
+        case MLP_SYSEX_REC_TRACK_BINDING_PROGPRESS:
+          track->rec_bindings.programs_sz = (size_t) buffer[5];
+          memcpy(track->rec_bindings.programs,
+                 &(buffer[6]),
+                 track->rec_bindings.programs_sz);
           break;
         case MLP_SYSEX_TRACK_MUTED:
           track->sysex_muted = MSQ_TRUE;

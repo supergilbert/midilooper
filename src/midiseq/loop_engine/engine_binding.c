@@ -27,13 +27,21 @@ void free_binding(void *addr)
 
 void engine_clear_all_bindings(engine_ctx_t *engine)
 {
-  free_list_node(&(engine->bindings.keypress),
+  free_list_node(&(engine->bindings.mute_keypress),
+                 free_binding);
+  free_list_node(&(engine->bindings.rec_keypress),
                  free_binding);
 
   engine->bindings.midib_updating = MSQ_TRUE;
   while (engine->bindings.midib_reading == MSQ_TRUE)
     usleep(100000);
-  free_list_node(&(engine->bindings.notepress),
+  free_list_node(&(engine->bindings.mute_notepress),
+                 free_binding);
+  free_list_node(&(engine->bindings.mute_programpress),
+                 free_binding);
+  free_list_node(&(engine->bindings.rec_notepress),
+                 free_binding);
+  free_list_node(&(engine->bindings.rec_programpress),
                  free_binding);
   engine->bindings.midib_updating = MSQ_FALSE;
 }
@@ -63,6 +71,7 @@ void _add_binding(list_t *bindings, byte_t val, track_ctx_t *track_ctx)
   tracks = _search_bindings(&iter, val);
   if (tracks != NULL)
     {
+      /* Check if binding already exist */
       for (iter_init(&iter, tracks);
            iter_node(&iter) != NULL;
            iter_next(&iter))
@@ -110,7 +119,7 @@ void _del_track_bindings(list_t *bindings, track_ctx_t *track_ctx)
 
 #include <stdio.h>
 
-msq_bool_t _call_binding(list_t *bindings, byte_t val)
+msq_bool_t _call_mute_binding(list_t *bindings, byte_t val)
 {
   list_iterator_t iter;
   list_t          *tracks = NULL;
@@ -133,15 +142,74 @@ msq_bool_t _call_binding(list_t *bindings, byte_t val)
   return mute_state_changed;
 }
 
-void engine_add_notebinding(engine_ctx_t *engine,
-                            byte_t note,
-                            track_ctx_t *track_ctx)
+void _call_rec_binding(engine_ctx_t *engine_ctx,
+                       list_t *bindings,
+                       byte_t val)
+{
+  list_iterator_t iter;
+  list_t          *tracks = NULL;
+  track_ctx_t     *track_ctx = NULL;
+
+  iter_init(&iter, bindings);
+  tracks = _search_bindings(&iter, val);
+  if (tracks != NULL)
+    {
+      track_ctx = tracks->head->addr;
+      if (engine_ctx->rec == MSQ_TRUE)
+        {
+          if (engine_ctx->track_rec == track_ctx)
+            engine_ctx->rec = MSQ_FALSE;
+          else
+            engine_ctx->track_rec = track_ctx;
+        }
+      else
+        {
+          engine_ctx->rec = MSQ_TRUE;
+          engine_ctx->track_rec = track_ctx;
+        }
+      engine_ctx->rec_state_changed = MSQ_TRUE;
+    }
+}
+
+void _safe_add_binding(engine_ctx_t *engine,
+                       list_t *binding_list,
+                       byte_t val,
+                       track_ctx_t *track_ctx)
 {
   engine->bindings.midib_updating = MSQ_TRUE;
   /* Waiting if midi input port call bindings */
   while (engine->bindings.midib_reading == MSQ_TRUE)
     usleep(100000);
-  _add_binding(&(engine->bindings.notepress), note, track_ctx);
+  _add_binding(binding_list, val, track_ctx);
+  engine->bindings.midib_updating = MSQ_FALSE;
+}
+
+void _safe_add_ontrack_binding(engine_ctx_t *engine,
+                               list_t *binding_list,
+                               byte_t val,
+                               track_ctx_t *track_ctx)
+{
+  list_iterator_t iter;
+  list_t          *tracks = NULL;
+  binding_t       *binding = NULL;
+
+  engine->bindings.midib_updating = MSQ_TRUE;
+  /* Waiting if midi input port call bindings */
+  while (engine->bindings.midib_reading == MSQ_TRUE)
+    usleep(100000);
+
+  iter_init(&iter, binding_list);
+  tracks = _search_bindings(&iter, val);
+  if (tracks != NULL)
+    tracks->head->addr = track_ctx;
+  else
+    {
+      binding = myalloc(sizeof (binding_t));
+      binding->val = val;
+      push_to_list_tail(&(binding->tracks), track_ctx);
+      iter_push_after(&iter, binding);
+    }
+
   engine->bindings.midib_updating = MSQ_FALSE;
 }
 
@@ -152,10 +220,10 @@ void engine_del_track_bindings(engine_ctx_t *engine,
   /* Waiting if midi input port call bindings */
   while (engine->bindings.midib_reading == MSQ_TRUE)
     usleep(100000);
-  _del_track_bindings(&(engine->bindings.notepress), track_ctx);
+  _del_track_bindings(&(engine->bindings.mute_notepress), track_ctx);
   engine->bindings.midib_updating = MSQ_FALSE;
 
-  _del_track_bindings(&(engine->bindings.keypress), track_ctx);
+  _del_track_bindings(&(engine->bindings.mute_keypress), track_ctx);
 }
 
 void engine_call_notepress_b(engine_ctx_t *engine, byte_t note)
@@ -163,9 +231,12 @@ void engine_call_notepress_b(engine_ctx_t *engine, byte_t note)
   engine->bindings.midib_reading = MSQ_TRUE;
   if (engine->bindings.midib_updating != MSQ_TRUE)
     {
-      engine->mute_state_changed = _call_binding(&(engine->bindings.notepress),
-                                                 note);
-      engine->bindings.midib_called = MSQ_TRUE;
+      engine->mute_state_changed =
+        _call_mute_binding(&(engine->bindings.mute_notepress),
+                           note);
+      _call_rec_binding(engine,
+                        &(engine->bindings.rec_notepress),
+                        note);
     }
   engine->bindings.midib_reading = MSQ_FALSE;
 }
@@ -175,24 +246,24 @@ void engine_call_programpress_b(engine_ctx_t *engine, byte_t program)
   engine->bindings.midib_reading = MSQ_TRUE;
   if (engine->bindings.midib_updating != MSQ_TRUE)
     {
-      engine->mute_state_changed = _call_binding(&(engine->bindings.programpress),
-                                                 program);
-      engine->bindings.midib_called = MSQ_TRUE;
+      engine->mute_state_changed =
+        _call_mute_binding(&(engine->bindings.mute_programpress),
+                           program);
+      _call_rec_binding(engine,
+                        &(engine->bindings.rec_programpress),
+                        program);
     }
   engine->bindings.midib_reading = MSQ_FALSE;
 }
 
-void engine_add_keybinding(engine_ctx_t *engine,
-                           byte_t key,
-                           track_ctx_t *track_ctx)
-{
-  _add_binding(&(engine->bindings.keypress), key, track_ctx);
-}
-
 msq_bool_t engine_call_keypress_b(engine_ctx_t *engine, byte_t key)
 {
-  engine->mute_state_changed = _call_binding(&(engine->bindings.keypress), key);
-  return engine->mute_state_changed;
+  engine->mute_state_changed =
+    _call_mute_binding(&(engine->bindings.mute_keypress), key);
+  _call_rec_binding(engine,
+                    &(engine->bindings.rec_keypress),
+                    key);
+  return engine->mute_state_changed || engine->rec_state_changed;
 }
 
 #include <string.h>

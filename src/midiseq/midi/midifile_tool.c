@@ -343,23 +343,40 @@ buf_node_t *_append_sysex_type_bindings(buf_node_t *tail,
   return tail->next;
 }
 
-buf_node_t *_append_sysex_bindings(buf_node_t *tail, midif_trackb_t *bindings)
+buf_node_t *_append_sysex_bindings(buf_node_t *tail, midifile_track_t *mtrack)
 {
-  if (bindings->keys_sz > 0)
+  if (mtrack->mute_bindings.keys_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_TRACK_BINDING_KEYPRESS,
-                                       bindings->keys,
-                                       bindings->keys_sz);
-  if (bindings->notes_sz > 0)
+                                       MLP_SYSEX_MUTE_TRACK_BINDING_KEYPRESS,
+                                       mtrack->mute_bindings.keys,
+                                       mtrack->mute_bindings.keys_sz);
+  if (mtrack->mute_bindings.notes_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_TRACK_BINDING_NOTEPRESS,
-                                       bindings->notes,
-                                       bindings->notes_sz);
-  if (bindings->programs_sz > 0)
+                                       MLP_SYSEX_MUTE_TRACK_BINDING_NOTEPRESS,
+                                       mtrack->mute_bindings.notes,
+                                       mtrack->mute_bindings.notes_sz);
+  if (mtrack->mute_bindings.programs_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_TRACK_BINDING_PROGPRESS,
-                                       bindings->programs,
-                                       bindings->programs_sz);
+                                       MLP_SYSEX_MUTE_TRACK_BINDING_PROGPRESS,
+                                       mtrack->mute_bindings.programs,
+                                       mtrack->mute_bindings.programs_sz);
+
+
+  if (mtrack->rec_bindings.keys_sz > 0)
+    tail = _append_sysex_type_bindings(tail,
+                                       MLP_SYSEX_REC_TRACK_BINDING_KEYPRESS,
+                                       mtrack->rec_bindings.keys,
+                                       mtrack->rec_bindings.keys_sz);
+  if (mtrack->rec_bindings.notes_sz > 0)
+    tail = _append_sysex_type_bindings(tail,
+                                       MLP_SYSEX_REC_TRACK_BINDING_NOTEPRESS,
+                                       mtrack->rec_bindings.notes,
+                                       mtrack->rec_bindings.notes_sz);
+  if (mtrack->rec_bindings.programs_sz > 0)
+    tail = _append_sysex_type_bindings(tail,
+                                       MLP_SYSEX_REC_TRACK_BINDING_PROGPRESS,
+                                       mtrack->rec_bindings.programs,
+                                       mtrack->rec_bindings.programs_sz);
   return tail;
 }
 
@@ -433,7 +450,7 @@ void write_midifile_track(int fd, midifile_track_t *mtrack, msq_bool_t template)
 
   tail = _append_sysex_loopstart(tail, mtrack->sysex_loop_start);
   tail = _append_sysex_looplen(tail, mtrack->sysex_loop_len);
-  tail = _append_sysex_bindings(tail, &(mtrack->bindings));
+  tail = _append_sysex_bindings(tail, mtrack);
   if (mtrack->sysex_portid != -1)
     tail = _append_sysex_portid(tail, mtrack->sysex_portid);
   if (mtrack->sysex_muted == MSQ_TRUE)

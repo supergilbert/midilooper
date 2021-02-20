@@ -102,7 +102,8 @@ typedef struct
   uint_t         sysex_loop_len;
   int            sysex_portid;
   msq_bool_t     sysex_muted;
-  midif_trackb_t bindings;
+  midif_trackb_t mute_bindings;
+  midif_trackb_t rec_bindings;
   track_t        track;
 } midifile_track_t;
 
@@ -147,12 +148,22 @@ buf_node_t *create_midifile_trackhdr(size_t track_size);
                                                   length uint32_t */
 #define MLP_SYSEX_TRACK_MUTED             0x24 /* not followed */
 #define MLP_SYSEX_TRACK_PORTID            0x25 /* followed by 4 byte */
-#define MLP_SYSEX_TRACK_BINDING_KEYPRESS  0x28 /* byte list of
-                                                  key bindings */
-#define MLP_SYSEX_TRACK_BINDING_NOTEPRESS 0x29 /* byte list of
-                                                  note bindings */
-#define MLP_SYSEX_TRACK_BINDING_PROGPRESS 0x2A /* byte list of
-                                                  program bindings */
+#define MLP_SYSEX_MUTE_TRACK_BINDING_KEYPRESS  0x28 /* byte list of
+                                                       key bindings */
+#define MLP_SYSEX_MUTE_TRACK_BINDING_NOTEPRESS 0x29 /* byte list of
+                                                       note bindings */
+#define MLP_SYSEX_MUTE_TRACK_BINDING_PROGPRESS 0x2A /* byte list of
+                                                       program bindings */
+#define MLP_SYSEX_MUTE_TRACK_BINDING_CTRLCHG   0x2B /* byte list of
+                                                       program bindings */
+#define MLP_SYSEX_REC_TRACK_BINDING_KEYPRESS   0x2C /* byte list of
+                                                       key bindings */
+#define MLP_SYSEX_REC_TRACK_BINDING_NOTEPRESS  0x2D /* byte list of
+                                                       note bindings */
+#define MLP_SYSEX_REC_TRACK_BINDING_PROGPRESS  0x2E /* byte list of
+                                                       program bindings */
+#define MLP_SYSEX_REC_TRACK_BINDING_CTRLCHG    0x2F /* byte list of
+                                                       program bindings */
 
 #define GETVLVSIZE(_tick) (_tick < 128) ? 1 :            \
   (((_tick >> 7) < 128) ? 2 :                            \

@@ -64,9 +64,12 @@ typedef struct msq_wgt_list_s
 typedef enum
   {
     MSQ_WAIT_NONE = 0,
-    MSQ_WAIT_KEYBOARD,
-    MSQ_WAIT_MIDI_NOTE,
-    MSQ_WAIT_MIDI_PROGRAM
+    MSQ_WAIT_MUTE_KEYBOARD,
+    MSQ_WAIT_MUTE_MIDI_NOTE,
+    MSQ_WAIT_MUTE_MIDI_PROGRAM,
+    MSQ_WAIT_REC_KEYBOARD,
+    MSQ_WAIT_REC_MIDI_NOTE,
+    MSQ_WAIT_REC_MIDI_PROGRAM
   } msq_wait_binding_t;
 
 struct mlp_nsm_session_t
@@ -118,6 +121,7 @@ public:
   void show_options_dialog(void);
   void show_output_dialog(output_t *output);
   void show_set_output(track_editor_t *track_editor);
+  void show_track_addbinding(track_editor_t *track_editor);
   void show_track_dialog(track_editor_t *track_editor);
   void add_output(char *new_name);
   void add_track(char *new_name);
@@ -125,9 +129,8 @@ public:
   void remove_output(output_t *output);
   void remove_track(track_editor_t *track_editor);
   void save_file_as(const char *str);
-  void set_add_key_binding_mode(void);
-  void set_add_note_binding_mode(void);
-  void set_add_program_binding_mode(void);
+  void _set_add_binding_mode(const char *binding_msg,
+                             msq_wait_binding_t binding_type);
   void show_add_track(void);
   void show_add_output(void);
   void redraw(void);
@@ -679,11 +682,11 @@ void msq_track_node_draw_cb(pbt_ggt_t *ggt)
   track_ctx_t *track_ctx = track_node->track_editor->editor_ctx.track_ctx;
   unsigned int output_str_width;
   std::string output_name;
-  byte_t string_key_bindings[MSQ_BINDINGS_KEY_MAX];
-  byte_t string_note_bindings[MSQ_BINDINGS_NOTE_MAX];
-  byte_t string_program_bindings[MSQ_BINDINGS_NOTE_MAX];
-  size_t array_size, array_size2;
-  char midi_bindings[MSQ_BINDINGS_NOTE_MAX * 3];
+  byte_t bindings_raw_array[MSQ_BINDINGS_NOTE_MAX];
+  char bindings_str[MSQ_BINDINGS_NOTE_MAX];
+  size_t raw_array_size;
+  std::string mute_bindings_string = "";
+  std::string rec_bindings_string = "";
 
   if (track_ctx->output != NULL)
     output_name = output_get_name(track_ctx->output);
@@ -694,27 +697,61 @@ void msq_track_node_draw_cb(pbt_ggt_t *ggt)
                             output_name.c_str(),
                             &output_str_width);
 
-  array_size =
-    _fill_byte_array_w_track_bindings(string_key_bindings,
+  raw_array_size =
+    _fill_byte_array_w_track_bindings(bindings_raw_array,
                                       MSQ_BINDINGS_KEY_MAX,
-                                      &(track_ctx->engine->bindings.keypress),
+                                      &(track_ctx->engine->bindings.mute_keypress),
                                       track_ctx);
-  string_key_bindings[array_size] = '\0';
+  gen_key_bindings_str(bindings_str,
+                       bindings_raw_array,
+                       raw_array_size);
+  mute_bindings_string += bindings_str;
+  raw_array_size =
+    _fill_byte_array_w_track_bindings(bindings_raw_array,
+                                      MSQ_BINDINGS_NOTE_MAX,
+                                      &(track_ctx->engine->bindings.mute_notepress),
+                                      track_ctx);
+  gen_midinote_bindings_str(bindings_str,
+                            bindings_raw_array,
+                            raw_array_size);
+  mute_bindings_string += bindings_str;
+  raw_array_size =
+    _fill_byte_array_w_track_bindings(bindings_raw_array,
+                                      MSQ_BINDINGS_NOTE_MAX,
+                                      &(track_ctx->engine->bindings.mute_programpress),
+                                      track_ctx);
+  gen_midiprogram_bindings_str(bindings_str,
+                               bindings_raw_array,
+                               raw_array_size);
+  mute_bindings_string += bindings_str;
 
-  array_size =
-    _fill_byte_array_w_track_bindings(string_note_bindings,
-                                      MSQ_BINDINGS_NOTE_MAX,
-                                      &(track_ctx->engine->bindings.notepress),
+  raw_array_size =
+    _fill_byte_array_w_track_bindings(bindings_raw_array,
+                                      MSQ_BINDINGS_KEY_MAX,
+                                      &(track_ctx->engine->bindings.rec_keypress),
                                       track_ctx);
-  gen_midinote_bindings_str(midi_bindings, string_note_bindings, array_size);
-  array_size2 =
-    _fill_byte_array_w_track_bindings(string_program_bindings,
+  gen_key_bindings_str(bindings_str,
+                       bindings_raw_array,
+                       raw_array_size);
+  rec_bindings_string += bindings_str;
+  raw_array_size =
+    _fill_byte_array_w_track_bindings(bindings_raw_array,
                                       MSQ_BINDINGS_NOTE_MAX,
-                                      &(track_ctx->engine->bindings.programpress),
+                                      &(track_ctx->engine->bindings.rec_notepress),
                                       track_ctx);
-  gen_midiprogram_bindings_str(&(midi_bindings[strlen(midi_bindings)]),
-                               string_program_bindings,
-                               array_size2);
+  gen_midinote_bindings_str(bindings_str,
+                            bindings_raw_array,
+                            raw_array_size);
+  rec_bindings_string += bindings_str;
+  raw_array_size =
+    _fill_byte_array_w_track_bindings(bindings_raw_array,
+                                      MSQ_BINDINGS_NOTE_MAX,
+                                      &(track_ctx->engine->bindings.rec_programpress),
+                                      track_ctx);
+  gen_midiprogram_bindings_str(bindings_str,
+                               bindings_raw_array,
+                               raw_array_size);
+  rec_bindings_string += bindings_str;
 
   pbt_pbarea_fill(&(ggt->pbarea),
                   track_node->main_win->theme.theme.frame_bg);
@@ -732,12 +769,12 @@ void msq_track_node_draw_cb(pbt_ggt_t *ggt)
                     &(track_node->main_win->theme.theme.font),
                     track_node->main_win->theme.theme.frame_fg,
                     0, track_node->main_win->theme.theme.font.max_height,
-                    "Keyboard: %s", string_key_bindings);
+                    "Mute bindings:%s", mute_bindings_string.c_str());
   pbt_pbarea_printf(&(ggt->pbarea),
                     &(track_node->main_win->theme.theme.font),
                     track_node->main_win->theme.theme.frame_fg,
                     0, track_node->main_win->theme.theme.font.max_height * 2,
-                    "Midi: %s", midi_bindings);
+                    "Rec bindings:%s", rec_bindings_string.c_str());
   pbt_pbarea_fillrect(&(ggt->pbarea),
                       track_node->main_win->theme.default_separator,
                       _pbt_ggt_height(ggt)
@@ -1228,7 +1265,6 @@ void save_file_cb(char *str, void *mainwin_addr)
     (midilooper_main_window *) mainwin_addr;
 
   mainwin->save_file_as(str);
-  // printf("str result: %s\n", str);
 }
 
 void filemenu_dialog_cb(size_t idx, void *mainwin_addr)
@@ -1379,6 +1415,40 @@ void track_rename_dialog_res_cb(char *str, void *mainwin_addr)
   mainwin->refresh();
 }
 
+void trackaddbinding_res_cb(size_t idx, void *mainwin_addr)
+{
+  midilooper_main_window *mainwin =
+    (midilooper_main_window *) mainwin_addr;
+
+  switch (idx)
+    {
+    case 0:                     // Add mute key binding
+      mainwin->_set_add_binding_mode("Press a key from A to Z",
+                                     MSQ_WAIT_MUTE_KEYBOARD);
+      break;
+    case 1:                     // Add mute note binding
+      mainwin->_set_add_binding_mode("Press a midi note",
+                                     MSQ_WAIT_MUTE_MIDI_NOTE);
+      break;
+    case 2:                     // Add mute program binding
+      mainwin->_set_add_binding_mode("Press a midi program",
+                                     MSQ_WAIT_MUTE_MIDI_PROGRAM);
+      break;
+    case 3:                     // Add rec key binding
+      mainwin->_set_add_binding_mode("Press a key from A to Z",
+                                     MSQ_WAIT_REC_KEYBOARD);
+      break;
+    case 4:                     // Add rec note binding
+      mainwin->_set_add_binding_mode("Press a midi note",
+                                     MSQ_WAIT_REC_MIDI_NOTE);
+      break;
+    case 5:                     // Add rec program binding
+      mainwin->_set_add_binding_mode("Press a midi program",
+                                     MSQ_WAIT_REC_MIDI_PROGRAM);
+      break;
+    }
+}
+
 void track_dialog_res_cb(size_t idx, void *mainwin_addr)
 {
   midilooper_main_window *mainwin =
@@ -1394,22 +1464,16 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
     case 1:                     // Output
       mainwin->show_set_output(mainwin->dialog_track);
       break;
-    case 2:                     // Add key binding
-      mainwin->set_add_key_binding_mode();
+    case 2:                     // Add binding
+      mainwin->show_track_addbinding(mainwin->dialog_track);
       break;
-    case 3:                     // Add note binding
-      mainwin->set_add_note_binding_mode();
-      break;
-    case 4:                     // Add program binding
-      mainwin->set_add_program_binding_mode();
-      break;
-    case 5:                     // Delete all bindings
+    case 3:                     // Delete all bindings
       engine_del_track_bindings(mainwin->engine_ctx,
                                 mainwin->dialog_track->editor_ctx.track_ctx);
       pbt_ggt_draw(&(mainwin->track_list.vctnr));
       mainwin->refresh();
       break;
-    case 6:                     // Move
+    case 4:                     // Move
       if (engine_is_running(mainwin->engine_ctx) == MSQ_TRUE)
         pbt_logmsg("Can not move track while runnning");
       else
@@ -1418,16 +1482,16 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
           mainwin->track_list.move_cb_priv = mainwin->dialog_track;
         }
       break;
-    case 7:                     // Copy
+    case 5:                     // Copy
       mainwin->copy_trackctx(mainwin->dialog_track->editor_ctx.track_ctx);
       break;
-    case 8:                     // Add
+    case 6:                     // Add
       mainwin->show_add_track();
       break;
-    case 9:                     // Remove
+    case 7:                     // Remove
       mainwin->remove_track(mainwin->dialog_track);
       break;
-    case 10:                     // Mute all
+    case 8:                     // Mute all
       mainwin->mute_all();
     default:
       ;
@@ -1860,13 +1924,30 @@ void midilooper_main_window::show_set_output(track_editor_t *track_editor)
   dialog_track = track_editor;
 }
 
+
+
+void midilooper_main_window::show_track_addbinding(track_editor_t *track_editor)
+{
+  static const char *trackadd_bindings[] = {"Add mute key binding",
+                                            "Add mute midi note binding",
+                                            "Add mute midi program binding",
+                                            "Add rec key binding",
+                                            "Add rec midi note binding",
+                                            "Add rec midi program binding"};
+
+  msq_dialog_list(&(dialog_iface),
+                  (char **) trackadd_bindings,
+                  6,
+                  trackaddbinding_res_cb,
+                  this);
+  dialog_track = track_editor;
+}
+
 void midilooper_main_window::show_track_dialog(track_editor_t *track_editor)
 {
   static const char *track_menu[] = {"Rename",
                                      "Output",
-                                     "Add key binding",
-                                     "Add midi note binding",
-                                     "Add midi program binding",
+                                     "Add binding",
                                      "Del all bindings",
                                      "Move",
                                      "Copy",
@@ -1876,7 +1957,7 @@ void midilooper_main_window::show_track_dialog(track_editor_t *track_editor)
 
   msq_dialog_list(&(dialog_iface),
                   (char **) track_menu,
-                  11,
+                  9,
                   track_dialog_res_cb,
                   this);
   dialog_track = track_editor;
@@ -1991,37 +2072,15 @@ void _main_window_draw_binding_mode(pbt_pbarea_t *pbarea,
                     str2.c_str());
 }
 
-void midilooper_main_window::set_add_key_binding_mode(void)
+void midilooper_main_window::_set_add_binding_mode(const char *binding_msg,
+                                                   msq_wait_binding_t binding_type)
 {
   _main_window_draw_binding_mode(&(ggt_win.ggt->pbarea),
                                  &(theme.theme),
-                                 "Press a key from A to Z");
+                                 binding_msg);
   pbt_ggt_win_put_buffer(&ggt_win);
   wait_since = wbe_get_time();
-  wait_binding_type = MSQ_WAIT_KEYBOARD;
-  track_waiting_binding = dialog_track->editor_ctx.track_ctx;
-}
-
-void midilooper_main_window::set_add_note_binding_mode(void)
-{
-  _main_window_draw_binding_mode(&(ggt_win.ggt->pbarea),
-                                 &(theme.theme),
-                                 "Press a midi note");
-  pbt_ggt_win_put_buffer(&ggt_win);
-  wait_since = wbe_get_time();
-  wait_binding_type = MSQ_WAIT_MIDI_NOTE;
-  engine_ctx->bindings.rec_val = 255;
-  track_waiting_binding = dialog_track->editor_ctx.track_ctx;
-}
-
-void midilooper_main_window::set_add_program_binding_mode(void)
-{
-  _main_window_draw_binding_mode(&(ggt_win.ggt->pbarea),
-                                 &(theme.theme),
-                                 "Press a midi program");
-  pbt_ggt_win_put_buffer(&ggt_win);
-  wait_since = wbe_get_time();
-  wait_binding_type = MSQ_WAIT_MIDI_PROGRAM;
+  wait_binding_type = binding_type;
   engine_ctx->bindings.rec_val = 255;
   track_waiting_binding = dialog_track->editor_ctx.track_ctx;
 }
@@ -2066,20 +2125,34 @@ void midilooper_main_window::handle_key_bindings(wbe_window_input_t *winev)
       wait_binding_type = MSQ_WAIT_NONE;
     }
 
-  if (wait_binding_type == MSQ_WAIT_MIDI_PROGRAM ||
-      wait_binding_type == MSQ_WAIT_MIDI_NOTE)
+  if (wait_binding_type == MSQ_WAIT_MUTE_MIDI_PROGRAM ||
+      wait_binding_type == MSQ_WAIT_MUTE_MIDI_NOTE ||
+      wait_binding_type == MSQ_WAIT_REC_MIDI_PROGRAM ||
+      wait_binding_type == MSQ_WAIT_REC_MIDI_NOTE)
     return;
 
   if (_check_alpha_keys(winev->keys))
     {
-      if (wait_binding_type == MSQ_WAIT_KEYBOARD)
+      if (wait_binding_type == MSQ_WAIT_MUTE_KEYBOARD)
         {
           for (key = 'A'; key <= 'Z'; key++)
             if (wbe_key_pressedA(winev->keys, key) == WBE_TRUE)
               {
-                _add_binding(&(engine_ctx->bindings.keypress),
-                             key,
-                             track_waiting_binding);
+                engine_add_mute_keybinding(engine_ctx, key, track_waiting_binding);
+                _pbt_ggt_draw(ggt_win.ggt);
+                pbt_ggt_win_put_buffer(&ggt_win);
+                track_waiting_binding = NULL;
+                wait_binding_type = MSQ_WAIT_NONE;
+                WBE_SET_BIT(keys, key - 'A', 1);
+                return;
+              }
+        }
+      else if (wait_binding_type == MSQ_WAIT_REC_KEYBOARD)
+        {
+          for (key = 'A'; key <= 'Z'; key++)
+            if (wbe_key_pressedA(winev->keys, key) == WBE_TRUE)
+              {
+                engine_add_rec_keybinding(engine_ctx, key, track_waiting_binding);
                 _pbt_ggt_draw(ggt_win.ggt);
                 pbt_ggt_win_put_buffer(&ggt_win);
                 track_waiting_binding = NULL;
@@ -2130,6 +2203,7 @@ bool midilooper_main_window::handle_midi_rec(void)
   if (engine_ctx->rec_state_changed == MSQ_TRUE)
     {
       engine_ctx->rec_state_changed = MSQ_FALSE;
+      msq_mcev_tick_list_clear(&noteon_list);
       msq_transport_update_buttons(&transport_iface);
     }
 
@@ -2231,28 +2305,51 @@ void midilooper_main_window::handle_msq_update(void)
 
   if (track_waiting_binding != NULL)
     {
-      if (wait_binding_type == MSQ_WAIT_MIDI_NOTE
+      if (wait_binding_type == MSQ_WAIT_MUTE_MIDI_NOTE
           && engine_ctx->bindings.rec_val != 255)
         {
-          _add_binding(&(engine_ctx->bindings.notepress),
-                       engine_ctx->bindings.rec_val,
-                       track_waiting_binding);
+          engine_add_mute_notebinding(engine_ctx,
+                                      engine_ctx->bindings.rec_val,
+                                      track_waiting_binding);
           _pbt_ggt_draw(ggt_win.ggt);
           pbt_ggt_win_put_buffer(&ggt_win);
           track_waiting_binding = NULL;
           wait_binding_type = MSQ_WAIT_NONE;
         }
-      else if (wait_binding_type == MSQ_WAIT_MIDI_PROGRAM
+      else if (wait_binding_type == MSQ_WAIT_MUTE_MIDI_PROGRAM
                && engine_ctx->bindings.rec_val != 255)
         {
-          _add_binding(&(engine_ctx->bindings.programpress),
-                       engine_ctx->bindings.rec_val,
-                       track_waiting_binding);
+          engine_add_mute_programbinding(engine_ctx,
+                                         engine_ctx->bindings.rec_val,
+                                         track_waiting_binding);
           _pbt_ggt_draw(ggt_win.ggt);
           pbt_ggt_win_put_buffer(&ggt_win);
           track_waiting_binding = NULL;
           wait_binding_type = MSQ_WAIT_NONE;
         }
+      else if (wait_binding_type == MSQ_WAIT_REC_MIDI_NOTE
+          && engine_ctx->bindings.rec_val != 255)
+        {
+          engine_add_rec_notebinding(engine_ctx,
+                                     engine_ctx->bindings.rec_val,
+                                     track_waiting_binding);
+          _pbt_ggt_draw(ggt_win.ggt);
+          pbt_ggt_win_put_buffer(&ggt_win);
+          track_waiting_binding = NULL;
+          wait_binding_type = MSQ_WAIT_NONE;
+        }
+      else if (wait_binding_type == MSQ_WAIT_REC_MIDI_PROGRAM
+               && engine_ctx->bindings.rec_val != 255)
+        {
+          engine_add_rec_programbinding(engine_ctx,
+                                        engine_ctx->bindings.rec_val,
+                                        track_waiting_binding);
+          _pbt_ggt_draw(ggt_win.ggt);
+          pbt_ggt_win_put_buffer(&ggt_win);
+          track_waiting_binding = NULL;
+          wait_binding_type = MSQ_WAIT_NONE;
+        }
+
       if (wait_since + 5.0 < wbe_get_time())
         {
           _pbt_ggt_draw(ggt_win.ggt);
@@ -2269,11 +2366,10 @@ void midilooper_main_window::handle_msq_update(void)
           wait_since = wbe_get_time();
           pbt_ggt_win_put_buffer(&ggt_win);
         }
-      else if (engine_ctx->bindings.midib_called == MSQ_TRUE)
+      else if (engine_ctx->mute_state_changed == MSQ_TRUE)
         {
           _pbt_ggt_draw(ggt_win.ggt);
           pbt_ggt_win_put_buffer(&ggt_win);
-          engine_ctx->bindings.midib_called = MSQ_FALSE;
         }
     }
 }
@@ -2562,7 +2658,6 @@ Mouse behaviour:\n\
       midifile = read_midifile(filepath);
       if (midifile == NULL)
         pbt_abort("Unable to load file (%s)", filepath);
-      pbt_logmsg("engine type: %d", midifile->info.engine_type);
       if (jack_bool)
         {
           midifile->info.engine_type = MSQ_ENG_JACK;

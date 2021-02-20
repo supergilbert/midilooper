@@ -1,6 +1,7 @@
 # MIDILOOPER
 
 This code is in development.
+It is a midi looper inspired of seq24 and ableton/live.
 
 ## Build instruction example
 
@@ -22,6 +23,7 @@ This code is in development.
 ## Roadmap (todo)
 
 * Prevent all segfault
+* Add remote control of rec button
 * Add CC Remote
 * Add KEYAFTERTOUCH, PROGRAMCHANGE, CHANNELAFTERTOUCH to editor
 * Sync
