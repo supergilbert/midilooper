@@ -53,24 +53,36 @@ void output_add_req(output_t *output, midicev_t *midicev);
 
 typedef struct
 {
-  byte_t val;
+  byte_t vals[2];
   list_t tracks;
 } binding_t;
+
+typedef enum
+  {
+    MSQ_MIDI_WAIT_NONE = 0,
+    MSQ_MIDI_WAIT_NOTE,
+    MSQ_MIDI_WAIT_PROG,
+    MSQ_MIDI_WAIT_CTRL,
+    MSQ_MIDI_WAIT_ENABLE
+  } msq_binding_state_t;
 
 typedef struct
 {
   /* TODO: Modify rec_val check 255 api with an enum to filter prog and note
      midi binding rec */
-  byte_t     rec_val;
-  msq_bool_t midib_updating;
-  msq_bool_t midib_reading;
-  list_t     mute_notepress;
-  list_t     mute_programpress;
-  list_t     mute_keypress;
-  list_t     rec_notepress;
-  list_t     rec_programpress;
-  list_t     rec_keypress;
-} bindings_t;
+  msq_binding_state_t state;
+  byte_t              shr_rec_vals[2];
+  msq_bool_t          midib_updating;
+  msq_bool_t          midib_reading;
+  list_t              mute_notepress;
+  list_t              mute_programpress;
+  list_t              mute_controlchg;
+  list_t              mute_keypress;
+  list_t              rec_notepress;
+  list_t              rec_programpress;
+  list_t              rec_controlchg;
+  list_t              rec_keypress;
+} msq_bindings_t;
 
 typedef struct
 {
@@ -118,7 +130,7 @@ typedef struct engine_ctx_s
   midiringbuffer_t *rbuff;
   uint_t           ppq;               /* Pulse per quater note (beat) */
   uint_t           tempo;             /* Quater note in micro second */
-  bindings_t       bindings;
+  msq_bindings_t   bindings;
   msq_bool_t       mute_state_changed; /* Ask to update interface */
   msq_bool_t       rec_state_changed;  /* Ask for recording track */
   saverq_t         saverq;
@@ -193,51 +205,82 @@ void engine_del_track_bindings(engine_ctx_t *engine, track_ctx_t *track_ctx);
 void engine_clear_all_bindings(engine_ctx_t *engine);
 void engine_call_notepress_b(engine_ctx_t *engine, byte_t key);
 void engine_call_programpress_b(engine_ctx_t *engine, byte_t key);
-void _add_binding(list_t *bindings, byte_t val, track_ctx_t *track_ctx);
-void _safe_add_binding(engine_ctx_t *engine,
-                       list_t *binding_list,
-                       byte_t val,
-                       track_ctx_t *track_ctx);
-void _safe_add_ontrack_binding(engine_ctx_t *engine,
+void engine_call_controlchg_b(engine_ctx_t *engine, byte_t ctrl, byte_t val);
+void _add_binding_one_val(list_t *bindings, byte_t val, track_ctx_t *track_ctx);
+void _add_binding_two_val(list_t *bindings,
+                          byte_t val1,
+                          byte_t val2,
+                          track_ctx_t *track_ctx);
+void _safe_add_binding_one_val(engine_ctx_t *engine,
                                list_t *binding_list,
                                byte_t val,
                                track_ctx_t *track_ctx);
-#define engine_add_mute_notebinding(_engine, _note, _track_ctx) \
-  _safe_add_binding((_engine),                                  \
-                    &((_engine)->bindings.mute_notepress),      \
-                    _note,                                      \
-                    _track_ctx)
+void _safe_add_one_track_binding_one_val(engine_ctx_t *engine,
+                                         list_t *binding_list,
+                                         byte_t val,
+                                         track_ctx_t *track_ctx);
+void _safe_add_binding_two_val(engine_ctx_t *engine,
+                               list_t *binding_list,
+                               byte_t val1,
+                               byte_t val2,
+                               track_ctx_t *track_ctx);
+void _safe_add_one_track_binding_two_val(engine_ctx_t *engine,
+                                         list_t *binding_list,
+                                         byte_t val1,
+                                         byte_t val2,
+                                         track_ctx_t *track_ctx);
+#define engine_add_mute_keybinding(_engine, _key, _track_ctx)           \
+  _safe_add_binding_one_val((_engine),                                  \
+                            &((_engine)->bindings.mute_keypress),       \
+                            (_key),                                     \
+                            (_track_ctx))
+#define engine_add_mute_notebinding(_engine, _note, _track_ctx)         \
+  _safe_add_binding_one_val((_engine),                                  \
+                            &((_engine)->bindings.mute_notepress),      \
+                            (_note),                                    \
+                            (_track_ctx))
 #define engine_add_mute_programbinding(_engine, _val, _track_ctx)       \
-  _safe_add_binding((_engine),                                          \
-                    &((_engine)->bindings.mute_programpress),           \
-                    _val,                                               \
-                    _track_ctx)
-#define engine_add_mute_keybinding(_engine, _key, _track_ctx)   \
-  _safe_add_binding((_engine),                                  \
-                    &((_engine)->bindings.mute_keypress),       \
-                    _key,                                       \
-                    _track_ctx)
-#define engine_add_rec_notebinding(_engine, _note, _track_ctx)          \
-  _safe_add_ontrack_binding((_engine),                                  \
-                            &((_engine)->bindings.rec_notepress),       \
-                            _note,                                      \
-                            _track_ctx)
-#define engine_add_rec_programbinding(_engine, _val, _track_ctx)        \
-  _safe_add_ontrack_binding((_engine),                                  \
-                            &((_engine)->bindings.rec_programpress),    \
-                            _val,                                       \
-                            _track_ctx)
+  _safe_add_binding_one_val((_engine),                                  \
+                            &((_engine)->bindings.mute_programpress),   \
+                            (_val),                                     \
+                            (_track_ctx))
+#define engine_add_mute_controlbinding(_engine, _ctrl_num, _val, _track_ctx) \
+  _safe_add_binding_two_val((_engine),                                  \
+                            &((_engine)->bindings.mute_controlchg),     \
+                            (_ctrl_num),                                \
+                            (_val),                                     \
+                            (_track_ctx))
 #define engine_add_rec_keybinding(_engine, _key, _track_ctx)            \
-  _safe_add_ontrack_binding((_engine),                                  \
-                            &((_engine)->bindings.rec_keypress),        \
-                            _key,                                       \
-                            _track_ctx)
+  _safe_add_one_track_binding_one_val((_engine),                        \
+                                      &((_engine)->bindings.rec_keypress), \
+                                      (_key),                           \
+                                      (_track_ctx))
+#define engine_add_rec_notebinding(_engine, _note, _track_ctx)          \
+  _safe_add_one_track_binding_one_val((_engine),                        \
+                                      &((_engine)->bindings.rec_notepress), \
+                                      (_note),                          \
+                                      (_track_ctx))
+#define engine_add_rec_programbinding(_engine, _val, _track_ctx)        \
+  _safe_add_one_track_binding_one_val((_engine),                        \
+                                      &((_engine)->bindings.rec_programpress), \
+                                      (_val),                           \
+                                      (_track_ctx))
+#define engine_add_rec_controlbinding(_engine, _ctrl_num, _val, _track_ctx) \
+  _safe_add_one_track_binding_two_val((_engine),                        \
+                                      &((_engine)->bindings.rec_controlchg), \
+                                      (_ctrl_num),                      \
+                                      (_val),                           \
+                                      (_track_ctx))
 
 msq_bool_t engine_call_keypress_b(engine_ctx_t *engine, byte_t key);
-size_t _fill_byte_array_w_track_bindings(byte_t *byte_array,
-                                         size_t max_sz,
-                                         list_t *bindings,
-                                         track_ctx_t *trackctx);
+size_t _fill_byte_array_w_track_bindings_one_val(byte_t *byte_array,
+                                                 size_t max_sz,
+                                                 list_t *bindings,
+                                                 track_ctx_t *trackctx);
+size_t _fill_byte_array_w_track_bindings_two_val(byte_t *byte_array,
+                                                 size_t max_sz,
+                                                 list_t *bindings,
+                                                 track_ctx_t *trackctx);
 
 void free_output_list(engine_ctx_t *ctx);
 
@@ -287,6 +330,10 @@ void gen_midinote_bindings_str(char *mnb_str,
 void gen_midiprogram_bindings_str(char *mpb_str,
                                   byte_t *programs,
                                   size_t programs_sz);
+
+void gen_midicontrol_bindings_str(char *mpb_str,
+                                  byte_t *controls,
+                                  size_t controls_sz);
 
 char **engine_gen_output_str_list(engine_ctx_t *engine_ctx,
                                   size_t *str_list_len);

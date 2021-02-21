@@ -360,7 +360,11 @@ buf_node_t *_append_sysex_bindings(buf_node_t *tail, midifile_track_t *mtrack)
                                        MLP_SYSEX_MUTE_TRACK_BINDING_PROGPRESS,
                                        mtrack->mute_bindings.programs,
                                        mtrack->mute_bindings.programs_sz);
-
+  if (mtrack->mute_bindings.programs_sz > 0)
+    tail = _append_sysex_type_bindings(tail,
+                                       MLP_SYSEX_MUTE_TRACK_BINDING_CTRLCHG,
+                                       mtrack->mute_bindings.controls,
+                                       mtrack->mute_bindings.controls_sz);
 
   if (mtrack->rec_bindings.keys_sz > 0)
     tail = _append_sysex_type_bindings(tail,
@@ -377,6 +381,12 @@ buf_node_t *_append_sysex_bindings(buf_node_t *tail, midifile_track_t *mtrack)
                                        MLP_SYSEX_REC_TRACK_BINDING_PROGPRESS,
                                        mtrack->rec_bindings.programs,
                                        mtrack->rec_bindings.programs_sz);
+  if (mtrack->rec_bindings.controls_sz > 0)
+    tail = _append_sysex_type_bindings(tail,
+                                       MLP_SYSEX_REC_TRACK_BINDING_CTRLCHG,
+                                       mtrack->rec_bindings.controls,
+                                       mtrack->rec_bindings.controls_sz);
+
   return tail;
 }
 

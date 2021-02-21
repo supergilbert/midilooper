@@ -332,21 +332,43 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
             case MSQ_MIDI_NOTEON:
               if (jackev.buffer[2] == 0)
                 {
-                  if (ctx->bindings.rec_val == 255)
-                    ctx->bindings.rec_val = jackev.buffer[1];
+                  if (ctx->bindings.state == MSQ_MIDI_WAIT_NOTE)
+                    {
+                      ctx->bindings.shr_rec_vals[0] = jackev.buffer[1];
+                      ctx->bindings.shr_rec_vals[1] = 0;
+                      ctx->bindings.state = MSQ_MIDI_WAIT_NONE;
+                    }
                 }
               else
                 engine_call_notepress_b(ctx, jackev.buffer[1]);
               break;
             case MSQ_MIDI_NOTEOFF:
-              if (jackev.buffer[2] == 255)
-                ctx->bindings.rec_val = jackev.buffer[1];
+              if (ctx->bindings.state == MSQ_MIDI_WAIT_NOTE)
+                {
+                  ctx->bindings.shr_rec_vals[0] = jackev.buffer[1];
+                  ctx->bindings.shr_rec_vals[1] = 0;
+                  ctx->bindings.state = MSQ_MIDI_WAIT_NONE;
+                }
               break;
             case MSQ_MIDI_PROGRAMCHANGE:
-              if (ctx->bindings.rec_val == 255)
-                ctx->bindings.rec_val = jackev.buffer[1];
+              if (ctx->bindings.state == MSQ_MIDI_WAIT_PROG)
+                {
+                  ctx->bindings.shr_rec_vals[0] = jackev.buffer[1];
+                  ctx->bindings.shr_rec_vals[1] = 0;
+                  ctx->bindings.state = MSQ_MIDI_WAIT_NONE;
+                }
               else
                 engine_call_programpress_b(ctx, jackev.buffer[1]);
+              break;
+            case MSQ_MIDI_CONTROLCHANGE:
+              if (ctx->bindings.state == MSQ_MIDI_WAIT_CTRL)
+                {
+                  ctx->bindings.shr_rec_vals[0] = jackev.buffer[1];
+                  ctx->bindings.shr_rec_vals[1] = jackev.buffer[2];
+                  ctx->bindings.state = MSQ_MIDI_WAIT_NONE;
+                }
+              else
+                engine_call_controlchg_b(ctx, jackev.buffer[1], jackev.buffer[2]);
               break;
             default:
               ;

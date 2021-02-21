@@ -194,21 +194,45 @@ void nns_handle_input(engine_ctx_t *ctx)
             case SND_SEQ_EVENT_NOTEON:
               if (snd_ev->data.note.velocity == 0)
                 {
-                  if (ctx->bindings.rec_val == 255)
-                    ctx->bindings.rec_val = snd_ev->data.note.note;
+                  if (ctx->bindings.state == MSQ_MIDI_WAIT_NOTE)
+                    {
+                      ctx->bindings.shr_rec_vals[0] = snd_ev->data.note.note;
+                      ctx->bindings.shr_rec_vals[1] = 0;
+                      ctx->bindings.state = MSQ_MIDI_WAIT_NONE;
+                    }
                 }
               else
                 engine_call_notepress_b(ctx, snd_ev->data.note.note);
               break;
             case SND_SEQ_EVENT_NOTEOFF:
-              if (ctx->bindings.rec_val == 255)
-                ctx->bindings.rec_val = snd_ev->data.note.note;
+              if (ctx->bindings.state == MSQ_MIDI_WAIT_NOTE)
+                {
+                  ctx->bindings.shr_rec_vals[0] = snd_ev->data.note.note;
+                  ctx->bindings.shr_rec_vals[1] = 0;
+                  ctx->bindings.state = MSQ_MIDI_WAIT_NONE;
+                }
               break;
             case SND_SEQ_EVENT_PGMCHANGE:
-              if (ctx->bindings.rec_val == 255)
-                ctx->bindings.rec_val = (byte_t) snd_ev->data.control.value;
+              if (ctx->bindings.state == MSQ_MIDI_WAIT_PROG)
+                {
+                  ctx->bindings.shr_rec_vals[0] = (byte_t) snd_ev->data.control.value;
+                  ctx->bindings.shr_rec_vals[1] = 0;
+                  ctx->bindings.state = MSQ_MIDI_WAIT_NONE;
+                }
               else
                 engine_call_programpress_b(ctx, snd_ev->data.control.value);
+              break;
+            case SND_SEQ_EVENT_CONTROLLER:
+              if (ctx->bindings.state == MSQ_MIDI_WAIT_CTRL)
+                {
+                  ctx->bindings.shr_rec_vals[0] = (byte_t) snd_ev->data.control.param;
+                  ctx->bindings.shr_rec_vals[1] = (byte_t) snd_ev->data.control.value;
+                  ctx->bindings.state = MSQ_MIDI_WAIT_NONE;
+                }
+              else
+                engine_call_controlchg_b(ctx,
+                                         snd_ev->data.control.param,
+                                         snd_ev->data.control.value);
               break;
             case SND_SEQ_EVENT_SYSEX:
               switch (engine_get_sysex_mmc(ctx, snd_ev->data.ext.ptr, snd_ev->data.ext.len))

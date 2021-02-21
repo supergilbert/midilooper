@@ -90,9 +90,11 @@ typedef struct
 {
   byte_t notes[MSQ_BINDINGS_NOTE_MAX];
   byte_t programs[MSQ_BINDINGS_NOTE_MAX];
+  byte_t controls[MSQ_BINDINGS_NOTE_MAX*2];
   byte_t keys[MSQ_BINDINGS_KEY_MAX];
   byte_t notes_sz;
   byte_t programs_sz;
+  byte_t controls_sz;
   byte_t keys_sz;
 } midif_trackb_t;
 

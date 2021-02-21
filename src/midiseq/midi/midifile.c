@@ -171,6 +171,12 @@ void get_mlp_sysex(midifile_info_t *info,
                  &(buffer[6]),
                  track->mute_bindings.programs_sz);
           break;
+        case MLP_SYSEX_MUTE_TRACK_BINDING_CTRLCHG:
+          track->mute_bindings.controls_sz = (size_t) buffer[5];
+          memcpy(track->mute_bindings.controls,
+                 &(buffer[6]),
+                 track->mute_bindings.controls_sz);
+          break;
         case MLP_SYSEX_REC_TRACK_BINDING_KEYPRESS:
           track->rec_bindings.keys_sz = (size_t) buffer[5];
           memcpy(track->rec_bindings.keys,
@@ -188,6 +194,12 @@ void get_mlp_sysex(midifile_info_t *info,
           memcpy(track->rec_bindings.programs,
                  &(buffer[6]),
                  track->rec_bindings.programs_sz);
+          break;
+        case MLP_SYSEX_REC_TRACK_BINDING_CTRLCHG:
+          track->rec_bindings.controls_sz = (size_t) buffer[5];
+          memcpy(track->rec_bindings.controls,
+                 &(buffer[6]),
+                 track->rec_bindings.controls_sz);
           break;
         case MLP_SYSEX_TRACK_MUTED:
           track->sysex_muted = MSQ_TRUE;

@@ -183,29 +183,39 @@ void engine_set_miditrack_bindings(engine_ctx_t *ctx,
   uint_t idx;
 
   for (idx = 0; idx < mtrack->mute_bindings.keys_sz; idx++)
-    _add_binding(&(ctx->bindings.mute_keypress),
-                 mtrack->mute_bindings.keys[idx],
-                 trackctx);
+    _add_binding_one_val(&(ctx->bindings.mute_keypress),
+                         mtrack->mute_bindings.keys[idx],
+                         trackctx);
   for (idx = 0; idx < mtrack->mute_bindings.notes_sz; idx++)
-    _add_binding(&(ctx->bindings.mute_notepress),
-                 mtrack->mute_bindings.notes[idx],
-                 trackctx);
+    _add_binding_one_val(&(ctx->bindings.mute_notepress),
+                         mtrack->mute_bindings.notes[idx],
+                         trackctx);
   for (idx = 0; idx < mtrack->mute_bindings.programs_sz; idx++)
-    _add_binding(&(ctx->bindings.mute_programpress),
-                 mtrack->mute_bindings.programs[idx],
-                 trackctx);
+    _add_binding_one_val(&(ctx->bindings.mute_programpress),
+                         mtrack->mute_bindings.programs[idx],
+                         trackctx);
+  for (idx = 0; idx < mtrack->mute_bindings.controls_sz; idx += 2)
+    _add_binding_two_val(&(ctx->bindings.mute_controlchg),
+                         mtrack->mute_bindings.controls[idx],
+                         mtrack->mute_bindings.controls[idx + 1],
+                         trackctx);
   for (idx = 0; idx < mtrack->rec_bindings.keys_sz; idx++)
-    _add_binding(&(ctx->bindings.rec_keypress),
-                 mtrack->rec_bindings.keys[idx],
-                 trackctx);
+    _add_binding_one_val(&(ctx->bindings.rec_keypress),
+                         mtrack->rec_bindings.keys[idx],
+                         trackctx);
   for (idx = 0; idx < mtrack->rec_bindings.notes_sz; idx++)
-    _add_binding(&(ctx->bindings.rec_notepress),
-                 mtrack->rec_bindings.notes[idx],
-                 trackctx);
+    _add_binding_one_val(&(ctx->bindings.rec_notepress),
+                         mtrack->rec_bindings.notes[idx],
+                         trackctx);
   for (idx = 0; idx < mtrack->rec_bindings.programs_sz; idx++)
-    _add_binding(&(ctx->bindings.rec_programpress),
-                 mtrack->rec_bindings.programs[idx],
-                 trackctx);
+    _add_binding_one_val(&(ctx->bindings.rec_programpress),
+                         mtrack->rec_bindings.programs[idx],
+                         trackctx);
+  for (idx = 0; idx < mtrack->rec_bindings.controls_sz; idx += 2)
+    _add_binding_two_val(&(ctx->bindings.rec_controlchg),
+                         mtrack->rec_bindings.controls[idx],
+                         mtrack->rec_bindings.controls[idx + 1],
+                         trackctx);
 }
 
 track_ctx_t *_engine_copyadd_miditrack(engine_ctx_t *ctx, midifile_track_t *mtrack)
