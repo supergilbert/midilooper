@@ -30,6 +30,8 @@ extern "C"
 #include "msq_nsm.h"
 }
 
+#include <sys/time.h>
+
 #include <list>
 
 #include <libconfig.h>
@@ -2218,6 +2220,7 @@ void midilooper_main_window::handle_key_bindings(wbe_window_input_t *winev)
             {
               _pbt_ggt_draw(ggt_win.ggt);
               pbt_ggt_win_put_buffer(&ggt_win);
+              engine_ctx->mute_state_changed = MSQ_FALSE;
             }
         }
     }
@@ -2237,11 +2240,30 @@ bool midilooper_main_window::handle_midi_rec(void)
     = msq_track_list_get(&track_list, engine_ctx->track_rec);
   track_editor_t *track_editor;
   note_t note;
+  static void *last_rec_addr = NULL;
+  static struct timeval last_rec_change_date = {};
+  struct timeval new_date = {},
+    res_date;
 
   if (engine_ctx->rec_state_changed == MSQ_TRUE)
     {
       engine_ctx->rec_state_changed = MSQ_FALSE;
       msq_mcev_tick_list_clear(&noteon_list);
+      if (last_rec_addr == engine_ctx->track_rec)
+        {
+          gettimeofday(&new_date, NULL);
+          timersub(&new_date, &last_rec_change_date, &res_date);
+          if (res_date.tv_sec < 1)
+            {
+              delete_note_selection(&(track_line->track_editor.grid_wgt));
+              _history_undo(&(track_line->track_editor.editor_ctx));
+            }
+          last_rec_change_date.tv_sec  = new_date.tv_sec;
+          last_rec_change_date.tv_usec = new_date.tv_usec;
+        }
+      else
+        gettimeofday(&last_rec_change_date, NULL);
+      last_rec_addr = engine_ctx->track_rec;
       msq_transport_update_buttons(&transport_iface);
     }
 
@@ -2338,8 +2360,7 @@ void midilooper_main_window::handle_save_rq(void)
 
 void midilooper_main_window::handle_msq_update(void)
 {
-  if (handle_midi_rec())
-    return;
+  handle_midi_rec();
 
   if (track_waiting_binding != NULL)
     {
@@ -2420,19 +2441,18 @@ void midilooper_main_window::handle_msq_update(void)
           wait_binding_type = MSQ_WAIT_NONE;
         }
     }
-  else
+
+  if (engine_ctx->mute_state_changed == MSQ_TRUE)
     {
-      // Temp hack to handle resize refresh bug (pbt_gadget_window.c TODO)
-      if ((wait_since + 1.0) < wbe_get_time())
-        {
-          wait_since = wbe_get_time();
-          pbt_ggt_win_put_buffer(&ggt_win);
-        }
-      else if (engine_ctx->mute_state_changed == MSQ_TRUE)
-        {
-          _pbt_ggt_draw(ggt_win.ggt);
-          pbt_ggt_win_put_buffer(&ggt_win);
-        }
+      _pbt_ggt_draw(ggt_win.ggt);
+      pbt_ggt_win_put_buffer(&ggt_win);
+      engine_ctx->mute_state_changed = MSQ_FALSE;
+    }
+  // Temp hack to handle resize refresh bug (pbt_gadget_window.c TODO)
+  else if ((wait_since + 1.0) < wbe_get_time())
+    {
+      wait_since = wbe_get_time();
+      pbt_ggt_win_put_buffer(&ggt_win);
     }
 }
 

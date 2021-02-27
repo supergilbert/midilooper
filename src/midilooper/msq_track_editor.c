@@ -590,7 +590,7 @@ void _pbt_gl_col_put_rect(wbe_pbw_t *pb_win,
   wbe_gl_flush();
 }
 
-void piano_wgt_highlight_note(pbt_wgt_t *wgt, unsigned char note)
+void _piano_wgt_highlight_note(pbt_wgt_t *wgt, unsigned char note)
 {
   msq_piano_wgt_t *piano_wgt = wgt->priv;
   track_editor_ctx_t *editor_ctx = piano_wgt->editor_ctx;
@@ -598,16 +598,28 @@ void piano_wgt_highlight_note(pbt_wgt_t *wgt, unsigned char note)
   unsigned int ymin = pbt_ggt_ypos(wgt)
     + NOTE2YPOS(editor_ctx, note)
     - editor_ctx->vadj.pos;
+  unsigned int height = editor_ctx->note_height;
   unsigned char color[] = {0x0, 0x0, 0x0, 0xA0};
 
   /* TODO refresh last pos */
   pbt_wgt_gl_refresh(wgt);
 
+  if (ymin < pbt_ggt_ypos(wgt))
+    {
+      height = editor_ctx->note_height - (pbt_ggt_ypos(wgt) - ymin);
+      ymin = pbt_ggt_ypos(wgt);
+    }
+  else if ((ymin + editor_ctx->note_height)
+           > (pbt_ggt_ypos(wgt) + pbt_ggt_height(wgt)))
+    {
+      height = (pbt_ggt_ypos(wgt) + pbt_ggt_height(wgt)) - ymin;
+    }
+
   pbt_gl_texncol_put_rect(&(wgt->ggt_win->pb_win),
                           pbt_ggt_xpos(wgt),
                           ymin,
                           editor_ctx->theme->piano_width,
-                          editor_ctx->note_height,
+                          height,
                           color);
 }
 
@@ -631,7 +643,7 @@ void piano_wgt_update_highlight(pbt_wgt_t *wgt, unsigned int ypos)
       if (new_note > 127)
         return;
 
-      piano_wgt_highlight_note(wgt, new_note);
+      _piano_wgt_highlight_note(wgt, new_note);
       last_note = new_note;
     }
   else
@@ -693,7 +705,7 @@ pbt_bool_t piano_wgt_unset_focus_cb(pbt_ggt_t *ggt,
   if (new_note > 127)
     return PBT_FALSE;
 
-  piano_wgt_highlight_note(wgt, new_note);
+  _piano_wgt_highlight_note(wgt, new_note);
   trackctx_play_noteoff(editor_ctx->track_ctx,
                         editor_ctx->tmp_coo[0],
                         editor_ctx->channel);
@@ -1461,7 +1473,7 @@ void _history_undo(track_editor_ctx_t *editor_ctx)
     }
 }
 
-void delete_selection(msq_grid_wgt_t *grid)
+void delete_note_selection(msq_grid_wgt_t *grid)
 {
   list_iterator_t iter;
   noteonoff_t *noteonoff;
@@ -2532,7 +2544,7 @@ void msq_write_move_note(msq_grid_wgt_t *grid,
   if (new_note_list_init(&new_note_list, editor_ctx, tick_offset) == MSQ_TRUE)
     {
       _history_add_mark(&(editor_ctx->history));
-      delete_selection(grid);
+      delete_note_selection(grid);
       _msq_add_list_note(editor_ctx, &new_note_list);
       free_list_node(&new_note_list, free);
     }
@@ -2665,7 +2677,7 @@ pbt_bool_t handle_move_note_mode(wbe_window_input_t *winev,
               push_to_list_tail(&tmp_list, tmp_note);
             }
           _history_add_mark(&(grid->editor_ctx->history));
-          delete_selection(grid);
+          delete_note_selection(grid);
           _msq_add_list_note(grid->editor_ctx, &tmp_list);
           free_list_node(&tmp_list, free);
           msq_draw_vggts(grid->vggts);
@@ -2919,7 +2931,7 @@ pbt_bool_t grid_wgt_unset_focus_cb(pbt_ggt_t *ggt,
         {
           grid_copy_selection(grid);
           _history_add_mark(&(editor_ctx->history));
-          delete_selection(grid);
+          delete_note_selection(grid);
           grid->state = GRID_NO_MODE;
           ret_bool = PBT_TRUE;
         }
@@ -2927,7 +2939,7 @@ pbt_bool_t grid_wgt_unset_focus_cb(pbt_ggt_t *ggt,
     case GRID_CTRL_Z_MODE:
       if (wbe_key_pressedA(winev->keys, 'Z') == WBE_FALSE)
         {
-          delete_selection(grid);
+          delete_note_selection(grid);
           _history_undo(grid->editor_ctx);
           grid->state = GRID_NO_MODE;
           msq_draw_vggts(grid->vggts);
@@ -3124,7 +3136,7 @@ void msq_quantify_note_selection(msq_grid_wgt_t *grid)
       return;
     }
   _history_add_mark(&(editor_ctx->history));
-  delete_selection(grid);
+  delete_note_selection(grid);
   _msq_add_list_note(editor_ctx, &note_list);
   msq_draw_vggts(grid->vggts);
 }
@@ -3144,7 +3156,7 @@ pbt_bool_t grid_wgt_set_focus_cb(pbt_ggt_t *ggt,
           || (wbe_key_pressed(winev->keys, WBE_KEY_BSPACE) == WBE_TRUE)))
     {
       _history_add_mark(&(editor_ctx->history));
-      delete_selection(grid);
+      delete_note_selection(grid);
     }
   else if ((wbe_key_pressed(winev->keys, WBE_KEY_CONTROL) == WBE_TRUE)
            && (wbe_key_pressedA(winev->keys, 'A') == WBE_TRUE))
