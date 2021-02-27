@@ -59,6 +59,4 @@ void _history_undo(track_editor_ctx_t *editor_ctx);
 
 void msq_combobox_refresh(msq_combobox_t *combobox);
 
-void delete_note_selection(msq_grid_wgt_t *grid);
-
 EXTERN_C_END

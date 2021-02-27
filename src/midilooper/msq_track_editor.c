@@ -1405,6 +1405,8 @@ void _history_undo(track_editor_ctx_t *editor_ctx)
   ev_iterator_t evit = {};
   ev_iterator_t evitoff = {};
 
+  free_list_node(&(editor_ctx->selected_notes), free);
+
   evit_init(&evit, &(editor_ctx->track_ctx->track->tickev_list));
 
   iter_init(&it, &(editor_ctx->history));
@@ -2939,7 +2941,6 @@ pbt_bool_t grid_wgt_unset_focus_cb(pbt_ggt_t *ggt,
     case GRID_CTRL_Z_MODE:
       if (wbe_key_pressedA(winev->keys, 'Z') == WBE_FALSE)
         {
-          delete_note_selection(grid);
           _history_undo(grid->editor_ctx);
           grid->state = GRID_NO_MODE;
           msq_draw_vggts(grid->vggts);

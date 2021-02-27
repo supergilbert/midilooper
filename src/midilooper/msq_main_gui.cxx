@@ -2254,10 +2254,8 @@ bool midilooper_main_window::handle_midi_rec(void)
           gettimeofday(&new_date, NULL);
           timersub(&new_date, &last_rec_change_date, &res_date);
           if (res_date.tv_sec < 1)
-            {
-              delete_note_selection(&(track_line->track_editor.grid_wgt));
-              _history_undo(&(track_line->track_editor.editor_ctx));
-            }
+            _history_undo(&(track_line->track_editor.editor_ctx));
+          msq_draw_vggts(track_line->track_editor.grid_wgt.vggts);
           last_rec_change_date.tv_sec  = new_date.tv_sec;
           last_rec_change_date.tv_usec = new_date.tv_usec;
         }
