@@ -241,9 +241,14 @@ msq_bool_t filter_add_midicev_to_track(track_t *track,
       return MSQ_FALSE;
     case MSQ_MIDI_CONTROLCHANGE:
     case MSQ_MIDI_PITCHWHEELCHANGE:
+    case MSQ_MIDI_PROGRAMCHANGE:
+    case MSQ_MIDI_KEYAFTERTOUCH:
+    case MSQ_MIDI_CHANNELAFTERTOUCH:
       copy_midicev_to_track(track, tick, mcev);
       return MSQ_TRUE;
       break;
+    default:
+      output_error("Unexpected event %d", mcev->type);
     }
   return MSQ_FALSE;
 }
@@ -274,8 +279,7 @@ msq_bool_t get_midifile_track(midifile_info_t *info,
   print_bin(stdout, buffer, 6);
 #endif
 
-  /* Gros travail dark a faire.
-     Peut etre une API de callback sur les evenements. */
+  /* TODO TO DO TO REMOVE (Change and create a real read api) */
 
   if (size > 0)
     for (end = &(buffer[size]),
@@ -287,7 +291,8 @@ msq_bool_t get_midifile_track(midifile_info_t *info,
 #ifdef DEBUG_MIDI_MODE
 	print_bin(stdout, buffer, 16);
 #endif
-        debug_midi("\033[32m> buffer addr: %p=%u\033[0m\n", buffer, buffer);
+        debug_midi("\033[32m> tick:%d buffer addr: %p=%u\033[0m\n",
+                   tick, buffer, buffer);
         if (*buffer & 0x80)
           {
             switch (*buffer)
@@ -420,7 +425,8 @@ msq_bool_t get_midifile_track(midifile_info_t *info,
     output_error("Unexpected size of track buffer=%p end=%p\n", buffer, end);
   if (LIST_HEAD(&(midifile_track->track.tickev_list)) != NULL || tempo_set == MSQ_FALSE)
     {
-      debug_midi(">> channel name \"%s\" number of event = %i\n", midifile_track->track.name, midifile_track->track.tickev_list.len);
+      debug_midi(">> channel name \"%s\" number of event = %i\n",
+                 midifile_track->track.name, midifile_track->track.tickev_list.len);
       *addr = midifile_track;
     }
   else

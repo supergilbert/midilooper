@@ -285,13 +285,17 @@ void dump_midicev(midicev_t *midicev)
              midicev->event.pitchbend.Lval);
       break;
     case MSQ_MIDI_KEYAFTERTOUCH:
-      output("KEYAFTERTOUCH Unsupported event\n");
+      output("KEYAFTERTOUCH num=%hhd val=%hhd\n",
+             midicev->event.aftertouch.num,
+             midicev->event.aftertouch.val);
       break;
     case MSQ_MIDI_PROGRAMCHANGE:
-      output("PROGRAMCHANGE Unsupported event\n");
+      output("PROGRAMCHANGE %hhd\n",
+             midicev->event.prg_chg);
       break;
     case MSQ_MIDI_CHANNELAFTERTOUCH:
-      output("CHANNELAFTERTOUCH Unsupported event\n");
+      output("CHANNELAFTERTOUCH %hhd\n",
+             midicev->event.chan_aftertouch);
       break;
     default:
       output("Unsupported event\n");
@@ -313,6 +317,31 @@ void dump_seqev(seqev_t *seqev)
     }
   else
     output("type=UNKNOWN\n");
+}
+
+void msq_dump_tickev(tickev_t *tickev)
+{
+  list_iterator_t seqevit;
+
+  output("At tick %d %s got %d event(s)\n",
+         tickev->tick,
+         tickev->deleted == MSQ_TRUE ? "(\033[31mdeleted\033[0m)" : "(not deleted)",
+         tickev->seqev_list.len);
+  for (iter_init(&seqevit, &(tickev->seqev_list));
+       iter_node(&seqevit) != NULL;
+       iter_next(&seqevit))
+    dump_seqev((seqev_t *) iter_node_ptr(&(seqevit)));
+}
+
+void msq_dump_track(track_t *track)
+{
+  list_iterator_t tickit;
+
+  output("track \"%s\" got %d tick event(s)\n", track->name, track->tickev_list.len);
+  for (iter_init(&tickit, &(track->tickev_list));
+       iter_node(&tickit) != NULL;
+       iter_next(&tickit))
+      msq_dump_tickev((tickev_t *) iter_node_ptr(&tickit));
 }
 
 void add_new_midicev(track_t *track, uint_t tick, midicev_t *mcev)

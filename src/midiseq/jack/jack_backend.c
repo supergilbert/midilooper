@@ -115,7 +115,7 @@ msq_bool_t _jbe_output_write(struct midioutput *output, midicev_t *midicev)
   jbe_output_t *jbe_output = (jbe_output_t *) output->hdl;
   byte_t       data[3];
 
-  if (convert_midicev_to_mididata(midicev, data) == MSQ_FALSE)
+  if (convert_midicev_to_mididata(midicev, data) == 0)
     return MSQ_FALSE;
   if (jack_midi_event_write(jbe_output->jack_buffer, *(jbe_output->cur_frame), data, 3))
     return MSQ_FALSE;

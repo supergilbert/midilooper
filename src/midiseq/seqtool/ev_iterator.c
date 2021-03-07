@@ -126,18 +126,17 @@ seqev_t *evit_init(ev_iterator_t *ev_iterator, list_t *tickev_list)
 midicev_t *evit_init_midiallchannel(ev_iterator_t *ev_iterator,
                                     list_t *tickev_list)
 {
-  midicev_t *midicev = NULL;
   seqev_t   *seqev   = NULL;
 
   seqev = evit_init(ev_iterator, tickev_list);
-  if (seqev)
+  if (seqev != NULL)
     {
       if (seqev->type == MIDICEV)
-        midicev = seqev->addr;
+        return seqev->addr;
       else
-        midicev = evit_next_midiallchannel(ev_iterator);
+        return evit_next_midiallchannel(ev_iterator);
     }
-  return midicev;
+  return NULL;
 }
 
 midicev_t *evit_init_midicev(ev_iterator_t *ev_iterator,
@@ -147,9 +146,14 @@ midicev_t *evit_init_midicev(ev_iterator_t *ev_iterator,
   midicev_t *midicev = NULL;
 
   midicev = evit_init_midiallchannel(ev_iterator, tickev_list);
-  if (midicev && midicev->chan != channel)
-    midicev = evit_next_midicev(ev_iterator, channel);
-  return midicev;
+  if (midicev != NULL)
+    {
+      if (midicev->chan == channel)
+        return midicev;
+      else
+        return evit_next_midicev(ev_iterator, channel);
+    }
+  return NULL;
 }
 
 midicev_t *evit_init_noteon(ev_iterator_t *ev_iterator,
@@ -158,9 +162,14 @@ midicev_t *evit_init_noteon(ev_iterator_t *ev_iterator,
 {
   midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
 
-  if (midicev && midicev->type != MSQ_MIDI_NOTEON)
-    midicev = evit_next_noteon(ev_iterator, channel);
-  return midicev;
+  if (midicev != NULL)
+    {
+      if (midicev->type == MSQ_MIDI_NOTEON)
+        return midicev;
+      else
+        return evit_next_noteon(ev_iterator, channel);
+    }
+  return NULL;
 }
 
 midicev_t *evit_first_noteon(ev_iterator_t *ev_iterator, byte_t channel)
@@ -171,14 +180,12 @@ midicev_t *evit_first_noteon(ev_iterator_t *ev_iterator, byte_t channel)
   if (seqev->type == MIDICEV)
     {
       mcev = seqev->addr;
-      if (mcev->chan == channel)
+      if (mcev->chan == channel && mcev->type == MSQ_MIDI_NOTEON)
         return mcev;
     }
-  else
-    mcev = evit_next_noteon(ev_iterator, channel);
-  return mcev;
-}
 
+  return evit_next_noteon(ev_iterator, channel);
+}
 
 midicev_t *evit_next_ctrl_num(ev_iterator_t *ev_iterator,
                               byte_t channel,
@@ -201,10 +208,15 @@ midicev_t *evit_init_ctrl_num(ev_iterator_t *ev_iterator,
 {
   midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
 
-  if (midicev && (midicev->type != MSQ_MIDI_CONTROLCHANGE
-                  || midicev->event.ctrl.num != ctrl_num))
-    midicev = evit_next_ctrl_num(ev_iterator, channel, ctrl_num);
-  return midicev;
+  if (midicev != NULL)
+    {
+      if (midicev->type == MSQ_MIDI_CONTROLCHANGE
+          && midicev->event.ctrl.num == ctrl_num)
+        return midicev;
+      else
+        return evit_next_ctrl_num(ev_iterator, channel, ctrl_num);
+    }
+  return NULL;
 }
 
 midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator,
@@ -213,9 +225,78 @@ midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator,
 {
   midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
 
-  if (midicev && midicev->type != MSQ_MIDI_PITCHWHEELCHANGE)
-    midicev = evit_next_pitch(ev_iterator, channel);
-  return midicev;
+  if (midicev != NULL)
+    {
+      if (midicev->type == MSQ_MIDI_PITCHWHEELCHANGE)
+        return midicev;
+      else
+        return evit_next_pitch(ev_iterator, channel);
+    }
+  return NULL;
+}
+
+midicev_t *evit_init_program(ev_iterator_t *ev_iterator,
+                             list_t *tickev_list,
+                             byte_t channel)
+{
+  midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
+
+  if (midicev != NULL)
+    {
+      if (midicev->type == MSQ_MIDI_PROGRAMCHANGE)
+        return midicev;
+      else
+        return evit_next_program(ev_iterator, channel);
+    }
+  return NULL;
+}
+
+midicev_t *evit_init_caftertouch(ev_iterator_t *ev_iterator,
+                                 list_t *tickev_list,
+                                 byte_t channel)
+{
+  midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
+
+  if (midicev != NULL)
+    {
+      if (midicev->type == MSQ_MIDI_CHANNELAFTERTOUCH)
+        return midicev;
+      else
+        return evit_next_caftertouch(ev_iterator, channel);
+    }
+  return NULL;
+}
+
+midicev_t *evit_next_kaftertouch_num(ev_iterator_t *ev_iterator,
+                                     byte_t channel,
+                                     byte_t key_num)
+{
+  midicev_t *midicev = NULL;
+
+  for (midicev = evit_next_kaftertouch(ev_iterator, channel);
+       midicev != NULL;
+       midicev = evit_next_kaftertouch(ev_iterator, channel))
+    if (midicev->event.aftertouch.num == key_num)
+      return midicev;
+  return NULL;
+}
+
+midicev_t *evit_init_kaftertouch_num(ev_iterator_t *ev_iterator,
+                                     list_t *tickev_list,
+                                     byte_t channel,
+                                     byte_t key_num)
+{
+  midicev_t *midicev = evit_init_midicev(ev_iterator, tickev_list, channel);
+
+  if (midicev != NULL)
+    {
+      if (midicev->type == MSQ_MIDI_KEYAFTERTOUCH
+          && midicev->event.aftertouch.num == key_num)
+        return midicev;
+      else
+        return evit_next_kaftertouch_num(ev_iterator, channel, key_num);
+    }
+  return NULL;
 }
 
 msq_bool_t compare_midicev_type(midicev_t *mcev1, midicev_t *mcev2)

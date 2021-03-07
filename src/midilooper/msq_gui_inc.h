@@ -155,7 +155,7 @@ typedef struct
   unsigned char *selection_color;
   gradient_value_t *gradient_value_list;
   unsigned int gradient_len;
-  unsigned int piano_width;
+  unsigned int left_side_width;
   unsigned int timeline_height;
 } track_editor_theme_t;
 

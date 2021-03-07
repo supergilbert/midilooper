@@ -2312,6 +2312,9 @@ bool midilooper_main_window::handle_midi_rec(void)
             }
           break;
         case MSQ_MIDI_CONTROLCHANGE:
+        case MSQ_MIDI_KEYAFTERTOUCH:
+        case MSQ_MIDI_PROGRAMCHANGE:
+        case MSQ_MIDI_CHANNELAFTERTOUCH:
         case MSQ_MIDI_PITCHWHEELCHANGE:
           tick =
             msq_get_track_loop_tick(track_editor->editor_ctx.track_ctx,
@@ -2322,10 +2325,8 @@ bool midilooper_main_window::handle_midi_rec(void)
                                     &mcev);
           midicev_added = true;
           break;
-        // case MSQ_MIDI_KEYAFTERTOUCH:
-        // case MSQ_MIDI_PROGRAMCHANGE:
-        // case MSQ_MIDI_CHANNELAFTERTOUCH:
         default:
+          pbt_logerr("Unexpected midiev %d", mcev.type);
           break;
         }
     }

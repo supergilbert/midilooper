@@ -144,9 +144,10 @@ buf_node_t *create_var_len_val(uint_t value)
 buf_node_t *create_midicev_buf(midicev_t *midicev)
 {
   byte_t buffer[3];
+  size_t data_size;
 
-  convert_midicev_to_mididata(midicev, buffer);
-  return add_buf_node(buffer, 3);
+  data_size = convert_midicev_to_mididata(midicev, buffer);
+  return add_buf_node(buffer, data_size);
 }
 
 midicev_t *get_next_midicev(list_iterator_t *iter)

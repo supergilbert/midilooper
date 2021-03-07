@@ -112,6 +112,19 @@ void aseq_to_mcev(snd_seq_event_t *snd_ev, midicev_t *mcev)
       mcev->event.pitchbend.Hval =
         (snd_ev->data.control.value + 0x2000) >> 7 & 0x7F;
       break;
+    case SND_SEQ_EVENT_KEYPRESS:
+      mcev->type = MSQ_MIDI_KEYAFTERTOUCH;
+      mcev->event.aftertouch.num = snd_ev->data.note.note;
+      mcev->event.aftertouch.val = snd_ev->data.note.velocity;
+      break;
+    case SND_SEQ_EVENT_PGMCHANGE:
+      mcev->type = MSQ_MIDI_PROGRAMCHANGE;
+      mcev->event.prg_chg = snd_ev->data.control.value;
+      break;
+    case SND_SEQ_EVENT_CHANPRESS:
+      mcev->type = MSQ_MIDI_CHANNELAFTERTOUCH;
+      mcev->event.chan_aftertouch = snd_ev->data.control.value;
+      break;
     default:
       ;
     }

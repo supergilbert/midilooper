@@ -262,7 +262,10 @@ void nns_handle_input(engine_ctx_t *ctx)
                && (snd_ev->type == SND_SEQ_EVENT_NOTEON
                    || snd_ev->type == SND_SEQ_EVENT_NOTEOFF
                    || snd_ev->type == SND_SEQ_EVENT_CONTROLLER
-                   || snd_ev->type == SND_SEQ_EVENT_PITCHBEND))
+                   || snd_ev->type == SND_SEQ_EVENT_PITCHBEND
+                   || snd_ev->type == SND_SEQ_EVENT_KEYPRESS
+                   || snd_ev->type == SND_SEQ_EVENT_PGMCHANGE
+                   || snd_ev->type == SND_SEQ_EVENT_CHANPRESS))
         {
           aseq_to_mcev(snd_ev, &mcev);
           mrb_write(ctx->rbuff, engine_get_tick(ctx), &mcev);

@@ -21,17 +21,17 @@ EXTERN_C_BEGIN
 
 #include <pbt_gadget_window_inc.h>
 
-#define VALUE_TYPE_LEN 130
+#define VALUE_TYPE_LEN 260
 
 #define CHANNEL_LIST_LEN 15
 
-/* 17 = (130 value type) in octet */
-#define CHANNEL_USAGE_LEN 17
+/* 33 = (260 value type) in octet */
+#define VALUES_USAGE_LEN 33
 
 typedef struct
 {
   unsigned char note_min, note_max;
-  unsigned char usage[CHANNEL_USAGE_LEN];
+  unsigned char usage[VALUES_USAGE_LEN];
   size_t ev_len;
 } msq_channel_info_t;
 
@@ -150,16 +150,20 @@ typedef struct
 
 typedef enum
   {
-   VALUE_NOTELEVEL_TYPE = 0,
-   VALUE_PITCH_TYPE = 1,
-   VALUE_TYPE_OFFSET
+    VALUE_NOTELEVEL_TYPE = 0,
+    VALUE_PITCH_TYPE = 1,
+    VALUE_PROGRAM_TYPE = 2,
+    VALUE_CAFTERTOUCH_TYPE = 3,
+    VALUE_CONTROL_TYPE_OFFSET = 4,
+    VALUE_KAFTERTOUCH_TYPE_OFFSET = 132,
+    VALUE_TYPE_END = 260
   } msq_value_type_t;
 
 typedef struct
 {
   track_editor_ctx_t *editor_ctx;
   msq_tmp_tick_bar_t *tmp_bar_head;
-  unsigned char type;
+  unsigned long type;
   msq_value_state_t state;
   unsigned int tmp_coo[2];
   msq_vggts_t *vggts;
@@ -215,8 +219,11 @@ typedef struct
   pbt_wgt_scrollbar_t hscrollbar_zoom_wgt;
   pbt_wgt_t timeline_wgt;
   pbt_ggt_ctnr_t vctnr_transport;
+  pbt_ggt_ctnr_t vctnr_debug;
   pbt_ggt_ctnr_t hctnr_transport;
   msq_transport_child_t transport;
+  pbt_wgt_button_t dump_button;
+  pbt_wgt_button_t delete_all_button;
   pbt_wgt_button_t quantify_button;
   msq_combobox_t resolution_combobox;
   msq_combobox_t output_combobox;
@@ -257,5 +264,7 @@ typedef struct
 } note_t;
 
 typedef void (*evit_del_func_t)(track_ctx_t *, ev_iterator_t *);
+
+void msq_dump_track(track_t *track);
 
 EXTERN_C_END

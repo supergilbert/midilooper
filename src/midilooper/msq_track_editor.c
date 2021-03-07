@@ -63,166 +63,296 @@ static const msq_bool_t tonale_regular_note[] = {MSQ_TRUE,
                                                  MSQ_FALSE,
                                                  MSQ_TRUE};
 
-static const char *value_type_list[] = {"   Note Vel.",
-                                        "   Pitch",
-                                        "   Ctrl.   0",
-                                        "   Ctrl.   1",
-                                        "   Ctrl.   2",
-                                        "   Ctrl.   3",
-                                        "   Ctrl.   4",
-                                        "   Ctrl.   5",
-                                        "   Ctrl.   6",
-                                        "   Ctrl.   7",
-                                        "   Ctrl.   8",
-                                        "   Ctrl.   9",
-                                        "   Ctrl.  10",
-                                        "   Ctrl.  11",
-                                        "   Ctrl.  12",
-                                        "   Ctrl.  13",
-                                        "   Ctrl.  14",
-                                        "   Ctrl.  15",
-                                        "   Ctrl.  16",
-                                        "   Ctrl.  17",
-                                        "   Ctrl.  18",
-                                        "   Ctrl.  19",
-                                        "   Ctrl.  20",
-                                        "   Ctrl.  21",
-                                        "   Ctrl.  22",
-                                        "   Ctrl.  23",
-                                        "   Ctrl.  24",
-                                        "   Ctrl.  25",
-                                        "   Ctrl.  26",
-                                        "   Ctrl.  27",
-                                        "   Ctrl.  28",
-                                        "   Ctrl.  29",
-                                        "   Ctrl.  30",
-                                        "   Ctrl.  31",
-                                        "   Ctrl.  32",
-                                        "   Ctrl.  33",
-                                        "   Ctrl.  34",
-                                        "   Ctrl.  35",
-                                        "   Ctrl.  36",
-                                        "   Ctrl.  37",
-                                        "   Ctrl.  38",
-                                        "   Ctrl.  39",
-                                        "   Ctrl.  40",
-                                        "   Ctrl.  41",
-                                        "   Ctrl.  42",
-                                        "   Ctrl.  43",
-                                        "   Ctrl.  44",
-                                        "   Ctrl.  45",
-                                        "   Ctrl.  46",
-                                        "   Ctrl.  47",
-                                        "   Ctrl.  48",
-                                        "   Ctrl.  49",
-                                        "   Ctrl.  50",
-                                        "   Ctrl.  51",
-                                        "   Ctrl.  52",
-                                        "   Ctrl.  53",
-                                        "   Ctrl.  54",
-                                        "   Ctrl.  55",
-                                        "   Ctrl.  56",
-                                        "   Ctrl.  57",
-                                        "   Ctrl.  58",
-                                        "   Ctrl.  59",
-                                        "   Ctrl.  60",
-                                        "   Ctrl.  61",
-                                        "   Ctrl.  62",
-                                        "   Ctrl.  63",
-                                        "   Ctrl.  64",
-                                        "   Ctrl.  65",
-                                        "   Ctrl.  66",
-                                        "   Ctrl.  67",
-                                        "   Ctrl.  68",
-                                        "   Ctrl.  69",
-                                        "   Ctrl.  70",
-                                        "   Ctrl.  71",
-                                        "   Ctrl.  72",
-                                        "   Ctrl.  73",
-                                        "   Ctrl.  74",
-                                        "   Ctrl.  75",
-                                        "   Ctrl.  76",
-                                        "   Ctrl.  77",
-                                        "   Ctrl.  78",
-                                        "   Ctrl.  79",
-                                        "   Ctrl.  80",
-                                        "   Ctrl.  81",
-                                        "   Ctrl.  82",
-                                        "   Ctrl.  83",
-                                        "   Ctrl.  84",
-                                        "   Ctrl.  85",
-                                        "   Ctrl.  86",
-                                        "   Ctrl.  87",
-                                        "   Ctrl.  88",
-                                        "   Ctrl.  89",
-                                        "   Ctrl.  90",
-                                        "   Ctrl.  91",
-                                        "   Ctrl.  92",
-                                        "   Ctrl.  93",
-                                        "   Ctrl.  94",
-                                        "   Ctrl.  95",
-                                        "   Ctrl.  96",
-                                        "   Ctrl.  97",
-                                        "   Ctrl.  98",
-                                        "   Ctrl.  99",
-                                        "   Ctrl. 100",
-                                        "   Ctrl. 101",
-                                        "   Ctrl. 102",
-                                        "   Ctrl. 103",
-                                        "   Ctrl. 104",
-                                        "   Ctrl. 105",
-                                        "   Ctrl. 106",
-                                        "   Ctrl. 107",
-                                        "   Ctrl. 108",
-                                        "   Ctrl. 109",
-                                        "   Ctrl. 110",
-                                        "   Ctrl. 111",
-                                        "   Ctrl. 112",
-                                        "   Ctrl. 113",
-                                        "   Ctrl. 114",
-                                        "   Ctrl. 115",
-                                        "   Ctrl. 116",
-                                        "   Ctrl. 117",
-                                        "   Ctrl. 118",
-                                        "   Ctrl. 119",
-                                        "   Ctrl. 120",
-                                        "   Ctrl. 121",
-                                        "   Ctrl. 122",
-                                        "   Ctrl. 123",
-                                        "   Ctrl. 124",
-                                        "   Ctrl. 125",
-                                        "   Ctrl. 126",
-                                        "   Ctrl. 127"};
+static const char *value_type_list[] = {" Note Vel. ",
+                                        " Pitch ",
+                                        " Program Change ",
+                                        " Channel Aftertouch ",
+                                        " Control   0 ",
+                                        " Control   1 ",
+                                        " Control   2 ",
+                                        " Control   3 ",
+                                        " Control   4 ",
+                                        " Control   5 ",
+                                        " Control   6 ",
+                                        " Control   7 ",
+                                        " Control   8 ",
+                                        " Control   9 ",
+                                        " Control  10 ",
+                                        " Control  11 ",
+                                        " Control  12 ",
+                                        " Control  13 ",
+                                        " Control  14 ",
+                                        " Control  15 ",
+                                        " Control  16 ",
+                                        " Control  17 ",
+                                        " Control  18 ",
+                                        " Control  19 ",
+                                        " Control  20 ",
+                                        " Control  21 ",
+                                        " Control  22 ",
+                                        " Control  23 ",
+                                        " Control  24 ",
+                                        " Control  25 ",
+                                        " Control  26 ",
+                                        " Control  27 ",
+                                        " Control  28 ",
+                                        " Control  29 ",
+                                        " Control  30 ",
+                                        " Control  31 ",
+                                        " Control  32 ",
+                                        " Control  33 ",
+                                        " Control  34 ",
+                                        " Control  35 ",
+                                        " Control  36 ",
+                                        " Control  37 ",
+                                        " Control  38 ",
+                                        " Control  39 ",
+                                        " Control  40 ",
+                                        " Control  41 ",
+                                        " Control  42 ",
+                                        " Control  43 ",
+                                        " Control  44 ",
+                                        " Control  45 ",
+                                        " Control  46 ",
+                                        " Control  47 ",
+                                        " Control  48 ",
+                                        " Control  49 ",
+                                        " Control  50 ",
+                                        " Control  51 ",
+                                        " Control  52 ",
+                                        " Control  53 ",
+                                        " Control  54 ",
+                                        " Control  55 ",
+                                        " Control  56 ",
+                                        " Control  57 ",
+                                        " Control  58 ",
+                                        " Control  59 ",
+                                        " Control  60 ",
+                                        " Control  61 ",
+                                        " Control  62 ",
+                                        " Control  63 ",
+                                        " Control  64 ",
+                                        " Control  65 ",
+                                        " Control  66 ",
+                                        " Control  67 ",
+                                        " Control  68 ",
+                                        " Control  69 ",
+                                        " Control  70 ",
+                                        " Control  71 ",
+                                        " Control  72 ",
+                                        " Control  73 ",
+                                        " Control  74 ",
+                                        " Control  75 ",
+                                        " Control  76 ",
+                                        " Control  77 ",
+                                        " Control  78 ",
+                                        " Control  79 ",
+                                        " Control  80 ",
+                                        " Control  81 ",
+                                        " Control  82 ",
+                                        " Control  83 ",
+                                        " Control  84 ",
+                                        " Control  85 ",
+                                        " Control  86 ",
+                                        " Control  87 ",
+                                        " Control  88 ",
+                                        " Control  89 ",
+                                        " Control  90 ",
+                                        " Control  91 ",
+                                        " Control  92 ",
+                                        " Control  93 ",
+                                        " Control  94 ",
+                                        " Control  95 ",
+                                        " Control  96 ",
+                                        " Control  97 ",
+                                        " Control  98 ",
+                                        " Control  99 ",
+                                        " Control 100 ",
+                                        " Control 101 ",
+                                        " Control 102 ",
+                                        " Control 103 ",
+                                        " Control 104 ",
+                                        " Control 105 ",
+                                        " Control 106 ",
+                                        " Control 107 ",
+                                        " Control 108 ",
+                                        " Control 109 ",
+                                        " Control 110 ",
+                                        " Control 111 ",
+                                        " Control 112 ",
+                                        " Control 113 ",
+                                        " Control 114 ",
+                                        " Control 115 ",
+                                        " Control 116 ",
+                                        " Control 117 ",
+                                        " Control 118 ",
+                                        " Control 119 ",
+                                        " Control 120 ",
+                                        " Control 121 ",
+                                        " Control 122 ",
+                                        " Control 123 ",
+                                        " Control 124 ",
+                                        " Control 125 ",
+                                        " Control 126 ",
+                                        " Control 127 ",
+                                        " Aftertouch   0 ",
+                                        " Aftertouch   1 ",
+                                        " Aftertouch   2 ",
+                                        " Aftertouch   3 ",
+                                        " Aftertouch   4 ",
+                                        " Aftertouch   5 ",
+                                        " Aftertouch   6 ",
+                                        " Aftertouch   7 ",
+                                        " Aftertouch   8 ",
+                                        " Aftertouch   9 ",
+                                        " Aftertouch  10 ",
+                                        " Aftertouch  11 ",
+                                        " Aftertouch  12 ",
+                                        " Aftertouch  13 ",
+                                        " Aftertouch  14 ",
+                                        " Aftertouch  15 ",
+                                        " Aftertouch  16 ",
+                                        " Aftertouch  17 ",
+                                        " Aftertouch  18 ",
+                                        " Aftertouch  19 ",
+                                        " Aftertouch  20 ",
+                                        " Aftertouch  21 ",
+                                        " Aftertouch  22 ",
+                                        " Aftertouch  23 ",
+                                        " Aftertouch  24 ",
+                                        " Aftertouch  25 ",
+                                        " Aftertouch  26 ",
+                                        " Aftertouch  27 ",
+                                        " Aftertouch  28 ",
+                                        " Aftertouch  29 ",
+                                        " Aftertouch  30 ",
+                                        " Aftertouch  31 ",
+                                        " Aftertouch  32 ",
+                                        " Aftertouch  33 ",
+                                        " Aftertouch  34 ",
+                                        " Aftertouch  35 ",
+                                        " Aftertouch  36 ",
+                                        " Aftertouch  37 ",
+                                        " Aftertouch  38 ",
+                                        " Aftertouch  39 ",
+                                        " Aftertouch  40 ",
+                                        " Aftertouch  41 ",
+                                        " Aftertouch  42 ",
+                                        " Aftertouch  43 ",
+                                        " Aftertouch  44 ",
+                                        " Aftertouch  45 ",
+                                        " Aftertouch  46 ",
+                                        " Aftertouch  47 ",
+                                        " Aftertouch  48 ",
+                                        " Aftertouch  49 ",
+                                        " Aftertouch  50 ",
+                                        " Aftertouch  51 ",
+                                        " Aftertouch  52 ",
+                                        " Aftertouch  53 ",
+                                        " Aftertouch  54 ",
+                                        " Aftertouch  55 ",
+                                        " Aftertouch  56 ",
+                                        " Aftertouch  57 ",
+                                        " Aftertouch  58 ",
+                                        " Aftertouch  59 ",
+                                        " Aftertouch  60 ",
+                                        " Aftertouch  61 ",
+                                        " Aftertouch  62 ",
+                                        " Aftertouch  63 ",
+                                        " Aftertouch  64 ",
+                                        " Aftertouch  65 ",
+                                        " Aftertouch  66 ",
+                                        " Aftertouch  67 ",
+                                        " Aftertouch  68 ",
+                                        " Aftertouch  69 ",
+                                        " Aftertouch  70 ",
+                                        " Aftertouch  71 ",
+                                        " Aftertouch  72 ",
+                                        " Aftertouch  73 ",
+                                        " Aftertouch  74 ",
+                                        " Aftertouch  75 ",
+                                        " Aftertouch  76 ",
+                                        " Aftertouch  77 ",
+                                        " Aftertouch  78 ",
+                                        " Aftertouch  79 ",
+                                        " Aftertouch  80 ",
+                                        " Aftertouch  81 ",
+                                        " Aftertouch  82 ",
+                                        " Aftertouch  83 ",
+                                        " Aftertouch  84 ",
+                                        " Aftertouch  85 ",
+                                        " Aftertouch  86 ",
+                                        " Aftertouch  87 ",
+                                        " Aftertouch  88 ",
+                                        " Aftertouch  89 ",
+                                        " Aftertouch  90 ",
+                                        " Aftertouch  91 ",
+                                        " Aftertouch  92 ",
+                                        " Aftertouch  93 ",
+                                        " Aftertouch  94 ",
+                                        " Aftertouch  95 ",
+                                        " Aftertouch  96 ",
+                                        " Aftertouch  97 ",
+                                        " Aftertouch  98 ",
+                                        " Aftertouch  99 ",
+                                        " Aftertouch 100 ",
+                                        " Aftertouch 101 ",
+                                        " Aftertouch 102 ",
+                                        " Aftertouch 103 ",
+                                        " Aftertouch 104 ",
+                                        " Aftertouch 105 ",
+                                        " Aftertouch 106 ",
+                                        " Aftertouch 107 ",
+                                        " Aftertouch 108 ",
+                                        " Aftertouch 109 ",
+                                        " Aftertouch 110 ",
+                                        " Aftertouch 111 ",
+                                        " Aftertouch 112 ",
+                                        " Aftertouch 113 ",
+                                        " Aftertouch 114 ",
+                                        " Aftertouch 115 ",
+                                        " Aftertouch 116 ",
+                                        " Aftertouch 117 ",
+                                        " Aftertouch 118 ",
+                                        " Aftertouch 119 ",
+                                        " Aftertouch 120 ",
+                                        " Aftertouch 121 ",
+                                        " Aftertouch 122 ",
+                                        " Aftertouch 123 ",
+                                        " Aftertouch 124 ",
+                                        " Aftertouch 125 ",
+                                        " Aftertouch 126 ",
+                                        " Aftertouch 127 "};
 
-static const char *channel_list[] = {"   Channel  0",
-                                     "   Channel  1",
-                                     "   Channel  2",
-                                     "   Channel  3",
-                                     "   Channel  4",
-                                     "   Channel  5",
-                                     "   Channel  6",
-                                     "   Channel  7",
-                                     "   Channel  8",
-                                     "   Channel  9",
-                                     "   Channel 10",
-                                     "   Channel 11",
-                                     "   Channel 12",
-                                     "   Channel 13",
-                                     "   Channel 14"};
+static const char *channel_list[] = {"   Channel  0 ",
+                                     "   Channel  1 ",
+                                     "   Channel  2 ",
+                                     "   Channel  3 ",
+                                     "   Channel  4 ",
+                                     "   Channel  5 ",
+                                     "   Channel  6 ",
+                                     "   Channel  7 ",
+                                     "   Channel  8 ",
+                                     "   Channel  9 ",
+                                     "   Channel 10 ",
+                                     "   Channel 11 ",
+                                     "   Channel 12 ",
+                                     "   Channel 13 ",
+                                     "   Channel 14 "};
 
-static const char *resolution_list[] = {"4xqn",
-                                        "2xqn",
-                                        "qn (beat)",
-                                        "qn/2",
-                                        "qn/4",
-                                        "qn/8",
-                                        "qn/16",
-                                        "qn/32",
-                                        "qn/64",
-                                        "qn/3",
-                                        "qn/6",
-                                        "qn/12",
-                                        "qn/24"};
+static const char *resolution_list[] = {" 4xqn ",
+                                        " 2xqn ",
+                                        " qn (beat) ",
+                                        " qn/2 ",
+                                        " qn/4 ",
+                                        " qn/8 ",
+                                        " qn/16 ",
+                                        " qn/32 ",
+                                        " qn/64 ",
+                                        " qn/3 ",
+                                        " qn/6 ",
+                                        " qn/12 ",
+                                        " qn/24 "};
 
 static list_t _msq_editor_clipboard = {};
 static unsigned char _msq_editor_clipboard_note_max;
@@ -342,30 +472,55 @@ void msq_track_info_init(msq_track_info_t *track_info, track_t *track)
        mcev = evit_next_midiallchannel(&evit))
     {
       channel_info = &(track_info->channels_info[mcev->chan]);
-      if (mcev->type == MSQ_MIDI_NOTEOFF || mcev->type == MSQ_MIDI_NOTEON)
+      switch (mcev->type)
         {
+        case MSQ_MIDI_NOTEOFF:
+        case MSQ_MIDI_NOTEON:
           _msq_bytearray_set_bit(channel_info->usage,
-                                 0,
+                                 VALUE_NOTELEVEL_TYPE,
                                  1);
           if (mcev->event.note.num < channel_info->note_min)
             channel_info->note_min = mcev->event.note.num;
           if (mcev->event.note.num > channel_info->note_max)
             channel_info->note_max = mcev->event.note.num;
+          break;
+
+        case MSQ_MIDI_PITCHWHEELCHANGE:
+          _msq_bytearray_set_bit(channel_info->usage,
+                                 VALUE_PITCH_TYPE,
+                                 1);
+          break;
+
+        case MSQ_MIDI_PROGRAMCHANGE:
+          _msq_bytearray_set_bit(channel_info->usage,
+                                 VALUE_PROGRAM_TYPE,
+                                 1);
+          break;
+
+        case MSQ_MIDI_CHANNELAFTERTOUCH:
+          _msq_bytearray_set_bit(channel_info->usage,
+                                 VALUE_CAFTERTOUCH_TYPE,
+                                 1);
+          break;
+
+        case MSQ_MIDI_CONTROLCHANGE:
+          _msq_bytearray_set_bit(channel_info->usage,
+                                 VALUE_CONTROL_TYPE_OFFSET
+                                 + mcev->event.ctrl.num,
+                                 1);
+          break;
+
+        case MSQ_MIDI_KEYAFTERTOUCH:
+          _msq_bytearray_set_bit(channel_info->usage,
+                                 VALUE_KAFTERTOUCH_TYPE_OFFSET
+                                 + mcev->event.aftertouch.num,
+                                 1);
+          break;
+
+        default:
+          /* ??? Sysex Unhandled */
+          ;
         }
-      else if (mcev->type == MSQ_MIDI_PITCHWHEELCHANGE)
-        _msq_bytearray_set_bit(channel_info->usage,
-                               1,
-                               1);
-      else if (mcev->type == MSQ_MIDI_CONTROLCHANGE)
-        _msq_bytearray_set_bit(channel_info->usage,
-                               2 + mcev->event.ctrl.num,
-                               1);
-      if (track_info->min_tick > evit.tick)
-        track_info->min_tick = evit.tick;
-      if (track_info->max_tick < evit.tick)
-        track_info->max_tick = evit.tick;
-      channel_info->ev_len += 1;
-      track_info->ev_len += 1;
     }
 }
 
@@ -517,7 +672,7 @@ unsigned int piano_ggt_get_width(pbt_ggt_t *ggt)
   msq_piano_wgt_t *piano_wgt = wgt->priv;
   /* track_editor_ctx_t *editor_ctx = wgt->priv; */
 
-  return piano_wgt->editor_ctx->theme->piano_width;
+  return piano_wgt->editor_ctx->theme->left_side_width;
 }
 
 void piano_wgt_update_area_cb(pbt_ggt_t *ggt, pbt_pbarea_t *pbarea)
@@ -618,7 +773,7 @@ void _piano_wgt_highlight_note(pbt_wgt_t *wgt, unsigned char note)
   pbt_gl_texncol_put_rect(&(wgt->ggt_win->pb_win),
                           pbt_ggt_xpos(wgt),
                           ymin,
-                          editor_ctx->theme->piano_width,
+                          editor_ctx->theme->left_side_width,
                           height,
                           color);
 }
@@ -3648,7 +3803,7 @@ void draw_values_cb(pbt_ggt_t *ggt)
   ev_iterator_t evit;
   midicev_t *mcev = NULL;
   unsigned int velocity;
-  byte_t ctrl_num;
+  byte_t num;
 
   pbt_pbarea_fill(&(ggt->pbarea), tctx_frame_bg(editor_ctx));
 
@@ -3685,13 +3840,44 @@ void draw_values_cb(pbt_ggt_t *ggt)
               mcev = evit_next_pitch(&evit, editor_ctx->channel);
             }
         }
-      else if (value_wgt->type >= VALUE_TYPE_OFFSET)
+      else if (value_wgt->type == VALUE_PROGRAM_TYPE)
         {
-          ctrl_num = value_wgt->type - VALUE_TYPE_OFFSET;
+          mcev = evit_init_program(&evit,
+                                   &(editor_ctx->track_ctx->track->tickev_list),
+                                   editor_ctx->channel);
+          while (mcev != NULL)
+            {
+              velocity = mcev->event.prg_chg << 7;
+              draw_value(&(ggt->pbarea),
+                         editor_ctx,
+                         evit.tick,
+                         velocity);
+              mcev = evit_next_program(&evit, editor_ctx->channel);
+            }
+        }
+      else if (value_wgt->type == VALUE_CAFTERTOUCH_TYPE)
+        {
+          mcev = evit_init_caftertouch(&evit,
+                                       &(editor_ctx->track_ctx->track->tickev_list),
+                                       editor_ctx->channel);
+          while (mcev != NULL)
+            {
+              velocity = mcev->event.chan_aftertouch << 7;
+              draw_value(&(ggt->pbarea),
+                         editor_ctx,
+                         evit.tick,
+                         velocity);
+              mcev = evit_next_caftertouch(&evit, editor_ctx->channel);
+            }
+        }
+      else if (value_wgt->type >= VALUE_CONTROL_TYPE_OFFSET &&
+               value_wgt->type < VALUE_KAFTERTOUCH_TYPE_OFFSET)
+        {
+          num = value_wgt->type - VALUE_CONTROL_TYPE_OFFSET;
           mcev = evit_init_ctrl_num(&evit,
                                     &(editor_ctx->track_ctx->track->tickev_list),
                                     editor_ctx->channel,
-                                    ctrl_num);
+                                    num);
           while (mcev != NULL)
             {
               velocity = mcev->event.ctrl.val << 7;
@@ -3699,7 +3885,26 @@ void draw_values_cb(pbt_ggt_t *ggt)
                          editor_ctx,
                          evit.tick,
                          velocity);
-              mcev = evit_next_ctrl_num(&evit, editor_ctx->channel, ctrl_num);
+              mcev = evit_next_ctrl_num(&evit, editor_ctx->channel, num);
+            }
+        }
+      else if (value_wgt->type >= VALUE_KAFTERTOUCH_TYPE_OFFSET &&
+               value_wgt->type < VALUE_TYPE_END)
+        {
+          num = value_wgt->type - VALUE_KAFTERTOUCH_TYPE_OFFSET;
+          mcev =
+            evit_init_kaftertouch_num(&evit,
+                                      &(editor_ctx->track_ctx->track->tickev_list),
+                                      editor_ctx->channel,
+                                      num);
+          while (mcev != NULL)
+            {
+              velocity = mcev->event.aftertouch.val << 7;
+              draw_value(&(ggt->pbarea),
+                         editor_ctx,
+                         evit.tick,
+                         velocity);
+              mcev = evit_next_kaftertouch_num(&evit, editor_ctx->channel, num);
             }
         }
 
@@ -3872,7 +4077,7 @@ void value_wgt_write_tmp_bar(msq_value_wgt_t *value_wgt)
   ev_iterator_t evit;
   midicev_t *midicev, new_midicev = {};
   msq_tmp_tick_bar_t *node = value_wgt->tmp_bar_head;
-  unsigned char ctrl_num;
+  unsigned char num;
 
   switch (value_wgt->type)
     {
@@ -3904,10 +4109,10 @@ void value_wgt_write_tmp_bar(msq_value_wgt_t *value_wgt)
     case VALUE_PITCH_TYPE:
       evit_init(&evit,
                 &(editor_ctx->track_ctx->track->tickev_list));
+      new_midicev.type = MSQ_MIDI_PITCHWHEELCHANGE;
+      new_midicev.chan = editor_ctx->channel;
       while (node != NULL)
         {
-          new_midicev.type = MSQ_MIDI_PITCHWHEELCHANGE;
-          new_midicev.chan = editor_ctx->channel;
           new_midicev.event.pitchbend.Lval = node->velocity & 0x7F;
           new_midicev.event.pitchbend.Hval = (node->velocity >> 7) & 0x7F;
           _history_evit_add_midicev(&(editor_ctx->history),
@@ -3917,21 +4122,72 @@ void value_wgt_write_tmp_bar(msq_value_wgt_t *value_wgt)
           node = node->next;
         }
       break;
-    default:                    /* Controls */
+    case VALUE_PROGRAM_TYPE:
       evit_init(&evit,
                 &(editor_ctx->track_ctx->track->tickev_list));
-      ctrl_num = value_wgt->type - VALUE_TYPE_OFFSET;
+      new_midicev.type = MSQ_MIDI_PROGRAMCHANGE;
+      new_midicev.chan = editor_ctx->channel;
       while (node != NULL)
         {
-          new_midicev.type = MSQ_MIDI_CONTROLCHANGE;
-          new_midicev.chan = editor_ctx->channel;
-          new_midicev.event.ctrl.num = ctrl_num;
-          new_midicev.event.ctrl.val = node->velocity * MAX_7b_VAL / MAX_14b_VAL;
+          new_midicev.event.prg_chg = node->velocity * MAX_7b_VAL / MAX_14b_VAL;
           _history_evit_add_midicev(&(editor_ctx->history),
                                     &evit,
                                     node->tick,
                                     &new_midicev);
           node = node->next;
+        }
+    case VALUE_CAFTERTOUCH_TYPE:
+      evit_init(&evit,
+                &(editor_ctx->track_ctx->track->tickev_list));
+      new_midicev.type = MSQ_MIDI_CHANNELAFTERTOUCH;
+      new_midicev.chan = editor_ctx->channel;
+      while (node != NULL)
+        {
+          new_midicev.event.chan_aftertouch = node->velocity * MAX_7b_VAL / MAX_14b_VAL;
+          _history_evit_add_midicev(&(editor_ctx->history),
+                                    &evit,
+                                    node->tick,
+                                    &new_midicev);
+          node = node->next;
+        }
+    default:
+      if (value_wgt->type >= VALUE_CONTROL_TYPE_OFFSET &&
+          value_wgt->type < VALUE_KAFTERTOUCH_TYPE_OFFSET)
+        {
+          evit_init(&evit,
+                    &(editor_ctx->track_ctx->track->tickev_list));
+          num = value_wgt->type - VALUE_CONTROL_TYPE_OFFSET;
+          while (node != NULL)
+            {
+              new_midicev.type = MSQ_MIDI_CONTROLCHANGE;
+              new_midicev.chan = editor_ctx->channel;
+              new_midicev.event.ctrl.num = num;
+              new_midicev.event.ctrl.val = node->velocity * MAX_7b_VAL / MAX_14b_VAL;
+              _history_evit_add_midicev(&(editor_ctx->history),
+                                        &evit,
+                                        node->tick,
+                                        &new_midicev);
+              node = node->next;
+            }
+        }
+      else if (value_wgt->type >= VALUE_KAFTERTOUCH_TYPE_OFFSET &&
+               value_wgt->type < VALUE_TYPE_END)
+        {
+          evit_init(&evit,
+                    &(editor_ctx->track_ctx->track->tickev_list));
+          num = value_wgt->type - VALUE_KAFTERTOUCH_TYPE_OFFSET;
+          while (node != NULL)
+            {
+              new_midicev.type = MSQ_MIDI_KEYAFTERTOUCH;
+              new_midicev.chan = editor_ctx->channel;
+              new_midicev.event.aftertouch.num = num;
+              new_midicev.event.aftertouch.val = node->velocity * MAX_7b_VAL / MAX_14b_VAL;
+              _history_evit_add_midicev(&(editor_ctx->history),
+                                        &evit,
+                                        node->tick,
+                                        &new_midicev);
+              node = node->next;
+            }
         }
     }
 }
@@ -4097,7 +4353,7 @@ void value_wgt_delete_selection(msq_value_wgt_t *value)
   void (*del_func)(track_ctx_t *, ev_iterator_t *);
   ev_iterator_t evit;
   midicev_t *mcev = NULL;
-  unsigned char ctrl_num;
+  unsigned char num;
 
   /* /!\ TODO
      trackctx_del_event must be locked until all deletion is passed
@@ -4127,15 +4383,54 @@ void value_wgt_delete_selection(msq_value_wgt_t *value)
             mcev = evit_next_pitch(&evit, editor_ctx->channel);
         }
     }
-  else if (value->type >= VALUE_TYPE_OFFSET)
+  else if (value->type == VALUE_PROGRAM_TYPE)
     {
-      ctrl_num = value->type - VALUE_TYPE_OFFSET;
+      mcev = evit_init_program(&evit,
+                               &(editor_ctx->track_ctx->track->tickev_list),
+                               editor_ctx->channel);
+      while (mcev != NULL && evit.tick < tick_min)
+        mcev = evit_next_program(&evit, editor_ctx->channel);
+      _history_add_mark(&(editor_ctx->history));
+      while (mcev != NULL && evit.tick < tick_max)
+        {
+          _history_evit_del_midicev(editor_ctx, &evit, del_func);
+          /* del_func(editor_ctx->track_ctx, &evit); */
+          mcev = _evit_get_midicev(&evit);
+          if (mcev
+              && (mcev->chan != editor_ctx->channel
+                  || mcev->type != MSQ_MIDI_PROGRAMCHANGE))
+            mcev = evit_next_program(&evit, editor_ctx->channel);
+        }
+    }
+  else if (value->type == VALUE_CAFTERTOUCH_TYPE)
+    {
+      mcev = evit_init_caftertouch(&evit,
+                                   &(editor_ctx->track_ctx->track->tickev_list),
+                                   editor_ctx->channel);
+      while (mcev != NULL && evit.tick < tick_min)
+        mcev = evit_next_caftertouch(&evit, editor_ctx->channel);
+      _history_add_mark(&(editor_ctx->history));
+      while (mcev != NULL && evit.tick < tick_max)
+        {
+          _history_evit_del_midicev(editor_ctx, &evit, del_func);
+          /* del_func(editor_ctx->track_ctx, &evit); */
+          mcev = _evit_get_midicev(&evit);
+          if (mcev
+              && (mcev->chan != editor_ctx->channel
+                  || mcev->type != MSQ_MIDI_CHANNELAFTERTOUCH))
+            mcev = evit_next_caftertouch(&evit, editor_ctx->channel);
+        }
+    }
+  else if (value->type >= VALUE_CONTROL_TYPE_OFFSET &&
+           value->type < VALUE_KAFTERTOUCH_TYPE_OFFSET)
+    {
+      num = value->type - VALUE_CONTROL_TYPE_OFFSET;
       mcev = evit_init_ctrl_num(&evit,
                                 &(editor_ctx->track_ctx->track->tickev_list),
                                 editor_ctx->channel,
-                                ctrl_num);
+                                num);
       while (mcev != NULL && evit.tick < tick_min)
-        mcev = evit_next_ctrl_num(&evit, editor_ctx->channel, ctrl_num);
+        mcev = evit_next_ctrl_num(&evit, editor_ctx->channel, num);
       _history_add_mark(&(editor_ctx->history));
       while (mcev != NULL && evit.tick < tick_max)
         {
@@ -4145,10 +4440,35 @@ void value_wgt_delete_selection(msq_value_wgt_t *value)
           if (mcev
               && (mcev->chan != editor_ctx->channel
                   || mcev->type != MSQ_MIDI_CONTROLCHANGE
-                  || mcev->event.ctrl.num != ctrl_num))
+                  || mcev->event.ctrl.num != num))
             mcev = evit_next_ctrl_num(&evit,
                                       editor_ctx->channel,
-                                      ctrl_num);
+                                      num);
+        }
+    }
+  else if (value->type >= VALUE_KAFTERTOUCH_TYPE_OFFSET &&
+           value->type < VALUE_TYPE_END)
+    {
+      num = value->type - VALUE_KAFTERTOUCH_TYPE_OFFSET;
+      mcev = evit_init_kaftertouch_num(&evit,
+                                       &(editor_ctx->track_ctx->track->tickev_list),
+                                       editor_ctx->channel,
+                                       num);
+      while (mcev != NULL && evit.tick < tick_min)
+        mcev = evit_next_kaftertouch_num(&evit, editor_ctx->channel, num);
+      _history_add_mark(&(editor_ctx->history));
+      while (mcev != NULL && evit.tick < tick_max)
+        {
+          _history_evit_del_midicev(editor_ctx, &evit, del_func);
+          /* del_func(editor_ctx->track_ctx, &evit); */
+          mcev = _evit_get_midicev(&evit);
+          if (mcev
+              && (mcev->chan != editor_ctx->channel
+                  || mcev->type != MSQ_MIDI_KEYAFTERTOUCH
+                  || mcev->event.ctrl.num != num))
+            mcev = evit_next_kaftertouch_num(&evit,
+                                             editor_ctx->channel,
+                                             num);
         }
     }
   value_wgt_unselect(value);
@@ -4594,7 +4914,7 @@ msq_bool_t msq_channel_info_has_event(msq_channel_info_t *channel_info)
   size_t idx;
 
   for (idx = 0;
-       idx < CHANNEL_USAGE_LEN;
+       idx < VALUES_USAGE_LEN;
        idx++)
     if (channel_info->usage[idx] != 0)
       return MSQ_TRUE;
@@ -4621,7 +4941,7 @@ void channel_setting_get_list(void *track_editor_addr,
     {
       channel_info =
         &(track_editor->editor_ctx.track_info.channels_info[channel_num]);
-      (*list)[channel_num][1] =
+      (*list)[channel_num][0] =
         msq_channel_info_has_event(channel_info) ==  MSQ_TRUE ? '*' : ' ';
     }
 }
@@ -4657,12 +4977,14 @@ void value_type_get_list(void *track_editor_addr,
   *list_len = VALUE_TYPE_LEN;
 
   for (value_type_num = 0;
-       value_type_num < CHANNEL_LIST_LEN;
+       value_type_num < VALUE_TYPE_LEN;
        value_type_num++)
-    (*list)[value_type_num][1] =
-      _msq_bytearray_get_bit(track_editor->editor_ctx.track_info.channels_info[track_editor->editor_ctx.channel].usage,
-                             value_type_num) == WBE_TRUE
-      ? '*' : ' ';
+    {
+      (*list)[value_type_num][0] =
+        _msq_bytearray_get_bit(track_editor->editor_ctx.track_info.channels_info[track_editor->editor_ctx.channel].usage,
+                               value_type_num) == WBE_TRUE
+        ? '*' : ' ';
+    }
 }
 
 void value_type_dialog_res_cb(size_t idx,
@@ -4742,7 +5064,7 @@ void msq_combobox_init(msq_combobox_t *combobox,
 
   for (idx = 0, str_width = 0; idx < list_len; idx++)
     {
-      snprintf(max_str, MSQ_MAX_STRLEN, "%s___", list[idx]);
+      snprintf(max_str, MSQ_MAX_STRLEN, "%s  ", list[idx]);
       pbt_font_get_string_width(&(combobox->gui_theme->theme.font),
                                 max_str,
                                 &tmp_str_width);
@@ -4794,7 +5116,7 @@ unsigned int _msq_zoom_scrollbar_get_width(pbt_ggt_t *ggt)
   pbt_wgt_scrollbar_t *scrollbar = wgt->priv;
   track_editor_t *track_editor = scrollbar->cb_arg;
 
-  return track_editor->editor_ctx.theme->piano_width;
+  return track_editor->editor_ctx.theme->left_side_width;
 }
 
 void handle_hadj_zoom_change(void *track_editor_addr)
@@ -4861,6 +5183,39 @@ void track_editor_destroy(track_editor_t *track_editor)
   pbt_ggt_win_destroy(&(track_editor->ggt_win));
   _msq_free_str_list(track_editor->editor_ctx.value_type_list, VALUE_TYPE_LEN);
   _msq_free_str_list(track_editor->editor_ctx.channel_list, CHANNEL_LIST_LEN);
+}
+
+
+void msq_dump_track_cb(void *track_editor_addr)
+{
+  track_editor_t *track_editor = track_editor_addr;
+
+  msq_dump_track(track_editor->editor_ctx.track_ctx->track);
+}
+
+void msq_delete_all_cb(void *track_editor_addr)
+{
+  track_editor_t *track_editor = track_editor_addr;
+  void (*del_func)(track_ctx_t *, ev_iterator_t *);
+  ev_iterator_t ev_iterator = {};
+  track_ctx_t *track_ctx = track_editor->editor_ctx.track_ctx;
+
+  free_list_node(&(track_editor->editor_ctx.selected_notes), free);
+  free_list_node(&(track_editor->editor_ctx.history), free);
+  /* /!\ TODO
+     trackctx_del_event must be locked until all deletion is passed
+     (SEGFAULT race condition) */
+  if (track_ctx->engine != NULL
+      && engine_is_running(track_ctx->engine) == MSQ_TRUE)
+    del_func = trackctx_event2trash;
+  else
+    del_func = trackctx_del_event;
+
+  while (evit_init(&ev_iterator,
+                   &(track_ctx->track->tickev_list)) != NULL)
+    del_func(track_ctx, &ev_iterator);
+
+  msq_draw_vggts(&(track_editor->vggts));
 }
 
 void track_editor_init(track_editor_t *track_editor,
@@ -4964,8 +5319,8 @@ void track_editor_init(track_editor_t *track_editor,
   _pbt_ggt_ctnr_add_separator(&(track_editor->vctnr_transport),
                               0,
                               0,
-                              track_editor->editor_ctx.theme->piano_width,
-                              track_editor->editor_ctx.theme->piano_width,
+                              track_editor->editor_ctx.theme->left_side_width,
+                              track_editor->editor_ctx.theme->left_side_width,
                               tctx_window_bg(&(track_editor->editor_ctx)));
 
   track_editor->editor_ctx.resolution_idx = 4;
@@ -4981,7 +5336,6 @@ void track_editor_init(track_editor_t *track_editor,
                             &(track_editor->editor_ctx.theme->global_theme->theme),
                             msq_quantify_note_selection_cb,
                             track_editor);
-  /* msq_combobox_draw_pixbufs(&(track_editor->resolution_combobox)); */
   msq_combobox_init(&(track_editor->output_combobox),
                     track_editor->dialog_iface,
                     track_editor->editor_ctx.theme->global_theme,
@@ -5000,15 +5354,6 @@ void track_editor_init(track_editor_t *track_editor,
   pbt_ggt_hctnr_init(&(track_editor->hctnr_header));
   pbt_ggt_add_child_ggt(&(track_editor->hctnr_header),
                         &(track_editor->vctnr_transport));
-  /* pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header), */
-  /*                                   track_editor->editor_ctx.theme->piano_width */
-  /*                                   + theme->global_theme->default_separator, */
-  /*                                   tctx_window_bg(&(track_editor->editor_ctx))); */
-  /* /\* pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header), *\/ */
-  /* /\*                                   theme->global_theme->default_separator, *\/ */
-  /* /\*                                   tctx_window_bg(&(track_editor->editor_ctx))); *\/ */
-  /* pbt_ggt_add_child_wgt(&(track_editor->hctnr_header), */
-  /*                       &(track_editor->transport)); */
   pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_header),
                                     theme->global_theme->default_separator,
                                     tctx_window_bg(&(track_editor->editor_ctx)));
@@ -5036,12 +5381,39 @@ void track_editor_init(track_editor_t *track_editor,
   timeline_wgt_init(&(track_editor->timeline_wgt),
                     track_editor);
   pbt_ggt_hctnr_init(&(track_editor->hctnr_up));
-  pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_up),
-                                    track_editor->editor_ctx.theme->piano_width,
+
+  pbt_ggt_vctnr_init(&(track_editor->vctnr_debug));
+  _pbt_ggt_ctnr_add_separator(&(track_editor->vctnr_debug),
+                              0,
+                              0,
+                              track_editor->editor_ctx.theme->left_side_width,
+                              track_editor->editor_ctx.theme->left_side_width,
+                              tctx_window_bg(&(track_editor->editor_ctx)));
+  pbt_wgt_label_button_init(&(track_editor->dump_button),
+                            "Dump",
+                            &(track_editor->editor_ctx.theme->global_theme->theme),
+                            msq_dump_track_cb,
+                            track_editor);
+  pbt_wgt_label_button_init(&(track_editor->delete_all_button),
+                            "Delete all /!\\",
+                            &(track_editor->editor_ctx.theme->global_theme->theme),
+                            msq_delete_all_cb,
+                            track_editor);
+  pbt_ggt_add_child_wgt(&(track_editor->vctnr_debug),
+                        &(track_editor->dump_button));
+  pbt_ggt_ctnr_add_static_separator(&(track_editor->vctnr_debug),
+                                    theme->global_theme->default_separator,
                                     tctx_window_bg(&(track_editor->editor_ctx)));
+  pbt_ggt_add_child_wgt(&(track_editor->vctnr_debug),
+                        &(track_editor->delete_all_button));
+
+  pbt_ggt_add_child_ggt(&(track_editor->hctnr_up),
+                        &(track_editor->vctnr_debug));
+
   pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_up),
                                     theme->global_theme->default_separator,
                                     tctx_window_bg(&(track_editor->editor_ctx)));
+
   _pbt_ggt_add_child_wgt(&(track_editor->hctnr_up),
                          &(track_editor->timeline_wgt));
   pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_up),
@@ -5102,7 +5474,7 @@ void track_editor_init(track_editor_t *track_editor,
   pbt_ggt_add_child_wgt(&(track_editor->hctnr_hscrollbar),
                         &(track_editor->hscrollbar_zoom_wgt));
   /* pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_hscrollbar), */
-  /*                                   track_editor->editor_ctx.theme->piano_width, */
+  /*                                   track_editor->editor_ctx.theme->left_side_width, */
   /*                                   tctx_window_bg(&(track_editor->editor_ctx))); */
   pbt_ggt_ctnr_add_static_separator(&(track_editor->hctnr_hscrollbar),
                                     theme->global_theme->default_separator,
@@ -5151,8 +5523,8 @@ void track_editor_init(track_editor_t *track_editor,
   pbt_ggt_add_child_ggt(&(track_editor->value_vctnr_ggt),
                         &(track_editor->value_num_ctnr));
   pbt_ggt_drawarea_init(&(track_editor->value_empty_ggt),
-                        track_editor->editor_ctx.theme->piano_width,
-                        track_editor->editor_ctx.theme->piano_width,
+                        track_editor->editor_ctx.theme->left_side_width,
+                        track_editor->editor_ctx.theme->left_side_width,
                         0,
                         0,
                         msq_draw_empty,

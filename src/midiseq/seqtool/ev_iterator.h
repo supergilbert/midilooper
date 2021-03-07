@@ -67,6 +67,12 @@ msq_bool_t _evit_check(ev_iterator_t *evit, list_t *tickev_list);
   (evit_next_midicev_type((evit), (chan), MSQ_MIDI_CONTROLCHANGE))
 #define evit_next_pitch(evit, chan)                                     \
   (evit_next_midicev_type((evit), (chan), MSQ_MIDI_PITCHWHEELCHANGE))
+#define evit_next_program(evit, chan)                                   \
+  (evit_next_midicev_type((evit), (chan), MSQ_MIDI_PROGRAMCHANGE))
+#define evit_next_caftertouch(evit, chan)                               \
+  (evit_next_midicev_type((evit), (chan), MSQ_MIDI_CHANNELAFTERTOUCH))
+#define evit_next_kaftertouch(evit, chan)                                \
+  (evit_next_midicev_type((evit), (chan), MSQ_MIDI_KEYAFTERTOUCH))
 
 midicev_t *evit_next_noteoff_num(ev_iterator_t *ev_iterator,
                                  byte_t channel,
@@ -81,5 +87,18 @@ midicev_t *evit_init_ctrl_num(ev_iterator_t *ev_iterator,
 midicev_t *evit_init_pitch(ev_iterator_t *ev_iterator,
                            list_t *tickev_list,
                            byte_t channel);
+midicev_t *evit_init_program(ev_iterator_t *ev_iterator,
+                             list_t *tickev_list,
+                             byte_t channel);
+midicev_t *evit_init_caftertouch(ev_iterator_t *ev_iterator,
+                                 list_t *tickev_list,
+                                 byte_t channel);
+midicev_t *evit_next_kaftertouch_num(ev_iterator_t *ev_iterator,
+                                     byte_t channel,
+                                     byte_t key_num);
+midicev_t *evit_init_kaftertouch_num(ev_iterator_t *ev_iterator,
+                                     list_t *tickev_list,
+                                     byte_t channel,
+                                     byte_t key_num);
 
 #endif

@@ -18,9 +18,9 @@
 #include "debug_tool/debug_tool.h"
 #include "midi/midiev_inc.h"
 
-msq_bool_t convert_midicev_to_mididata(midicev_t *midicev, byte_t *buf)
+size_t convert_midicev_to_mididata(midicev_t *midicev, byte_t *buf)
 {
-  msq_bool_t ret = MSQ_FALSE;
+  msq_bool_t ret = 0;
 
   switch (midicev->type)
     {
@@ -29,37 +29,37 @@ msq_bool_t convert_midicev_to_mididata(midicev_t *midicev, byte_t *buf)
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.note.num & 0xFF;
       buf[2] = midicev->event.note.val & 0xFF;
-      ret = MSQ_TRUE;
+      ret = 3;
       break;
     case MSQ_MIDI_KEYAFTERTOUCH:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.aftertouch.num & 0xFF;
       buf[2] = midicev->event.aftertouch.val & 0xFF;
-      ret = MSQ_TRUE;
+      ret = 3;
       break;
     case MSQ_MIDI_CONTROLCHANGE:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.ctrl.num & 0xFF;
       buf[2] = midicev->event.ctrl.val & 0xFF;
-      ret = MSQ_TRUE;
+      ret = 3;
       break;
     case MSQ_MIDI_PROGRAMCHANGE:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.prg_chg;
       buf[2] = 0;
-      ret = MSQ_TRUE;
+      ret = 2;
       break;
     case MSQ_MIDI_CHANNELAFTERTOUCH:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.chan_aftertouch;
       buf[2] = 0;
-      ret = MSQ_TRUE;
+      ret = 2;
       break;
     case MSQ_MIDI_PITCHWHEELCHANGE:
       buf[0] = (midicev->type << 4) + midicev->chan;
       buf[1] = midicev->event.pitchbend.Lval & 0xFF;
       buf[2] = midicev->event.pitchbend.Hval & 0xFF;
-      ret = MSQ_TRUE;
+      ret = 3;
       break;
     default:
       output_error("Unexpected channel event type\n");

@@ -28,6 +28,7 @@ uint_t	get_varlen_from_ptr(byte_t **buffer_ptr)
 #define BUF_PTR	(*buffer_ptr)
 
 #ifdef DEBUG_MIDI_MODE
+  output("varlen");
   print_bin(stdout, BUF_PTR, 4);
 #endif
   if (*BUF_PTR & 128)
