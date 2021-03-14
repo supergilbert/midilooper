@@ -23,7 +23,7 @@ EXTERN_C_BEGIN
 
 #define VALUE_TYPE_LEN 260
 
-#define CHANNEL_LIST_LEN 15
+#define CHANNEL_LIST_LEN 16
 
 /* 33 = (260 value type) in octet */
 #define VALUES_USAGE_LEN 33
