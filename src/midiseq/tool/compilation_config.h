@@ -18,4 +18,4 @@
 #pragma once
 
 /* #define DEBUG_MODE */
-#define DEBUG_MIDI_MODE
+/* #define DEBUG_MIDI_MODE */
