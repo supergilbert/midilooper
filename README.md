@@ -23,9 +23,6 @@ It is a midi looper inspired of seq24 and ableton/live.
 ## Roadmap (todo)
 
 * Prevent all kind of error
-* Add remote control of rec button
-* Add CC Remote
-* Add KEYAFTERTOUCH, PROGRAMCHANGE, CHANNELAFTERTOUCH to editor
 * Sync
   * Improve jack transport
   * Add midi sync (In Out All)
