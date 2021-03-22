@@ -324,7 +324,8 @@ static const char *value_type_list[] = {" Note Vel. ",
                                         " Aftertouch 126 ",
                                         " Aftertouch 127 "};
 
-static const char *channel_list[] = {"   Channel  1 ",
+static const char *channel_list[] = {"   Channel  0 ",
+                                     "   Channel  1 ",
                                      "   Channel  2 ",
                                      "   Channel  3 ",
                                      "   Channel  4 ",
@@ -338,8 +339,7 @@ static const char *channel_list[] = {"   Channel  1 ",
                                      "   Channel 12 ",
                                      "   Channel 13 ",
                                      "   Channel 14 ",
-                                     "   Channel 15 ",
-                                     "   Channel 16 "};
+                                     "   Channel 15 "};
 
 static const char *resolution_list[] = {" 4xqn ",
                                         " 2xqn ",
