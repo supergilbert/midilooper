@@ -338,8 +338,8 @@ static const char *channel_list[] = {"   Channel  1 ",
                                      "   Channel 12 ",
                                      "   Channel 13 ",
                                      "   Channel 14 ",
-				     "   Channel 15 ",
-				     "   Channel 16 "};
+                                     "   Channel 15 ",
+                                     "   Channel 16 "};
 
 static const char *resolution_list[] = {" 4xqn ",
                                         " 2xqn ",
