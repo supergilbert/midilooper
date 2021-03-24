@@ -28,6 +28,7 @@ It is a midi looper inspired of seq24 and ableton/live.
   * Add midi sync (In Out All)
   * Tap tempo (MIDI and Interface)
 * Improve graphic interface
+  * Check and modify all labels (ex: channels label 1-16)
   * Main window
     * Colored track
   * Editor
