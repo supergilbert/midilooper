@@ -464,7 +464,7 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
         if (convert_mididata_to_midicev(jackev.buffer, &midicev) == MSQ_TRUE)
           {
             tick = convert_frame_to_tick(hdl->internal_frame_pos + jackev.time,
-                                         position.frame_rate,
+                                         hdl->frame_rate,
                                          ctx->ppq,
                                          ctx->tempo);
             mrb_write(ctx->rbuff, tick, &midicev);

@@ -2418,6 +2418,7 @@ bool midilooper_main_window::handle_midi_rec(void)
     {
       engine_ctx->rec_state_changed = MSQ_FALSE;
       msq_mcev_tick_list_clear(&noteon_list);
+      // Check to undo if rec has been double clicked
       if (last_rec_addr == engine_ctx->track_rec)
         {
           gettimeofday(&new_date, NULL);
