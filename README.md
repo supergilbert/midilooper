@@ -13,7 +13,10 @@ It is a midi looper inspired of seq24 and ableton/live.
 
 ## Features
 
-* Loop Midi tracks over "Alsa sequencer" or "Jack"
+* Loop Midi tracks
+  * High precision engine
+    * clock_nanosleep + alsa sequence
+    * Jack
 * Midi track editor
 * Midifile reader and writer
 * Remote keyboard and midi to mute un-mute tracks
@@ -34,10 +37,13 @@ It is a midi looper inspired of seq24 and ableton/live.
   * Editor
     * Improve mouse interaction
       * Add touchscreen capabilities
-        * Add modal button (select, write, ...)
+        * Add modal button (select, write, move, resize, ...)
     * Add scale selector
     * Add keyboard binding to piano in editor
-  * Imgui implementation (fonts, update)
+  * Suppress Imgui hacks
+    * Add a list widget to pbt
+    * (Remove C++ ???)
+  * Add multiple rec mode (overwrite, last loop, inc loop size, ...)
 * User helper and documentation
 * Clean
   * Remove all hacks

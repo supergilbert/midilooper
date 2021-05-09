@@ -19,26 +19,22 @@
 #include "debug_tool/debug_tool.h"
 #include "jack/jack_backend.h"
 
-typedef struct
-{
-  jack_client_t  *client;
-  jack_nframes_t cur_frame;
-  uint_t         tick;
-  jack_port_t    *remote_input;
-  jack_port_t    *record_input;
-  msq_bool_t         stopped;
-} jbe_hdl_t;
-
 msq_bool_t jbe_is_running(engine_ctx_t *ctx)
 {
   jbe_hdl_t              *hdl  = (jbe_hdl_t *) ctx->hdl;
-  jack_transport_state_t state = jack_transport_query(hdl->client, NULL);
+  jack_transport_state_t state;
 
-  if (state == JackTransportRolling
-      || state == JackTransportLooping
-      || state == JackTransportStarting)
-	  return MSQ_TRUE;
-  return MSQ_FALSE;
+  if (hdl->transport_enabled == MSQ_TRUE)
+    {
+      state = jack_transport_query(hdl->client, NULL);
+      if (state == JackTransportRolling
+          || state == JackTransportLooping
+          || state == JackTransportStarting)
+        return MSQ_TRUE;
+      return MSQ_FALSE;
+    }
+  else
+    return hdl->internal_running;
 }
 
 void jbe_stop(engine_ctx_t *ctx)
@@ -46,12 +42,23 @@ void jbe_stop(engine_ctx_t *ctx)
   jbe_hdl_t *hdl = (jbe_hdl_t *) ctx->hdl;
   const jack_position_t pos = {.valid=0, .frame=0};
 
-  jack_transport_stop(hdl->client);
-  hdl->stopped = MSQ_TRUE;
-  while (jbe_is_running(ctx) == MSQ_TRUE)
-    usleep(100000);
-  _engine_free_trash(ctx);
-  jack_transport_reposition(hdl->client, &pos);
+  if (hdl->transport_enabled == MSQ_TRUE)
+    {
+      jack_transport_stop(hdl->client);
+      hdl->stopped = MSQ_TRUE;
+      while (jbe_is_running(ctx) == MSQ_TRUE)
+        usleep(100000);
+      _engine_free_trash(ctx);
+      jack_transport_reposition(hdl->client, &pos);
+    }
+  else
+    {
+      hdl->stopped = MSQ_TRUE;
+      while (hdl->internal_running == MSQ_TRUE)
+        usleep(100000);
+      _engine_free_trash(ctx);
+      hdl->internal_frame_pos = 0;
+    }
 }
 
 void jbe_delete_output_node(engine_ctx_t *ctx, output_t *output)
@@ -79,10 +86,25 @@ void jbe_start(engine_ctx_t *ctx)
 {
   jbe_hdl_t *hdl = (jbe_hdl_t *) ctx->hdl;
 
-  if (engine_is_running(ctx))
-    jack_transport_stop(hdl->client);
+  if (hdl->transport_enabled == MSQ_TRUE)
+    {
+      if (engine_is_running(ctx))
+        jack_transport_stop(hdl->client);
+      else
+        jack_transport_start(hdl->client);
+    }
   else
-    jack_transport_start(hdl->client);
+    {
+      if (engine_is_running(ctx))
+        {
+          hdl->stopped = MSQ_TRUE;
+          while (jbe_is_running(ctx) == MSQ_TRUE)
+            usleep(100000);
+          _engine_free_trash(ctx);
+        }
+      else
+        hdl->stopped = MSQ_FALSE;
+    }
 }
 
 void jbe_create_output(engine_ctx_t *ctx, output_t *output, const char *name)
@@ -122,12 +144,24 @@ void jbe_set_tick(engine_ctx_t *ctx, uint_t tick)
   jbe_hdl_t *be_hdl = (jbe_hdl_t *) ctx->hdl;
   jack_position_t position;
 
-  jack_transport_query(be_hdl->client, &position);
-  jack_transport_locate(be_hdl->client,
-                        convert_tick_to_frame(tick,
-                                              position.frame_rate,
-                                              ctx->ppq,
-                                              ctx->tempo));
+  if (be_hdl->transport_enabled == MSQ_TRUE)
+    {
+      jack_transport_query(be_hdl->client, &position);
+      jack_transport_locate(be_hdl->client,
+                            convert_tick_to_frame(tick,
+                                                  position.frame_rate,
+                                                  ctx->ppq,
+                                                  ctx->tempo));
+    }
+  else
+    {
+      jbe_stop(ctx);
+      be_hdl->internal_frame_pos = convert_tick_to_frame(tick,
+                                                         position.frame_rate,
+                                                         ctx->ppq,
+                                                         ctx->tempo);
+      jbe_start(ctx);
+    }
   engine_set_tracks_need_sync(ctx);
 }
 
@@ -286,6 +320,37 @@ void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
     }
 }
 
+
+void jbe_handle_internal(engine_ctx_t *ctx, jack_nframes_t nframes)
+{
+  jbe_hdl_t          *be_hdl = (jbe_hdl_t *) ctx->hdl;
+
+  if (be_hdl->stopped == MSQ_TRUE)
+    {
+      if (be_hdl->internal_running == MSQ_TRUE)
+        {
+          jbe_handle_frames(ctx,
+                            be_hdl->internal_frame_pos,
+                            be_hdl->frame_rate,
+                            nframes);
+          be_hdl->internal_running = MSQ_FALSE;
+        }
+    }
+  else
+    {
+      if (be_hdl->internal_running == MSQ_FALSE)
+        be_hdl->internal_running = MSQ_TRUE;
+      jbe_update_tick_n_frame(ctx,
+                              be_hdl->internal_frame_pos,
+                              be_hdl->frame_rate);
+      jbe_handle_frames(ctx,
+                        be_hdl->internal_frame_pos,
+                        be_hdl->frame_rate,
+                        nframes);
+      be_hdl->internal_frame_pos += nframes;
+    }
+}
+
 #include "midi/midi_tool.h"
 void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
 {
@@ -311,7 +376,8 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
           switch (engine_get_sysex_mmc(ctx, jackev.buffer, jackev.size))
             {
             case MMC_STOP:
-              jack_transport_stop(hdl->client);
+              if (hdl->transport_enabled == MSQ_TRUE)
+                jack_transport_stop(hdl->client);
               hdl->stopped = MSQ_TRUE;
               break;
             case MMC_PAUSE:
@@ -376,30 +442,34 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
         }
     }
 
-  if (ctx->rec == MSQ_TRUE)
+  if (ctx->rec == MSQ_TRUE && hdl->stopped == MSQ_FALSE)
     {
-      /* Must change with stopped and frame frame_rate to avoid transport */
-      state = jack_transport_query(hdl->client, &position);
-      if (state == JackTransportRolling ||
-          state == JackTransportLooping ||
-          state == JackTransportStarting)
+      if (hdl->transport_enabled == MSQ_TRUE)
         {
-          /* Handling midi record */
-          port_buf    = jack_port_get_buffer(hdl->record_input, nframes);
-          event_count = jack_midi_get_event_count(port_buf);
-          for (idx = 0;
-               idx < event_count;
-               idx++) {
-            jack_midi_event_get(&jackev, port_buf, idx);
-            if (convert_mididata_to_midicev(jackev.buffer, &midicev) == MSQ_TRUE) {
-              tick = convert_frame_to_tick(position.frame + jackev.time,
-                                           position.frame_rate,
-                                           ctx->ppq,
-                                           ctx->tempo);
-              mrb_write(ctx->rbuff, tick, &midicev);
-            }
-          }
+          state = jack_transport_query(hdl->client, &position);
+          if (state == JackTransportRolling ||
+              state == JackTransportLooping ||
+              state == JackTransportStarting)
+            hdl->internal_frame_pos = position.frame;
+          else
+            return;
         }
+      /* Handling midi record */
+      port_buf    = jack_port_get_buffer(hdl->record_input, nframes);
+      event_count = jack_midi_get_event_count(port_buf);
+      for (idx = 0;
+           idx < event_count;
+           idx++) {
+        jack_midi_event_get(&jackev, port_buf, idx);
+        if (convert_mididata_to_midicev(jackev.buffer, &midicev) == MSQ_TRUE)
+          {
+            tick = convert_frame_to_tick(hdl->internal_frame_pos + jackev.time,
+                                         position.frame_rate,
+                                         ctx->ppq,
+                                         ctx->tempo);
+            mrb_write(ctx->rbuff, tick, &midicev);
+          }
+      }
     }
 }
 
@@ -416,7 +486,10 @@ int jbe_process_cb(jack_nframes_t nframes, void *ctx_ptr)
 
   play_outputs_reqs(engine);
 
-  jbe_handle_transport(engine, nframes);
+  if (be_hdl->transport_enabled == MSQ_TRUE)
+    jbe_handle_transport(engine, nframes);
+  else
+    jbe_handle_internal(engine, nframes);
 
   return 0;
 }
@@ -461,8 +534,12 @@ msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name)
                                          JACK_DEFAULT_MIDI_TYPE,
                                          JackPortIsTerminal|JackPortIsInput,
                                          0);
+  hdl->frame_rate = jack_get_sample_rate(client);
+  hdl->internal_frame_pos = 0;
+  hdl->transport_enabled = MSQ_TRUE;
+  hdl->internal_running = MSQ_FALSE;
 
-  ctx->hdl   = hdl;
+  ctx->hdl = hdl;
 
   jack_set_process_callback(hdl->client,
                             jbe_process_cb,

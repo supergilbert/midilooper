@@ -341,4 +341,20 @@ char **engine_gen_output_str_list(engine_ctx_t *engine_ctx,
 output_t *engine_get_output(engine_ctx_t *engine_ctx,
                             size_t idx);
 
+#include <jack/jack.h>
+
+typedef struct
+{
+  jack_client_t  *client;
+  jack_nframes_t cur_frame;
+  jack_nframes_t frame_rate;
+  jack_nframes_t internal_frame_pos;
+  msq_bool_t     internal_running;
+  uint_t         tick;
+  jack_port_t    *remote_input;
+  jack_port_t    *record_input;
+  msq_bool_t     stopped;
+  msq_bool_t     transport_enabled;
+} jbe_hdl_t;
+
 #endif

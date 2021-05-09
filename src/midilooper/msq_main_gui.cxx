@@ -88,6 +88,8 @@ class midilooper_main_window
 {
   track_editor_theme_t track_editor_theme = {};
   pbt_ggt_ctnr_t root_vctnr = {};
+  // pbt_ggt_drawarea_t engine_info_area = {};
+  pbt_wgt_t engine_info_area = {};
   msq_transport_iface_t transport_iface = {};
   msq_margin_ggt_t margin = {};
   pbt_ggt_ctnr_t root_child_vctnr = {};
@@ -792,12 +794,12 @@ void msq_track_node_draw_cb(pbt_ggt_t *ggt)
                     &(track_node->main_win->theme.theme.font),
                     track_node->main_win->theme.theme.frame_fg,
                     0, track_node->main_win->theme.theme.font.max_height,
-                    "Mute bindings:%s", mute_bindings_string.c_str());
+                    "[Mute bindings]%s", mute_bindings_string.c_str());
   pbt_pbarea_printf(&(ggt->pbarea),
                     &(track_node->main_win->theme.theme.font),
                     track_node->main_win->theme.theme.frame_fg,
                     0, track_node->main_win->theme.theme.font.max_height * 2,
-                    "Rec bindings:%s", rec_bindings_string.c_str());
+                    "[Rec bindings]%s", rec_bindings_string.c_str());
   pbt_pbarea_fillrect(&(ggt->pbarea),
                       track_node->main_win->theme.default_separator,
                       _pbt_ggt_height(ggt)
@@ -1371,22 +1373,6 @@ void set_keyboard_configuration(wbe_key_layout_t key_layout)
   config_destroy(&config);
 }
 
-void options_dialog_res_cb(size_t idx, void *mainwin_addr)
-{
-  midilooper_main_window *mainwin =
-    (midilooper_main_window *) mainwin_addr;
-
-  if (idx == 0)
-    {
-      if (wbe_window_backend_get_key_layout() == WBE_KEY_LAYOUT_FR)
-        set_keyboard_configuration(WBE_KEY_LAYOUT_EN);
-      else
-        set_keyboard_configuration(WBE_KEY_LAYOUT_FR);
-    }
-  else if (idx == 1)
-    mainwin->_switch_engine();
-}
-
 void output_dialog_res_cb(size_t idx, void *mainwin_addr)
 {
   midilooper_main_window *mainwin =
@@ -1495,13 +1481,13 @@ void track_dialog_res_cb(size_t idx, void *mainwin_addr)
 
   switch (idx)
     {
-    case 0:                     // Rename
+    case 0:                     // Output
+      mainwin->show_set_output(mainwin->dialog_track);
+      break;
+    case 1:                     // Rename
       msq_dialog_string_input(&(mainwin->dialog_iface),
                               track_rename_dialog_res_cb,
                               mainwin_addr);
-      break;
-    case 1:                     // Output
-      mainwin->show_set_output(mainwin->dialog_track);
       break;
     case 2:                     // Add binding
       mainwin->show_track_addbinding(mainwin->dialog_track);
@@ -1578,6 +1564,8 @@ void midilooper_main_window::_switch_engine(void)
 
   memset(new_engine_ctx, 0, sizeof (engine_ctx_t));
 
+  engine_stop(engine_ctx);
+
   if (engine_ctx->type == MSQ_ENG_ALSA)
     {
       if (init_engine(new_engine_ctx,
@@ -1615,8 +1603,6 @@ void midilooper_main_window::_switch_engine(void)
       remove_output(output);
     }
 
-  engine_stop(engine_ctx);
-
   engine_ctx = new_engine_ctx;
 
   _msq_transport_set_new_engine(&transport_iface, new_engine_ctx);
@@ -1652,6 +1638,172 @@ void midilooper_main_window::_switch_engine(void)
   redraw();
 }
 
+#define ENGINE_INFO_TITLE " ENGINE "
+
+unsigned int engine_info_area_ggt_get_height(pbt_ggt_t *ggt)
+{
+  pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
+  midilooper_main_window *main_window = (midilooper_main_window *) wgt->priv;
+  msq_gui_theme_t *theme = &(main_window->theme);
+
+  return theme->default_separator + theme->theme.font.max_height
+    + theme->default_separator + theme->theme.font.max_height
+    + theme->default_separator + theme->theme.font.max_height;
+}
+
+void draw_engine_info_area_cb(pbt_ggt_t *ggt)
+{
+  pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
+  midilooper_main_window *main_window = (midilooper_main_window *) wgt->priv;
+  unsigned int title_height = main_window->theme.theme.font.max_height + main_window->theme.default_separator;
+  const char *line1, *line2;
+  jbe_hdl_t  *hdl = NULL;
+
+  pbt_pbarea_fill(&(ggt->pbarea),
+                  main_window->theme.theme.window_bg);
+  _msq_draw_list_title(&(ggt->pbarea),
+                       ENGINE_INFO_TITLE,
+                       &(main_window->theme));
+  pbt_pbarea_fillrect(&(ggt->pbarea),
+                      0,
+                      title_height,
+                      ggt->pbarea.width,
+                      ggt->pbarea.height - title_height,
+                      main_window->theme.theme.frame_bg);
+
+  if (main_window->engine_ctx->type == MSQ_ENG_ALSA)
+    {
+      line1 = "alsaseq / clock_nano_sleep";
+      line2 = "No sync";
+    }
+  else
+    {
+      hdl = (jbe_hdl_t *) main_window->engine_ctx->hdl;
+      line1 = "jack";
+      if (hdl->transport_enabled == MSQ_TRUE)
+        line2 = "transport on (start, stop, no tempo)";
+      else
+        line2 = "No sync";
+    }
+  pbt_pbarea_printf(&(ggt->pbarea),
+                    &(main_window->theme.theme.font),
+                    main_window->theme.theme.frame_fg,
+                    0,
+                    title_height,
+                    line1);
+  pbt_pbarea_printf(&(ggt->pbarea),
+                    &(main_window->theme.theme.font),
+                    main_window->theme.theme.frame_fg,
+                    0,
+                    title_height << 1,
+                    line2);
+}
+
+void engine_options_res_cb(size_t idx, void *mainwin_addr)
+{
+  midilooper_main_window *mainwin = (midilooper_main_window *) mainwin_addr;
+  jbe_hdl_t *hdl = NULL;
+
+  if (idx == 0)
+    mainwin->_switch_engine();
+  else if (idx == 1)
+    {
+      if (mainwin->engine_ctx->type != MSQ_ENG_JACK)
+        {
+          pbt_logerr("BAD DEV ERROR:"
+                     " Transport must not be modifiable"
+                     " on other engine than jack");
+          return;
+        }
+      hdl = (jbe_hdl_t *) mainwin->engine_ctx->hdl;
+      if (hdl->transport_enabled == MSQ_TRUE)
+        hdl->transport_enabled = MSQ_FALSE;
+      else
+        hdl->transport_enabled = MSQ_TRUE;
+      mainwin->redraw();
+    }
+}
+
+pbt_bool_t engine_info_area_set_focus_cb(pbt_ggt_t *ggt,
+                                         wbe_window_input_t *winev,
+                                         void *main_window_addr)
+{
+  static const char *options_menu[2];
+  // pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
+  midilooper_main_window *main_window;
+  unsigned int list_size;
+  jbe_hdl_t *hdl = NULL;
+
+  if (_PBT_IS_IN_GGT(ggt, winev->xpos, winev->ypos) == PBT_FALSE)
+    return PBT_FALSE;
+
+  if (WBE_GET_BIT(winev->buttons, 1) == 1)
+    {
+      main_window = (midilooper_main_window *) main_window_addr;
+      if (main_window->engine_ctx->type == MSQ_ENG_ALSA)
+        {
+          options_menu[0] = "Reload in jack mode /!\\";
+          list_size = 1;
+        }
+      else
+        {
+          hdl = (jbe_hdl_t *) main_window->engine_ctx->hdl;
+          options_menu[0] = "Reload in alsa mode /!\\";
+          if (hdl->transport_enabled == MSQ_TRUE)
+            options_menu[1] = "Disable jack tranport";
+          else
+            options_menu[1] = "Enable jack tranport";
+          list_size = 2;
+        }
+      msq_dialog_list(&(main_window->dialog_iface),
+                      (char **) options_menu,
+                      list_size,
+                      engine_options_res_cb,
+                      main_window);
+      return PBT_TRUE;
+    }
+  return PBT_FALSE;
+}
+
+pbt_bool_t engine_info_area_unset_focus_cb(pbt_ggt_t *ggt,
+                                           wbe_window_input_t *winev,
+                                           void *unused)
+{
+  if (WBE_GET_BIT(winev->buttons, 1) == 0)
+    return PBT_TRUE;
+  return PBT_FALSE;
+}
+
+void engine_info_area_wgt_init_ev_cb(pbt_wgt_t *wgt, pbt_ggt_win_t *ggt_win)
+{
+  midilooper_main_window *main_window = (midilooper_main_window *) wgt->priv;
+
+  pbt_evh_add_set_focus_cb(&(wgt->ggt_win->evh),
+                           &(wgt->ggt),
+                           engine_info_area_set_focus_cb,
+                           main_window);
+  pbt_evh_add_unset_focus_cb(&(wgt->ggt_win->evh),
+                             &(wgt->ggt),
+                             engine_info_area_unset_focus_cb,
+                             NULL);
+}
+
+void engine_info_area_wgt_init(pbt_wgt_t *wgt,
+                               midilooper_main_window *main_window)
+{
+  wgt->priv = (void *) main_window;
+
+  wgt->ggt.priv = wgt;
+  wgt->ggt.get_min_width = pbt_ggt_return_zero;
+  wgt->ggt.get_max_width = pbt_ggt_return_zero;
+  wgt->ggt.get_min_height = engine_info_area_ggt_get_height;
+  wgt->ggt.get_max_height = engine_info_area_ggt_get_height;
+  wgt->ggt.update_area_cb = pbt_ggt_memcpy_area;
+  wgt->ggt.draw_cb = draw_engine_info_area_cb;
+  wgt->ggt.destroy_cb = pbt_wgt_evnode_destroy;
+  wgt->init_ev_cb = engine_info_area_wgt_init_ev_cb;
+}
+
 void midilooper_main_window::_init_main_window(void)
 {
   list_iterator_t it;
@@ -1659,6 +1811,7 @@ void midilooper_main_window::_init_main_window(void)
   track_ctx_t *track_ctx;
   msq_track_line_t *track_line;
   char *current_dir = NULL;
+  unsigned int tmp_width;
 
   gui_default_theme_init(&theme);
   track_editor_default_theme_init(&track_editor_theme,
@@ -1703,6 +1856,11 @@ void midilooper_main_window::_init_main_window(void)
 
   msq_transport_init(&transport_iface, &theme, engine_ctx);
 
+  pbt_font_get_string_width(&(theme.theme.font),
+                            "-" ENGINE_INFO_TITLE "-",
+                            &tmp_width);
+  engine_info_area_wgt_init(&engine_info_area, this);
+
   msq_output_list_init(&output_list, this);
 
   for (iter_init(&it, &(engine_ctx->output_list));
@@ -1717,6 +1875,10 @@ void midilooper_main_window::_init_main_window(void)
 
   pbt_ggt_vctnr_init(&root_child_vctnr);
   pbt_ggt_add_child_wgt(&root_child_vctnr, &transport_iface);
+  pbt_ggt_ctnr_add_static_separator(&root_child_vctnr,
+                                    theme.default_margin,
+                                    theme.theme.window_bg);
+  _pbt_ggt_add_child_wgt(&root_child_vctnr, &engine_info_area);
   pbt_ggt_ctnr_add_static_separator(&root_child_vctnr,
                                     theme.default_margin,
                                     theme.theme.window_bg);
@@ -1917,21 +2079,28 @@ void midilooper_main_window::show_filemenu_dialog(void)
                   this);
 }
 
+void options_dialog_res_cb(size_t idx, void *mainwin_addr)
+{
+  if (idx == 0)
+    {
+      if (wbe_window_backend_get_key_layout() == WBE_KEY_LAYOUT_FR)
+        set_keyboard_configuration(WBE_KEY_LAYOUT_EN);
+      else
+        set_keyboard_configuration(WBE_KEY_LAYOUT_FR);
+    }
+}
+
 void midilooper_main_window::show_options_dialog(void)
 {
-  static const char *options_menu[2];
+  static const char *options_menu[1];
 
   if (wbe_window_backend_get_key_layout() == WBE_KEY_LAYOUT_FR)
     options_menu[0] = "Setup qwerty keyboard";
   else
     options_menu[0] = "Setup azerty keyboard";
-  if (engine_ctx->type == MSQ_ENG_ALSA)
-    options_menu[1] = "Reload in jack mode /!\\";
-  else
-    options_menu[1] = "Reload in alsa mode /!\\";
   msq_dialog_list(&(dialog_iface),
                   (char **) options_menu,
-                  2,
+                  1,
                   options_dialog_res_cb,
                   this);
 }
@@ -1986,8 +2155,8 @@ void midilooper_main_window::show_track_addbinding(track_editor_t *track_editor)
 
 void midilooper_main_window::show_track_dialog(track_editor_t *track_editor)
 {
-  static const char *track_menu[] = {"Rename",
-                                     "Output",
+  static const char *track_menu[] = {"Output",
+                                     "Rename",
                                      "Add binding",
                                      "Del all bindings",
                                      "Move",
@@ -2615,6 +2784,7 @@ int mlp_start_opt_session(int ac, char **av)
      {"jack",               no_argument,       NULL,  'j'},
      {"name",               required_argument, NULL,  'n'},
      {"file",               required_argument, NULL,  'f'},
+     {"version",            required_argument, NULL,  'v'},
      {NULL,                 0,                 NULL,  0}};
   int opt_ret;
   int opt_idx = 0;
@@ -2641,7 +2811,8 @@ OPTIONS:\n\
   -j, --jack\n\
     Jack mode\n\
   -n NAME, --name=NAME\n\
-    Set the midi client name (alsa or jack)\n";
+    Set the midi client name (alsa or jack)\n\
+  -v, --version\n";
 
   const char *interface_help = "\
 Editor shortcuts:\n\
@@ -2685,7 +2856,7 @@ Mouse behaviour:\n\
     Left button\n\
       play note to output\n";
 
-  while ((opt_ret = getopt_long(ac, av, "ahijn:f:m", long_options, &opt_idx)))
+  while ((opt_ret = getopt_long(ac, av, "ahijn:f:mv", long_options, &opt_idx)))
     {
       if (opt_ret == -1)
         break;
@@ -2715,6 +2886,9 @@ Mouse behaviour:\n\
           jack_bool = true;
           break;
         case 'n':
+          name = optarg;
+          break;
+        case 'v':
           name = optarg;
           break;
         default:
