@@ -69,6 +69,15 @@ add_executable(${PROJECT_NAME}
   ${MIDILOOPER_DIR}/msq_imgui.cxx
   ${MIDILOOPER_DIR}/msq_main_gui.cxx)
 
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/midilooper_version.h
+  COMMAND ${CMAKE_SOURCE_DIR}/src/dump_version_header.sh > ${CMAKE_BINARY_DIR}/midilooper_version.h)
+
+add_custom_target(gen_midilooper_version
+  DEPENDS ${CMAKE_BINARY_DIR}/midilooper_version.h)
+
+add_dependencies(${PROJECT_NAME}
+  gen_midilooper_version)
+
 include(${PBT_DIR}/CMakeLists.txt)
 
 find_package(PkgConfig)

@@ -28,6 +28,7 @@ extern "C"
 #include "msq_gui.h"
 #include "msq_track_editor.h"
 #include "msq_nsm.h"
+#include "midilooper_version.h"
 }
 
 #include <sys/time.h>
@@ -2890,7 +2891,8 @@ Mouse behaviour:\n\
           name = optarg;
           break;
         case 'v':
-          name = optarg;
+          pbt_logmsg("%s", MIDILOOPER_VERSION);
+          exit(0);
           break;
         default:
           pbt_abort("%s\n?? getopt returned character code 0%o ??",
