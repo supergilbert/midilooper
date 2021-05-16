@@ -155,23 +155,63 @@ void jbe_set_tick(engine_ctx_t *ctx, uint_t tick)
     }
   else
     {
-      jbe_stop(ctx);
-      be_hdl->internal_frame_pos = convert_tick_to_frame(tick,
-                                                         position.frame_rate,
-                                                         ctx->ppq,
-                                                         ctx->tempo);
-      jbe_start(ctx);
+      if (be_hdl->stopped == MSQ_TRUE)
+        {
+          jbe_stop(ctx);
+          be_hdl->internal_frame_pos = convert_tick_to_frame(tick,
+                                                             position.frame_rate,
+                                                             ctx->ppq,
+                                                             ctx->tempo);
+          jbe_start(ctx);
+        }
+      else
+        be_hdl->internal_frame_pos = convert_tick_to_frame(tick,
+                                                           position.frame_rate,
+                                                           ctx->ppq,
+                                                           ctx->tempo);
     }
   engine_set_tracks_need_sync(ctx);
 }
 
+void jbe_timebase_callback(jack_transport_state_t state,
+                           jack_nframes_t nframes,
+                           jack_position_t *pos,
+                           int new_pos,
+                           void *ctx_addr)
+{
+  engine_ctx_t *ctx = (engine_ctx_t *) ctx_addr;
+  jbe_hdl_t *be_hdl = (jbe_hdl_t *) ctx->hdl;
+  uint64_t beat_idx, numtmp, dentmp;
+
+  pos->valid = JackPositionBBT | JackBBTFrameOffset;
+  numtmp = (uint64_t) pos->frame * 1000000;
+  dentmp = (uint64_t) pos->frame_rate * (uint64_t) ctx->tempo;
+  beat_idx = numtmp / dentmp;
+  pos->bar = (beat_idx / 4) + 1;
+  pos->beat = (beat_idx + 1) % 4;
+  if (pos->beat == 0)
+    pos->beat = 4;
+  pos->tick = be_hdl->tick;
+  pos->bar_start_tick = 0;
+  pos->beat_type = 4;
+  pos->ticks_per_beat = ctx->ppq;
+  pos->beats_per_minute = 60000000 / ctx->tempo;
+  pos->bbt_offset = 0;
+  be_hdl->tempo_enabled = MSQ_TRUE;
+  if (be_hdl->enable_master == MSQ_TRUE)
+    {
+      be_hdl->tempo_master = MSQ_TRUE;
+      ctx->updated = MSQ_TRUE;
+      be_hdl->enable_master = MSQ_FALSE;
+    }
+}
+
 void jbe_set_tempo(engine_ctx_t *ctx, uint_t ms)
 {
-  ctx->tempo = ms;
-  /* jbe_hdl_t       *be_hdl = (jbe_hdl_t *) ctx->hdl; */
-  /* jack_position_t position; */
+  jbe_hdl_t *be_hdl = (jbe_hdl_t *) ctx->hdl;
 
-  /* jack_transport_query(be_hdl->client, &position); */
+  if (be_hdl->tempo_enabled == MSQ_FALSE || be_hdl->tempo_master == MSQ_TRUE)
+    ctx->tempo = ms;
 }
 
 #include <jack/midiport.h>
@@ -265,90 +305,30 @@ void jbe_handle_frames(engine_ctx_t *ctx,
     }
 }
 
-void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
+void jbe_dump_jack_position(jack_position_t *position)
 {
-  jbe_hdl_t       *be_hdl = (jbe_hdl_t *) ctx->hdl;
-  jack_position_t position;
-  uint64_t        tick_bkp;
-
-  switch (jack_transport_query(be_hdl->client, &position))
-    {
-    case JackTransportStarting:
-      jbe_update_tick_n_frame(ctx, position.frame, position.frame_rate);
-      engine_prepare_tracklist(ctx);
-      be_hdl->stopped = MSQ_FALSE;
-      break;
-    case JackTransportRolling:
-    case JackTransportLooping:
-      tick_bkp = be_hdl->tick;
-      jbe_update_tick_n_frame(ctx, position.frame, position.frame_rate);
-      if (be_hdl->stopped != MSQ_FALSE)
-        be_hdl->stopped = MSQ_FALSE;
-      else
-        {
-          if (tick_bkp != be_hdl->tick)
-            {
-              output_error("!!! Missing tick !!!"
-                           " last:%llu != current:%llu"
-                           " (transport.frame:%llu"
-                           " current_frame:%llu"
-                           " nframes:%llu)",
-                           be_hdl->tick,
-                           tick_bkp,
-                           position.frame,
-                           be_hdl->cur_frame,
-                           nframes);
-              engine_prepare_tracklist(ctx);
-            }
-        }
-      jbe_handle_frames(ctx,
-                        position.frame,
-                        position.frame_rate,
-                        nframes);
-      break;
-    case JackTransportStopped:
-      if (be_hdl->stopped != MSQ_TRUE)
-        be_hdl->stopped = MSQ_TRUE;
-      jbe_handle_frames(ctx,
-                        position.frame,
-                        position.frame_rate,
-                        nframes);
-      /* jack_transport_locate(be_hdl->client, 0); */
-      break;
-    default:
-      break;
-    }
-}
-
-
-void jbe_handle_internal(engine_ctx_t *ctx, jack_nframes_t nframes)
-{
-  jbe_hdl_t          *be_hdl = (jbe_hdl_t *) ctx->hdl;
-
-  if (be_hdl->stopped == MSQ_TRUE)
-    {
-      if (be_hdl->internal_running == MSQ_TRUE)
-        {
-          jbe_handle_frames(ctx,
-                            be_hdl->internal_frame_pos,
-                            be_hdl->frame_rate,
-                            nframes);
-          be_hdl->internal_running = MSQ_FALSE;
-        }
-    }
-  else
-    {
-      if (be_hdl->internal_running == MSQ_FALSE)
-        be_hdl->internal_running = MSQ_TRUE;
-      jbe_update_tick_n_frame(ctx,
-                              be_hdl->internal_frame_pos,
-                              be_hdl->frame_rate);
-      jbe_handle_frames(ctx,
-                        be_hdl->internal_frame_pos,
-                        be_hdl->frame_rate,
-                        nframes);
-      be_hdl->internal_frame_pos += nframes;
-    }
+  output("\n*** Jack position frame rate:%d frame:%d ***\n",
+         position->frame_rate,
+         position->frame);
+  if ((position->valid & JackPositionBBT) != 0)
+    output(" got JackPositionBBT (bar:%d beat:%d tick:%d bpm:%lf bar_start_tick:%lf beats_per_bar:%f beat_type:%f ticks_per_beat:%lf)\n",
+           position->bar,
+           position->beat,
+           position->tick,
+           position->beats_per_minute,
+           position->bar_start_tick,
+           position->beats_per_bar,
+           position->beat_type,
+           position->ticks_per_beat);
+  if ((position->valid & JackPositionTimecode) != 0)
+    output(" got JackPositionTimecode (bbt_offset:%d)\n",
+           position->bbt_offset);
+  if ((position->valid & JackBBTFrameOffset) != 0)
+    output(" got JackBBTFrameOffset\n");
+  if ((position->valid & JackAudioVideoRatio) != 0)
+    output(" got JackAudioVideoRatio\n");
+  if ((position->valid & JackVideoFrameOffset) != 0)
+    output(" got JackVideoFrameOffset\n");
 }
 
 #include "midi/midi_tool.h"
@@ -362,8 +342,6 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
   uint32_t               idx;
   midicev_t              midicev;
   uint64_t               tick;
-  jack_position_t        position;
-  jack_transport_state_t state;
 
   /* Handling midi remote */
   for (idx = 0;
@@ -444,16 +422,6 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
 
   if (ctx->rec == MSQ_TRUE && hdl->stopped == MSQ_FALSE)
     {
-      if (hdl->transport_enabled == MSQ_TRUE)
-        {
-          state = jack_transport_query(hdl->client, &position);
-          if (state == JackTransportRolling ||
-              state == JackTransportLooping ||
-              state == JackTransportStarting)
-            hdl->internal_frame_pos = position.frame;
-          else
-            return;
-        }
       /* Handling midi record */
       port_buf    = jack_port_get_buffer(hdl->record_input, nframes);
       event_count = jack_midi_get_event_count(port_buf);
@@ -473,6 +441,118 @@ void jbe_handle_input(engine_ctx_t *ctx, jack_nframes_t nframes)
     }
 }
 
+void jbe_handle_transport(engine_ctx_t *ctx, jack_nframes_t nframes)
+{
+   jbe_hdl_t       *be_hdl = (jbe_hdl_t *) ctx->hdl;
+  jack_position_t position;
+  uint64_t        tick_bkp;
+  jack_transport_state_t transport_state = jack_transport_query(be_hdl->client, &position);
+  static uint_t tempo_bkp;
+
+  if (be_hdl->tempo_enabled == MSQ_TRUE)
+    {
+      if ((position.valid & JackPositionBBT) != 0)
+        {
+          if (be_hdl->tempo_master == MSQ_FALSE)
+            {
+              ctx->tempo = 60000000 / position.beats_per_minute;
+              if (tempo_bkp != ctx->tempo)
+                {
+                  tempo_bkp = ctx->tempo;
+                  ctx->updated = MSQ_TRUE;
+                }
+            }
+        }
+      else
+        {
+          be_hdl->tempo_enabled = MSQ_FALSE;
+          ctx->updated = MSQ_TRUE;
+        }
+    }
+
+  be_hdl->internal_frame_pos = position.frame;
+  jbe_handle_input(ctx, nframes);
+
+  switch (transport_state)
+    {
+    case JackTransportStarting:
+      jbe_update_tick_n_frame(ctx, position.frame, position.frame_rate);
+      engine_prepare_tracklist(ctx);
+      be_hdl->stopped = MSQ_FALSE;
+      break;
+    case JackTransportRolling:
+    case JackTransportLooping:
+      tick_bkp = be_hdl->tick;
+      jbe_update_tick_n_frame(ctx, position.frame, position.frame_rate);
+      if (be_hdl->stopped != MSQ_FALSE)
+        be_hdl->stopped = MSQ_FALSE;
+      else
+        {
+          if (tick_bkp != be_hdl->tick)
+            {
+              output_error("!!! Missing tick !!!"
+                           " last:%llu != current:%llu"
+                           " (transport.frame:%llu"
+                           " current_frame:%llu"
+                           " nframes:%llu)",
+                           be_hdl->tick,
+                           tick_bkp,
+                           position.frame,
+                           be_hdl->cur_frame,
+                           nframes);
+              engine_prepare_tracklist(ctx);
+            }
+        }
+      jbe_handle_frames(ctx,
+                        be_hdl->internal_frame_pos,
+                        be_hdl->frame_rate,
+                        nframes);
+      break;
+    case JackTransportStopped:
+      if (be_hdl->stopped != MSQ_TRUE)
+        be_hdl->stopped = MSQ_TRUE;
+      jbe_handle_frames(ctx,
+                        be_hdl->internal_frame_pos,
+                        be_hdl->frame_rate,
+                        nframes);
+      break;
+    default:
+      break;
+    }
+}
+
+void jbe_handle_internal(engine_ctx_t *ctx, jack_nframes_t nframes)
+{
+  jbe_hdl_t          *be_hdl = (jbe_hdl_t *) ctx->hdl;
+
+  jbe_handle_input(ctx, nframes);
+
+  if (be_hdl->stopped == MSQ_TRUE)
+    {
+      if (be_hdl->internal_running == MSQ_TRUE)
+        {
+          jbe_handle_frames(ctx,
+                            be_hdl->internal_frame_pos,
+                            be_hdl->frame_rate,
+                            nframes);
+          be_hdl->internal_running = MSQ_FALSE;
+        }
+    }
+  else
+    {
+      if (be_hdl->internal_running == MSQ_FALSE)
+        be_hdl->internal_running = MSQ_TRUE;
+      jbe_update_tick_n_frame(ctx,
+                              be_hdl->internal_frame_pos,
+                              be_hdl->frame_rate);
+      jbe_handle_frames(ctx,
+                        be_hdl->internal_frame_pos,
+                        be_hdl->frame_rate,
+                        nframes);
+      be_hdl->internal_frame_pos += nframes;
+    }
+}
+
 int jbe_process_cb(jack_nframes_t nframes, void *ctx_ptr)
 {
   engine_ctx_t *engine = ctx_ptr;
@@ -481,8 +561,6 @@ int jbe_process_cb(jack_nframes_t nframes, void *ctx_ptr)
   be_hdl->cur_frame = 0;
 
   jbe_prepare_outputs(&(engine->output_list), nframes);
-
-  jbe_handle_input(engine, nframes);
 
   play_outputs_reqs(engine);
 
@@ -537,6 +615,9 @@ msq_bool_t jbe_init_engine(engine_ctx_t *ctx, char *name)
   hdl->frame_rate = jack_get_sample_rate(client);
   hdl->internal_frame_pos = 0;
   hdl->transport_enabled = MSQ_TRUE;
+  hdl->tempo_enabled = MSQ_FALSE;
+  hdl->enable_master = MSQ_FALSE;
+  hdl->tempo_master = MSQ_FALSE;
   hdl->internal_running = MSQ_FALSE;
 
   ctx->hdl = hdl;

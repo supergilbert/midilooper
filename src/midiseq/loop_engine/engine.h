@@ -135,6 +135,7 @@ typedef struct engine_ctx_s
   msq_bool_t       rec_state_changed;  /* Ask for recording track */
   saverq_t         saverq;
   char             savepath[256];
+  msq_bool_t       updated;
   msq_bool_t       (*is_running)(struct engine_ctx_s *engine);
   void             (*destroy_hdl)(struct engine_ctx_s *engine);
   void             (*start)(struct engine_ctx_s *engine);
@@ -355,6 +356,15 @@ typedef struct
   jack_port_t    *record_input;
   msq_bool_t     stopped;
   msq_bool_t     transport_enabled;
+  msq_bool_t     tempo_enabled;
+  msq_bool_t     enable_master;
+  msq_bool_t     tempo_master;
 } jbe_hdl_t;
+
+void jbe_timebase_callback(jack_transport_state_t state,
+                           jack_nframes_t nframes,
+                           jack_position_t *pos,
+                           int new_pos,
+                           void *ctx_addr);
 
 #endif

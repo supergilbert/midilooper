@@ -1682,7 +1682,17 @@ void draw_engine_info_area_cb(pbt_ggt_t *ggt)
       hdl = (jbe_hdl_t *) main_window->engine_ctx->hdl;
       line1 = "jack";
       if (hdl->transport_enabled == MSQ_TRUE)
-        line2 = "transport on (start, stop, no tempo)";
+        {
+          if (hdl->tempo_enabled == MSQ_TRUE)
+            {
+              if (hdl->tempo_master == MSQ_TRUE)
+                line2 = "transport ON (JackPositionBBT Master)";
+              else
+                line2 = "transport ON (JackPositionBBT)";
+            }
+          else
+            line2 = "transport ON (start, stop, no tempo)";
+        }
       else
         line2 = "No sync";
     }
@@ -1703,12 +1713,14 @@ void draw_engine_info_area_cb(pbt_ggt_t *ggt)
 void engine_options_res_cb(size_t idx, void *mainwin_addr)
 {
   midilooper_main_window *mainwin = (midilooper_main_window *) mainwin_addr;
-  jbe_hdl_t *hdl = NULL;
+  jbe_hdl_t *hdl = (jbe_hdl_t *) mainwin->engine_ctx->hdl;
 
-  if (idx == 0)
-    mainwin->_switch_engine();
-  else if (idx == 1)
+  switch (idx)
     {
+    case 0:
+      mainwin->_switch_engine();
+      break;
+    case 1:
       if (mainwin->engine_ctx->type != MSQ_ENG_JACK)
         {
           pbt_logerr("BAD DEV ERROR:"
@@ -1716,12 +1728,40 @@ void engine_options_res_cb(size_t idx, void *mainwin_addr)
                      " on other engine than jack");
           return;
         }
-      hdl = (jbe_hdl_t *) mainwin->engine_ctx->hdl;
       if (hdl->transport_enabled == MSQ_TRUE)
         hdl->transport_enabled = MSQ_FALSE;
       else
         hdl->transport_enabled = MSQ_TRUE;
       mainwin->redraw();
+      break;
+    case 2:
+      if (hdl->tempo_enabled == MSQ_TRUE)
+        {
+          jack_release_timebase(hdl->client);
+          hdl->tempo_enabled = MSQ_FALSE;
+        }
+      else
+        hdl->tempo_enabled = MSQ_TRUE;
+      mainwin->redraw();
+      break;
+    case 3:
+      hdl->tempo_enabled = MSQ_TRUE;
+      hdl->tempo_master = MSQ_FALSE;
+      jack_set_timebase_callback(hdl->client,
+                                 1,
+                                 jbe_timebase_callback,
+                                 mainwin->engine_ctx);
+      mainwin->redraw();
+      break;
+    case 4:
+      hdl->tempo_enabled = MSQ_TRUE;
+      hdl->enable_master = MSQ_TRUE;
+      jack_set_timebase_callback(hdl->client,
+                                 0,
+                                 jbe_timebase_callback,
+                                 mainwin->engine_ctx);
+      mainwin->redraw();
+      break;
     }
 }
 
@@ -1729,7 +1769,7 @@ pbt_bool_t engine_info_area_set_focus_cb(pbt_ggt_t *ggt,
                                          wbe_window_input_t *winev,
                                          void *main_window_addr)
 {
-  static const char *options_menu[2];
+  static const char *options_menu[5];
   // pbt_wgt_t *wgt = (pbt_wgt_t *) ggt->priv;
   midilooper_main_window *main_window;
   unsigned int list_size;
@@ -1751,10 +1791,21 @@ pbt_bool_t engine_info_area_set_focus_cb(pbt_ggt_t *ggt,
           hdl = (jbe_hdl_t *) main_window->engine_ctx->hdl;
           options_menu[0] = "Reload in alsa mode /!\\";
           if (hdl->transport_enabled == MSQ_TRUE)
-            options_menu[1] = "Disable jack tranport";
+            {
+              options_menu[1] = "Disable jack tranport";
+              if (hdl->tempo_enabled == MSQ_TRUE)
+                options_menu[2] = "Disable tempo";
+              else
+                options_menu[2] = "Slave tempo";
+              options_menu[3] = "Master tempo (conditionnaly)";
+              options_menu[4] = "Master tempo";
+              list_size = 5;
+            }
           else
-            options_menu[1] = "Enable jack tranport";
-          list_size = 2;
+            {
+              options_menu[1] = "Enable jack tranport";
+              list_size = 2;
+            }
         }
       msq_dialog_list(&(main_window->dialog_iface),
                       (char **) options_menu,
@@ -2614,9 +2665,13 @@ void midilooper_main_window::handle_msq_update(void)
 
   if (engine_ctx->mute_state_changed == MSQ_TRUE)
     {
-      _pbt_ggt_draw(ggt_win.ggt);
-      pbt_ggt_win_put_buffer(&ggt_win);
+      redraw();
       engine_ctx->mute_state_changed = MSQ_FALSE;
+    }
+  if (engine_ctx->updated == MSQ_TRUE)
+    {
+      redraw();
+      engine_ctx->updated = MSQ_FALSE;
     }
   // Temp hack to handle resize refresh bug (pbt_gadget_window.c TODO)
   else if ((wait_since + 1.0) < wbe_get_time())

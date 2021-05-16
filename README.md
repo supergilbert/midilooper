@@ -40,8 +40,11 @@ It is a midi looper inspired of seq24 and ableton/live.
         * Add modal button (select, write, move, resize, ...)
     * Add scale selector
     * Add keyboard binding to piano in editor
-  * Suppress Imgui hacks
-    * Add a list widget to pbt
+  * Suppress Imgui hacks (???)
+    * Add widget to pbt
+      * input widget
+      * list widget
+    * File browser widget
     * (Remove C++ ???)
   * Add multiple rec mode (overwrite, last loop, inc loop size, ...)
 * User helper and documentation
