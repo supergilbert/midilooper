@@ -40,7 +40,7 @@ It is a midi looper inspired of seq24 and ableton/live.
         * Add modal button (select, write, move, resize, ...)
     * Add scale selector
     * Add keyboard binding to piano in editor
-  * Suppress Imgui hacks (???)
+  * Suppress Imgui (???)
     * Add widget to pbt
       * input widget
       * list widget
