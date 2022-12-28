@@ -93,9 +93,9 @@ include(${PBT_DIR}/CMakeLists.txt)
 
 if("${MLP_STATIC}" STREQUAL "ON")
   message("*** MLP STATIC ON ***")
-  set_target_properties(${PROJECT_NAME} PROPERTIES
-    LINK_SEARCH_START_STATIC ON
-    LINK_SEARCH_END_STATIC OFF)
+  # set_target_properties(${PROJECT_NAME} PROPERTIES
+  #   LINK_SEARCH_START_STATIC ON
+  #   LINK_SEARCH_END_STATIC OFF)
 endif()
 
 find_package(PkgConfig)
@@ -113,6 +113,7 @@ if("${MLP_STATIC}" STREQUAL "ON")
   pkg_check_modules(ZLIB REQUIRED zlib)
   pkg_check_modules(ROTLIDEC REQUIRED libbrotlidec)
   pkg_check_modules(ROTLICOMMON REQUIRED libbrotlicommon)
+
   target_link_libraries(${PROJECT_NAME}
     -Wl,-Bstatic
     ${wbe_lib_name}
