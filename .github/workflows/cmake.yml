@@ -8,7 +8,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
@@ -50,5 +50,5 @@ jobs:
 
     - uses: actions/upload-artifact@v3
       with:
-        name: midilooper_linux_amd64_ubuntu_20.04_binary
+        name: midilooper_ubuntu_elf_x64
         path: ${{runner.workspace}}/build/midilooper
