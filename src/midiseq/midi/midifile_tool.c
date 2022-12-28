@@ -301,6 +301,24 @@ buf_node_t *_append_sysex_engine_type(buf_node_t *tail, uint_t engine_type)
   return tail->next;
 }
 
+buf_node_t *_append_sysex_jtransport_info(buf_node_t *tail,
+                                          msq_bool_t transport_enabled,
+                                          msq_bool_t tempo_enabled,
+                                          msq_bool_t enable_master)
+{
+  byte_t buf[2] = {0x0, 0xF7};
+
+  tail = _append_sysex_header(tail, 2, MLP_SYSEX_JTRANSPORT_INFO);
+  if (transport_enabled == MSQ_TRUE)
+    buf[0] = 0x1;
+  if (tempo_enabled == MSQ_TRUE)
+    buf[0] += 0x2;
+  if (enable_master == MSQ_TRUE)
+    buf[0] += 0x4;
+  tail->next = add_buf_node(buf, 2);
+  return tail->next;
+}
+
 buf_node_t *_append_sysex_loopstart(buf_node_t *tail, uint_t start)
 {
   byte_t buf[5];
@@ -348,43 +366,43 @@ buf_node_t *_append_sysex_bindings(buf_node_t *tail, midifile_track_t *mtrack)
 {
   if (mtrack->mute_bindings.keys_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_MUTE_TRACK_BINDING_KEYPRESS,
+                                       MLP_SYSEX_TRACK_BINDING_MUTE_KEYPRESS,
                                        mtrack->mute_bindings.keys,
                                        mtrack->mute_bindings.keys_sz);
   if (mtrack->mute_bindings.notes_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_MUTE_TRACK_BINDING_NOTEPRESS,
+                                       MLP_SYSEX_TRACK_BINDING_MUTE_NOTEPRESS,
                                        mtrack->mute_bindings.notes,
                                        mtrack->mute_bindings.notes_sz);
   if (mtrack->mute_bindings.programs_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_MUTE_TRACK_BINDING_PROGPRESS,
+                                       MLP_SYSEX_TRACK_BINDING_MUTE_PROGPRESS,
                                        mtrack->mute_bindings.programs,
                                        mtrack->mute_bindings.programs_sz);
   if (mtrack->mute_bindings.programs_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_MUTE_TRACK_BINDING_CTRLCHG,
+                                       MLP_SYSEX_TRACK_BINDING_MUTE_CTRLCHG,
                                        mtrack->mute_bindings.controls,
                                        mtrack->mute_bindings.controls_sz);
 
   if (mtrack->rec_bindings.keys_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_REC_TRACK_BINDING_KEYPRESS,
+                                       MLP_SYSEX_TRACK_BINDING_REC_KEYPRESS,
                                        mtrack->rec_bindings.keys,
                                        mtrack->rec_bindings.keys_sz);
   if (mtrack->rec_bindings.notes_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_REC_TRACK_BINDING_NOTEPRESS,
+                                       MLP_SYSEX_TRACK_BINDING_REC_NOTEPRESS,
                                        mtrack->rec_bindings.notes,
                                        mtrack->rec_bindings.notes_sz);
   if (mtrack->rec_bindings.programs_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_REC_TRACK_BINDING_PROGPRESS,
+                                       MLP_SYSEX_TRACK_BINDING_REC_PROGPRESS,
                                        mtrack->rec_bindings.programs,
                                        mtrack->rec_bindings.programs_sz);
   if (mtrack->rec_bindings.controls_sz > 0)
     tail = _append_sysex_type_bindings(tail,
-                                       MLP_SYSEX_REC_TRACK_BINDING_CTRLCHG,
+                                       MLP_SYSEX_TRACK_BINDING_REC_CTRLCHG,
                                        mtrack->rec_bindings.controls,
                                        mtrack->rec_bindings.controls_sz);
 

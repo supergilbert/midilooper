@@ -159,14 +159,14 @@ void jbe_set_tick(engine_ctx_t *ctx, uint_t tick)
         {
           jbe_stop(ctx);
           be_hdl->internal_frame_pos = convert_tick_to_frame(tick,
-                                                             position.frame_rate,
+                                                             be_hdl->frame_rate,
                                                              ctx->ppq,
                                                              ctx->tempo);
           jbe_start(ctx);
         }
       else
         be_hdl->internal_frame_pos = convert_tick_to_frame(tick,
-                                                           position.frame_rate,
+                                                           be_hdl->frame_rate,
                                                            ctx->ppq,
                                                            ctx->tempo);
     }

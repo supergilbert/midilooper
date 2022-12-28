@@ -4,6 +4,17 @@ if(NOT UNIX)
   message(FATAL_ERROR "Unhandled OS type")
 endif()
 
+# if (NOT DEFINED MLP_STATIC)
+#   set(MLP_STATIC "OFF")
+# else()
+#   if (${MLP_STATIC} STREQUAL "ON")
+#     set(CMAKE_CXX_FLAGS "-std=c++17")
+#     set(CMAKE_C_FLAGS "-Wall -Werror")
+#   else()
+#     set(MLP_STATIC "OFF")
+#   endif()
+# endif()
+
 project(midilooper)
 
 set(PBT_DIR "${CMAKE_SOURCE_DIR}/src/pixel_buffer_tools")
@@ -80,26 +91,63 @@ add_dependencies(${PROJECT_NAME}
 
 include(${PBT_DIR}/CMakeLists.txt)
 
+if("${MLP_STATIC}" STREQUAL "ON")
+  message("*** MLP STATIC ON ***")
+  set_target_properties(${PROJECT_NAME} PROPERTIES
+    LINK_SEARCH_START_STATIC ON
+    LINK_SEARCH_END_STATIC OFF)
+endif()
+
 find_package(PkgConfig)
 
 pkg_check_modules(ALSA      REQUIRED alsa)
 pkg_check_modules(JACK      REQUIRED jack)
 pkg_check_modules(LIBCONFIG REQUIRED libconfig)
 pkg_check_modules(LIBLO     REQUIRED liblo)
+pkg_check_modules(FREETYPE2 REQUIRED freetype2)
 
-target_link_libraries(${PROJECT_NAME}
-  ${wbe_lib_name}
-  ${pbt_lib_name}
-  ${pbt_default_font}
-  ${GLES_LIBRARIES}
-  ${X11_LIBRARIES}
-  ${GLFW_LIBRARIES}
-  ${ALSA_LIBRARIES}
-  ${JACK_LIBRARIES}
-  ${FREETYPE2_LIBRARIES}
-  ${LIBCONFIG_LIBRARIES}
-  ${LIBLO_LIBRARIES}
-  pthread)
+
+if("${MLP_STATIC}" STREQUAL "ON")
+  pkg_check_modules(PNG REQUIRED libpng)
+  pkg_check_modules(PNG16 REQUIRED libpng16)
+  pkg_check_modules(ZLIB REQUIRED zlib)
+  pkg_check_modules(ROTLIDEC REQUIRED libbrotlidec)
+  pkg_check_modules(ROTLICOMMON REQUIRED libbrotlicommon)
+  target_link_libraries(${PROJECT_NAME}
+    -Wl,-Bstatic
+    ${wbe_lib_name}
+    ${pbt_lib_name}
+    ${pbt_default_font}
+    ${LIBCONFIG_LIBRARIES}
+    ${LIBLO_LIBRARIES}
+    ${FREETYPE2_LIBRARIES}
+    ${PNG_LIBRARIES}
+    ${PNG16_LIBRARIES}
+    ${ZLIB_LIBRARIES}
+    ${ROTLIDEC_LIBRARIES}
+    ${ROTLICOMMON_LIBRARIES}
+    pthread
+    -Wl,-Bdynamic
+    ${GLES_LIBRARIES}
+    ${X11_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${ALSA_LIBRARIES}
+    ${JACK_LIBRARIES})
+else()
+  target_link_libraries(${PROJECT_NAME}
+    ${wbe_lib_name}
+    ${pbt_lib_name}
+    ${pbt_default_font}
+    ${GLES_LIBRARIES}
+    ${X11_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    ${ALSA_LIBRARIES}
+    ${JACK_LIBRARIES}
+    ${FREETYPE2_LIBRARIES}
+    ${LIBCONFIG_LIBRARIES}
+    ${LIBLO_LIBRARIES}
+    pthread)
+endif()
 
 include_directories(${CMAKE_BINARY_DIR}
   ${GLFW_INCLUDE_DIRS}

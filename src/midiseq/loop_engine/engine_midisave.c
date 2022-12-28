@@ -51,11 +51,20 @@ void write_midifile_track_engine_ctx(int fd, engine_ctx_t *ctx)
   buf_node_t      tmp_root = {};
   buf_node_t      *node;
   uint_t          idx = 0;
+  jbe_hdl_t       *jbe_hdl = NULL;
 
   node = _append_metaev_set_tempo(&tmp_root, ctx->tempo);
 
   node = _append_sysex_file_version(node);
   node = _append_sysex_engine_type(node, ctx->type);
+  if (ctx->type == MSQ_ENG_JACK)
+    {
+      jbe_hdl = ctx->hdl;
+      node = _append_sysex_jtransport_info(node,
+                                           jbe_hdl->transport_enabled,
+                                           jbe_hdl->tempo_enabled,
+                                           jbe_hdl->enable_master);
+    }
 
   for (iter_init(&iter, &(ctx->output_list)),
          idx = 0;

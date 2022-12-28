@@ -31,6 +31,10 @@ extern "C"
 #include "midilooper_version.h"
 }
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <sys/time.h>
 
 #include <list>
@@ -1335,6 +1339,8 @@ void set_keyboard_configuration(wbe_key_layout_t key_layout)
   config_setting_t *setting = NULL;
   string config_dir;
   string config_path;
+  struct stat statbuf = {};
+  std::string mkdir_cmd;
 
   if (key_layout == wbe_window_backend_get_key_layout())
     return;
@@ -1342,6 +1348,27 @@ void set_keyboard_configuration(wbe_key_layout_t key_layout)
   config_dir = getenv("HOME");
   config_dir += "/";
   config_dir += MLP_CONFIG_DIR;
+
+  if (stat(config_path.c_str(), &statbuf) == 0)
+    {
+      if ((statbuf.st_mode & S_IFMT) != S_IFDIR)
+        {
+          pbt_logerr("Configuration not saved (config directory path not a directory)");
+          return;
+        }
+    }
+  else
+    {
+      mkdir_cmd = "mkdir -p ";
+      mkdir_cmd += config_dir.c_str();
+      if (system(mkdir_cmd.c_str()) != 0)
+        {
+          pbt_logerr("Unable to create dircetory with : %s",
+                     mkdir_cmd.c_str());
+          pbt_logerr("Configuration not saved");
+          return;
+        }
+    }
 
   config_path = config_dir + "/";
   config_path += MLP_CONFIG_FILE;
@@ -1366,7 +1393,7 @@ void set_keyboard_configuration(wbe_key_layout_t key_layout)
         config_setting_remove(config_root_setting(&config),
                               "keyboard_language");
     }
-  // TODO check and create config dir
+
   if (config_write_file(&config, config_path.c_str()) == CONFIG_FALSE)
     pbt_logerr("Unable to create config file %s\n"
                "(Sorry config directory not created automatically)",

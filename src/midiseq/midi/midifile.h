@@ -80,6 +80,9 @@ typedef struct
   list_t     portinfo_list;
   byte_t     engine_type;
   uint_t     version;
+  msq_bool_t transport_enabled;
+  msq_bool_t tempo_enabled;
+  msq_bool_t enable_master;
   /* char      *name; */
 }           midifile_info_t;
 
@@ -134,6 +137,10 @@ buf_node_t *get_var_len_buf(uint_t tick);
 buf_node_t *_append_sysex_header(buf_node_t *tail, size_t len, byte_t type);
 buf_node_t *_append_sysex_file_version(buf_node_t *tail);
 buf_node_t *_append_sysex_engine_type(buf_node_t *tail, uint_t engine_type);
+buf_node_t *_append_sysex_jtransport_info(buf_node_t *tail,
+                                          msq_bool_t transport_enabled,
+                                          msq_bool_t tempo_enabled,
+                                          msq_bool_t enable_master);
 void free_buf_list(buf_node_t *buff);
 size_t write_buf_list(int fd, buf_node_t *buff);
 buf_node_t *create_midifile_trackhdr(size_t track_size);
@@ -150,22 +157,23 @@ buf_node_t *create_midifile_trackhdr(size_t track_size);
                                                   length uint32_t */
 #define MLP_SYSEX_TRACK_MUTED             0x24 /* not followed */
 #define MLP_SYSEX_TRACK_PORTID            0x25 /* followed by 4 byte */
-#define MLP_SYSEX_MUTE_TRACK_BINDING_KEYPRESS  0x28 /* byte list of
+#define MLP_SYSEX_TRACK_BINDING_MUTE_KEYPRESS  0x28 /* byte list of
                                                        key bindings */
-#define MLP_SYSEX_MUTE_TRACK_BINDING_NOTEPRESS 0x29 /* byte list of
+#define MLP_SYSEX_TRACK_BINDING_MUTE_NOTEPRESS 0x29 /* byte list of
                                                        note bindings */
-#define MLP_SYSEX_MUTE_TRACK_BINDING_PROGPRESS 0x2A /* byte list of
+#define MLP_SYSEX_TRACK_BINDING_MUTE_PROGPRESS 0x2A /* byte list of
                                                        program bindings */
-#define MLP_SYSEX_MUTE_TRACK_BINDING_CTRLCHG   0x2B /* byte list of
+#define MLP_SYSEX_TRACK_BINDING_MUTE_CTRLCHG   0x2B /* byte list of
                                                        program bindings */
-#define MLP_SYSEX_REC_TRACK_BINDING_KEYPRESS   0x2C /* byte list of
+#define MLP_SYSEX_TRACK_BINDING_REC_KEYPRESS   0x2C /* byte list of
                                                        key bindings */
-#define MLP_SYSEX_REC_TRACK_BINDING_NOTEPRESS  0x2D /* byte list of
+#define MLP_SYSEX_TRACK_BINDING_REC_NOTEPRESS  0x2D /* byte list of
                                                        note bindings */
-#define MLP_SYSEX_REC_TRACK_BINDING_PROGPRESS  0x2E /* byte list of
+#define MLP_SYSEX_TRACK_BINDING_REC_PROGPRESS  0x2E /* byte list of
                                                        program bindings */
-#define MLP_SYSEX_REC_TRACK_BINDING_CTRLCHG    0x2F /* byte list of
+#define MLP_SYSEX_TRACK_BINDING_REC_CTRLCHG    0x2F /* byte list of
                                                        program bindings */
+#define MLP_SYSEX_JTRANSPORT_INFO   0x50
 
 #define GETVLVSIZE(_tick) (_tick < 128) ? 1 :            \
   (((_tick >> 7) < 128) ? 2 :                            \

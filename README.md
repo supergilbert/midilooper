@@ -19,11 +19,11 @@ It is a midi looper inspired of seq24 and ableton/live.
     * Jack
 * Midi track editor
 * Midifile reader and writer
-* Remote keyboard and midi to mute un-mute tracks
+* Remote keyboard and midi to mute unmute tracks
 * Record midi events
 * NSM Compatible
 
-## Roadmap (todo)
+## Road-map (to-do)
 
 * Prevent all kind of error
 * Sync
@@ -33,6 +33,8 @@ It is a midi looper inspired of seq24 and ableton/live.
 * Improve graphic interface
   * Check and modify all labels (ex: channels label 1-16)
   * Main window
+    * Button show editor
+    * Column handling
     * Colored track
   * Editor
     * Improve mouse interaction
@@ -40,14 +42,11 @@ It is a midi looper inspired of seq24 and ableton/live.
         * Add modal button (select, write, move, resize, ...)
     * Add scale selector
     * Add keyboard binding to piano in editor
-  * Suppress Imgui (???)
-    * Re-write dialog interface
-      * Add widget to pbt
-        * input widget
-        * list widget
-        * File browser widget
-    * (Remove C++ ???)
+  * Improve interface API
+    * Improve dialog interface
+    * Fully functional on RPI3
   * Add multiple rec mode (overwrite, last loop, inc loop size, ...)
+* Add midi effects
 * User helper and documentation
 * Clean
   * Remove all hacks
