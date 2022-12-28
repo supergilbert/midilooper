@@ -1,3 +1,9 @@
+midilooper (0.0.2.1) UNRELEASED; urgency=medium
+
+  * jack transport state handling improved
+
+ -- gilbr <gilbr@phenom>  Wed, 28 Dec 2022 22:10:06 +0100
+
 midilooper (0.0.2) unstable; urgency=low
 
   * Add rec bindings
