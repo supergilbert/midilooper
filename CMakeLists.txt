@@ -126,13 +126,13 @@ if("${MLP_STATIC}" STREQUAL "ON")
     ${ZLIB_LIBRARIES}
     ${ROTLIDEC_LIBRARIES}
     ${ROTLICOMMON_LIBRARIES}
-    pthread
     -Wl,-Bdynamic
     ${GLES_LIBRARIES}
     ${X11_LIBRARIES}
     ${GLFW_LIBRARIES}
     ${ALSA_LIBRARIES}
-    ${JACK_LIBRARIES})
+    ${JACK_LIBRARIES}
+    pthread)
 else()
   target_link_libraries(${PROJECT_NAME}
     ${wbe_lib_name}
