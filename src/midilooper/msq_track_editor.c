@@ -3097,6 +3097,7 @@ pbt_bool_t grid_wgt_unset_focus_cb(pbt_ggt_t *ggt,
     case GRID_CTRL_Z_MODE:
       if (wbe_key_pressedA(winev->keys, 'Z') == WBE_FALSE)
         {
+          pbt_logmsg("Undo");
           _history_undo(grid->editor_ctx);
           grid->state = GRID_NO_MODE;
           msq_draw_vggts(grid->vggts);

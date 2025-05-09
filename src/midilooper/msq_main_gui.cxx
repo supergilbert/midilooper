@@ -140,6 +140,7 @@ public:
   void remove_output(output_t *output);
   void remove_track(track_editor_t *track_editor);
   void save_file_as(const char *str);
+  void save_file(void);
   void _set_add_binding_mode(const char *binding_msg,
                              msq_wait_binding_t binding_type);
   void show_add_track(void);
@@ -2394,6 +2395,16 @@ void midilooper_main_window::save_file_as(const char *file_path)
   pbt_logmsg("%s saved\n", file_path);
 }
 
+void midilooper_main_window::save_file(void)
+{
+  if (save_path.empty())
+    msq_dialog_filebrowser(&(dialog_iface),
+                           save_file_cb,
+                           this);
+  else
+    save_file_as(save_path.c_str());
+}
+
 #define _check_alpha_keys(byte_array)           \
   (((byte_array)[1] != 0)                       \
    || ((byte_array)[2] != 0)                    \
@@ -2841,6 +2852,8 @@ int mlp_start_nsm_session(char *nsm_srv_url)
   wbe_pbw_backend_init();
 
   main_window = new midilooper_main_window(&mlp_nsm_session);
+
+  main_window->save_path = mlp_nsm_session.filepath;
 
   main_window->run();
 

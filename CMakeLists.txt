@@ -41,8 +41,8 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY HELPSTRING "Choose the build type")
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 
 # TODO add a debug flag
-set(CMAKE_C_FLAGS_DEBUG "-Wall -Werror -g")
-set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Werror -std=c++11 -g")
+set(CMAKE_C_FLAGS_DEBUG "-Wall -Werror -fsanitize=address -g")
+set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Werror -std=c++11 -fsanitize=address -g")
 
 set(CMAKE_C_FLAGS_RELEASE "-g0 -s")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -std=c++11 -g0 -s")

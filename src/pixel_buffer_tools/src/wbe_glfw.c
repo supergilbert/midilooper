@@ -330,6 +330,8 @@ void wbe_backend_remove_win_event(wbe_window_t *win)
     }
 }
 
+#include <stdio.h>
+
 void wbe_window_destroy(wbe_window_t *win)
 {
   wbe_backend_remove_win_event(win);
