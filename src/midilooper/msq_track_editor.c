@@ -433,12 +433,12 @@ static unsigned char _msq_editor_clipboard_note_max;
 
 void _msq_bytearray_set_bit(unsigned char *array,
                             size_t bit_idx,
-                            wbe_bool_t bool)
+                            wbe_bool_t bool_val)
 {
   size_t octet_idx = bit_idx / 8;
 
   bit_idx = bit_idx % 8;
-  WBE_SET_BIT(array[octet_idx], bit_idx, bool);
+  WBE_SET_BIT(array[octet_idx], bit_idx, bool_val);
 }
 
 wbe_bool_t _msq_bytearray_get_bit(unsigned char *array,

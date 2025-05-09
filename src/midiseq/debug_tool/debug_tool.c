@@ -114,11 +114,11 @@ void _output_error(char *fmt, ...)
   va_end(ap);
 }
 
-void _msq_assert(msq_bool_t bool, char *format, ...)
+void _msq_assert(msq_bool_t bool_val, char *format, ...)
 {
   va_list ap;
 
-  if (bool == MSQ_FALSE)
+  if (bool_val == MSQ_FALSE)
     {
       va_start(ap, format);
       vaoutput_error(format, ap);
