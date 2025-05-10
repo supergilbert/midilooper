@@ -23,7 +23,7 @@ jobs:
       run: |
         sudo apt update
         sudo apt -y upgrade
-        sudo apt -y install libasound2-dev libconfig-dev libfreetype6-dev libgles2-mesa-dev libglfw3-dev libjack-jackd2-dev liblo-dev libbrotli-dev
+        sudo apt -y install bzip2 libasound2-dev libconfig-dev libfreetype6-dev libgles2-mesa-dev libglfw3-dev libjack-jackd2-dev liblo-dev libbrotli-dev
       env:
         DEBIAN_FRONTEND: noninteractive
 
