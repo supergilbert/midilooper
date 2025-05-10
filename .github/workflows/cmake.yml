@@ -24,11 +24,9 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
 
     - name: Configure CMake
-      shell: bash
       run: cmake -S $GITHUB_WORKSPACE -B ${{runner.workspace}}/build -DMLP_STATIC=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     - name: Build
-      shell: bash
       run: cmake --build ${{runner.workspace}}/build --config $BUILD_TYPE
 
     - uses: actions/upload-artifact@v4
